@@ -101,7 +101,7 @@ export default async function WeekendResults() {
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {results.map((match: any) (
+          {results.map((match: any) => (
             <article
               key={match.id}
               className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm"

@@ -324,7 +324,7 @@ export default function CalendarMatchesClient({
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredRecentResults.map((match: any) (
+            {filteredRecentResults.map((match: any) => (
               <ResultCard key={match.id} match={match} />
             ))}
           </div>
@@ -343,7 +343,7 @@ export default function CalendarMatchesClient({
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredUpcomingMatches.map((match: any) (
+            {filteredUpcomingMatches.map((match: any) => (
               <UpcomingCard key={match.id} match={match} />
             ))}
           </div>
