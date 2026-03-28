@@ -362,7 +362,7 @@ export default async function AdminMatchsPage() {
               </div>
             ) : (
               <div className="mt-6 space-y-4">
-                {matches.map((match) => (
+                {matches.map((match: any) => (
                   <article
                     key={match.id}
                     className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
