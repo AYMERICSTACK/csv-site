@@ -92,14 +92,14 @@ export default async function CalendrierPage() {
       : Promise.resolve([]),
   ]);
 
-  const recentResultsSerialized = recentResults.map((match) => ({
+  const recentResultsSerialized = recentResults.map((match: any) => ({
     ...match,
     matchDate: match.matchDate.toISOString(),
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
   }));
 
-  const upcomingMatchesSerialized = upcomingMatches.map((match) => ({
+  const upcomingMatchesSerialized = upcomingMatches.map((match: any) => ({
     ...match,
     matchDate: match.matchDate.toISOString(),
     createdAt: match.createdAt.toISOString(),

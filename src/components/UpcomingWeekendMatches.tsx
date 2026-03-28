@@ -139,7 +139,7 @@ export default async function UpcomingWeekendMatches() {
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {matches.map((match) => (
+          {matches.map((match: any) (
             <article
               key={match.id}
               className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm"
