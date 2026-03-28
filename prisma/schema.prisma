@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Match {
+  id            String   @id @default(cuid())
+  category      String
+  team          String
+  opponent      String
+  matchDate     DateTime
+  location      String
+  isHome        Boolean
+  status        String
+  scoreTeam     Int?
+  scoreOpponent Int?
+  scorers       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  passwordHash       String
+  name               String
+  role               String
+  isActive           Boolean      @default(true)
+  staffMemberId      String?      @unique
+  showEmailToMembers Boolean      @default(false)
+  showPhoneToMembers Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  staffMember        StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+}
+
+model StaffMember {
+  id           String   @id @default(cuid())
+  name         String
+  roleLabel    String
+  sectionTitle String
+  photo        String?
+  email        String?
+  phone        String?
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User?
+}
