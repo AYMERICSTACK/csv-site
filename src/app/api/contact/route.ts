@@ -3,6 +3,9 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ✅ LOGO
+const logoUrl = "https://csv-site.vercel.app/logo-csv-mail.png";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -23,6 +26,9 @@ export async function POST(req: Request) {
 
     const clubEmail = "adjeridito@gmail.com";
 
+    // ======================
+    // 📩 MAIL CLUB
+    // ======================
     const clubMail = await resend.emails.send({
       from: "CS Viriat <onboarding@resend.dev>",
       to: [clubEmail],
@@ -31,8 +37,16 @@ export async function POST(req: Request) {
       html: `
         <div style="margin:0;padding:0;background-color:#f7f7f7;font-family:Arial,sans-serif;color:#171717;">
           <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+
             <div style="background:#111111;border-radius:20px 20px 0 0;padding:24px 28px;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">
+              <img
+                src="${logoUrl}"
+                alt="CS Viriat"
+                width="72"
+                height="72"
+                style="display:block;margin:0 auto 12px auto;"
+              />
+              <div style="font-size:24px;font-weight:800;color:#ffffff;">
                 CS Viriat
               </div>
               <div style="margin-top:8px;font-size:13px;color:#ffffffb3;">
@@ -46,15 +60,15 @@ export async function POST(req: Request) {
               <table style="width:100%;border-collapse:collapse;font-size:14px;">
                 <tr>
                   <td style="padding:10px 0;color:#737373;font-weight:700;width:140px;">Prénom</td>
-                  <td style="padding:10px 0;color:#171717;">${escapeHtml(firstName)}</td>
+                  <td>${escapeHtml(firstName)}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0;color:#737373;font-weight:700;">Nom</td>
-                  <td style="padding:10px 0;color:#171717;">${escapeHtml(lastName)}</td>
+                  <td>${escapeHtml(lastName)}</td>
                 </tr>
                 <tr>
                   <td style="padding:10px 0;color:#737373;font-weight:700;">Email</td>
-                  <td style="padding:10px 0;color:#171717;">
+                  <td>
                     <a href="mailto:${escapeHtml(email)}" style="color:#f97316;text-decoration:none;">
                       ${escapeHtml(email)}
                     </a>
@@ -62,7 +76,7 @@ export async function POST(req: Request) {
                 </tr>
                 <tr>
                   <td style="padding:10px 0;color:#737373;font-weight:700;">Téléphone</td>
-                  <td style="padding:10px 0;color:#171717;">
+                  <td>
                     ${
                       phone
                         ? `<a href="tel:${escapeHtml(phone)}" style="color:#f97316;text-decoration:none;">${escapeHtml(phone)}</a>`
@@ -72,16 +86,17 @@ export async function POST(req: Request) {
                 </tr>
                 <tr>
                   <td style="padding:10px 0;color:#737373;font-weight:700;">Sujet</td>
-                  <td style="padding:10px 0;color:#171717;">${escapeHtml(subject)}</td>
+                  <td>${escapeHtml(subject)}</td>
                 </tr>
               </table>
 
               <div style="margin-top:24px;">
                 <div style="font-size:14px;font-weight:700;color:#737373;margin-bottom:10px;">Message</div>
-                <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:16px;padding:18px;font-size:14px;line-height:1.7;color:#171717;">
+                <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:16px;padding:18px;">
                   ${escapeHtml(message).replace(/\n/g, "<br />")}
                 </div>
               </div>
+
             </div>
           </div>
         </div>
@@ -95,6 +110,9 @@ export async function POST(req: Request) {
       );
     }
 
+    // ======================
+    // 📩 MAIL UTILISATEUR
+    // ======================
     const userMail = await resend.emails.send({
       from: "CS Viriat <onboarding@resend.dev>",
       to: [email],
@@ -102,8 +120,16 @@ export async function POST(req: Request) {
       html: `
         <div style="margin:0;padding:0;background-color:#f7f7f7;font-family:Arial,sans-serif;color:#171717;">
           <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+
             <div style="background:#111111;border-radius:20px 20px 0 0;padding:24px 28px;text-align:center;">
-              <div style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">
+              <img
+                src="${logoUrl}"
+                alt="CS Viriat"
+                width="72"
+                height="72"
+                style="display:block;margin:0 auto 12px auto;"
+              />
+              <div style="font-size:24px;font-weight:800;color:#ffffff;">
                 CS Viriat
               </div>
               <div style="margin-top:8px;font-size:13px;color:#ffffffb3;">
@@ -114,37 +140,25 @@ export async function POST(req: Request) {
             <div style="background:#ffffff;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 20px 20px;padding:28px;">
               <div style="height:4px;width:72px;background:#f97316;border-radius:999px;margin-bottom:24px;"></div>
 
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">
-                Bonjour ${escapeHtml(firstName)},
-              </p>
+              <p>Bonjour ${escapeHtml(firstName)},</p>
 
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#404040;">
+              <p>
                 Nous avons bien reçu votre message envoyé via le site du
                 <strong> CS Viriat</strong>.
               </p>
 
-              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#404040;">
-                Notre équipe reviendra vers vous dans les meilleurs délais.
-              </p>
+              <p>Notre équipe reviendra vers vous rapidement.</p>
 
               <div style="margin:24px 0;background:#fafafa;border:1px solid #e5e5e5;border-radius:16px;padding:18px;">
-                <div style="font-size:13px;font-weight:700;color:#737373;margin-bottom:8px;">
-                  Récapitulatif de votre message
-                </div>
-                <div style="font-size:14px;color:#171717;line-height:1.7;">
-                  <strong>Sujet :</strong> ${escapeHtml(subject)}<br />
-                  <strong>Téléphone :</strong> ${
-                    phone ? escapeHtml(phone) : "Non renseigné"
-                  }<br />
-                  <strong>Message :</strong><br />
-                  ${escapeHtml(message).replace(/\n/g, "<br />")}
-                </div>
+                <strong>Sujet :</strong> ${escapeHtml(subject)}<br />
+                <strong>Téléphone :</strong> ${
+                  phone ? escapeHtml(phone) : "Non renseigné"
+                }<br /><br />
+                ${escapeHtml(message).replace(/\n/g, "<br />")}
               </div>
 
-              <p style="margin:0;font-size:14px;line-height:1.7;color:#525252;">
-                Merci pour votre prise de contact.<br />
-                <strong>CS Viriat</strong>
-              </p>
+              <p>Merci pour votre prise de contact.<br /><strong>CS Viriat</strong></p>
+
             </div>
           </div>
         </div>
