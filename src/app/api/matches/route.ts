@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -10,8 +11,26 @@ function parseLocalDateTime(value: string) {
   return new Date(year, month - 1, day, hours, minutes);
 }
 
+function unauthorizedResponse() {
+  return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+}
+
+function forbiddenResponse() {
+  return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+}
+
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+
+    if (!session) {
+      return unauthorizedResponse();
+    }
+
+    if (session.user?.role !== "admin") {
+      return forbiddenResponse();
+    }
+
     const body = await request.json();
 
     const {

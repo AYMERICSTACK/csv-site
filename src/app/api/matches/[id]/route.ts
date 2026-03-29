@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -14,8 +15,33 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+function unauthorizedResponse() {
+  return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+}
+
+function forbiddenResponse() {
+  return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+}
+
+async function requireAdmin() {
+  const session = await auth();
+
+  if (!session) {
+    return { ok: false as const, response: unauthorizedResponse() };
+  }
+
+  if (session.user?.role !== "admin") {
+    return { ok: false as const, response: forbiddenResponse() };
+  }
+
+  return { ok: true as const };
+}
+
 export async function GET(_: Request, { params }: RouteContext) {
   try {
+    const access = await requireAdmin();
+    if (!access.ok) return access.response;
+
     const { id } = await params;
 
     const match = await prisma.match.findUnique({
@@ -35,6 +61,9 @@ export async function GET(_: Request, { params }: RouteContext) {
 
 export async function PUT(request: Request, { params }: RouteContext) {
   try {
+    const access = await requireAdmin();
+    if (!access.ok) return access.response;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -117,7 +146,18 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_: Request, { params }: RouteContext) {
   try {
+    const access = await requireAdmin();
+    if (!access.ok) return access.response;
+
     const { id } = await params;
+
+    const existingMatch = await prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!existingMatch) {
+      return NextResponse.json({ error: "Match introuvable" }, { status: 404 });
+    }
 
     await prisma.match.delete({
       where: { id },

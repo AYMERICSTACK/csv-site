@@ -53,3 +53,15 @@ model StaffMember {
 
   user         User?
 }
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  logoUrl     String?
+  websiteUrl  String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

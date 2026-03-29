@@ -19,6 +19,13 @@ type Match = {
   scorers: string | null;
 };
 
+type AccessState =
+  | "loading"
+  | "ready"
+  | "unauthenticated"
+  | "forbidden"
+  | "error";
+
 function formatDateTimeLocal(dateString: string) {
   const date = new Date(dateString);
 
@@ -35,7 +42,7 @@ export default function EditMatchPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
+  const [accessState, setAccessState] = useState<AccessState>("loading");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -55,12 +62,22 @@ export default function EditMatchPage() {
   useEffect(() => {
     async function fetchMatch() {
       try {
-        setLoading(true);
+        setAccessState("loading");
         setError("");
 
         const res = await fetch(`/api/matches/${params.id}`, {
           cache: "no-store",
         });
+
+        if (res.status === 401) {
+          setAccessState("unauthenticated");
+          return;
+        }
+
+        if (res.status === 403) {
+          setAccessState("forbidden");
+          return;
+        }
 
         if (!res.ok) {
           throw new Error("Impossible de charger le match.");
@@ -81,11 +98,12 @@ export default function EditMatchPage() {
             data.scoreOpponent !== null ? String(data.scoreOpponent) : "",
           scorers: data.scorers ?? "",
         });
+
+        setAccessState("ready");
       } catch (err) {
         console.error(err);
         setError("Erreur lors du chargement du match.");
-      } finally {
-        setLoading(false);
+        setAccessState("error");
       }
     }
 
@@ -122,6 +140,16 @@ export default function EditMatchPage() {
         body: JSON.stringify(form),
       });
 
+      if (res.status === 401) {
+        setAccessState("unauthenticated");
+        return;
+      }
+
+      if (res.status === 403) {
+        setAccessState("forbidden");
+        return;
+      }
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -138,11 +166,119 @@ export default function EditMatchPage() {
     }
   }
 
-  if (loading) {
+  if (accessState === "loading") {
     return (
       <Container>
         <div className="py-14">
           <p className="text-sm text-neutral-600">Chargement du match...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (accessState === "unauthenticated") {
+    return (
+      <Container>
+        <div className="py-14">
+          <div className="max-w-2xl rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>Admin</Badge>
+              <Badge>Connexion requise</Badge>
+            </div>
+
+            <h1 className="mt-4 text-2xl font-extrabold text-neutral-900">
+              Connexion requise
+            </h1>
+
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              Tu dois être connecté avec un compte administrateur pour accéder à
+              cette page.
+            </p>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => router.push("/admin/login")}
+                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Aller à la connexion
+              </button>
+            </div>
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
+  if (accessState === "forbidden") {
+    return (
+      <Container>
+        <div className="py-14">
+          <div className="max-w-2xl rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>Admin</Badge>
+              <Badge>Accès interdit</Badge>
+            </div>
+
+            <h1 className="mt-4 text-2xl font-extrabold text-neutral-900">
+              Accès interdit
+            </h1>
+
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              Cette page est réservée aux administrateurs du site.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/espace-club/profil")}
+                className="inline-flex items-center justify-center rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
+              >
+                Aller à mon profil
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Retour à l’accueil
+              </button>
+            </div>
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
+  if (accessState === "error") {
+    return (
+      <Container>
+        <div className="py-14">
+          <div className="max-w-2xl rounded-3xl border border-red-200 bg-red-50 p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>Admin</Badge>
+              <Badge>Erreur</Badge>
+            </div>
+
+            <h1 className="mt-4 text-2xl font-extrabold text-neutral-900">
+              Impossible de charger le match
+            </h1>
+
+            <p className="mt-3 text-sm leading-relaxed text-red-700">
+              {error || "Une erreur est survenue pendant le chargement."}
+            </p>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => router.push("/admin/matchs")}
+                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Retour à la gestion des matchs
+              </button>
+            </div>
+          </div>
         </div>
       </Container>
     );

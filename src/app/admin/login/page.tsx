@@ -3,22 +3,14 @@ import Badge from "@/components/Badge";
 import LoginForm from "./LoginForm";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { getHomePathByRole } from "@/lib/roles";
 
-type PageProps = {
-  searchParams: Promise<{
-    callbackUrl?: string;
-  }>;
-};
-
-export default async function AdminLoginPage({ searchParams }: PageProps) {
+export default async function AdminLoginPage() {
   const session = await auth();
 
   if (session) {
-    redirect("/admin/matchs");
+    redirect(getHomePathByRole(session.user?.role));
   }
-
-  const params = await searchParams;
-  const callbackUrl = params?.callbackUrl || "/admin/matchs";
 
   return (
     <Container>
@@ -38,7 +30,7 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
           </p>
 
           <div className="mt-8 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <LoginForm callbackUrl={callbackUrl} />
+            <LoginForm />
           </div>
         </div>
       </div>

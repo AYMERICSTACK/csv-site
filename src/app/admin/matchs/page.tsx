@@ -18,6 +18,16 @@ function parseLocalDateTime(value: string) {
 async function createMatch(formData: FormData) {
   "use server";
 
+  const session = await auth();
+
+  if (!session) {
+    redirect("/admin/login");
+  }
+
+  if (session.user?.role !== "admin") {
+    redirect("/espace-club/profil");
+  }
+
   const category = String(formData.get("category") || "").trim();
   const team = String(formData.get("team") || "").trim();
   const opponent = String(formData.get("opponent") || "").trim();
@@ -55,6 +65,16 @@ async function createMatch(formData: FormData) {
 
 async function deleteMatch(formData: FormData) {
   "use server";
+
+  const session = await auth();
+
+  if (!session) {
+    redirect("/admin/login");
+  }
+
+  if (session.user?.role !== "admin") {
+    redirect("/espace-club/profil");
+  }
 
   const id = String(formData.get("id") || "").trim();
 
@@ -110,6 +130,10 @@ export default async function AdminMatchsPage() {
 
   if (!session) {
     redirect("/admin/login");
+  }
+
+  if (session.user?.role !== "admin") {
+    redirect("/espace-club/profil");
   }
 
   const matches = await prisma.match.findMany({

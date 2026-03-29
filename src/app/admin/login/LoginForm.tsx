@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { loginAction } from "./actions";
 
-type Props = {
-  callbackUrl: string;
-};
-
-export default function LoginForm({ callbackUrl }: Props) {
+export default function LoginForm() {
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   return (
     <form
@@ -22,12 +20,14 @@ export default function LoginForm({ callbackUrl }: Props) {
 
           if (!result?.success) {
             setError(result?.error || "Connexion impossible.");
+            return;
           }
+
+          router.push(result.redirectTo || "/espace-club/profil");
+          router.refresh();
         });
       }}
     >
-      <input type="hidden" name="callbackUrl" value={callbackUrl} />
-
       <div>
         <label
           htmlFor="email"
