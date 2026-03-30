@@ -6,6 +6,15 @@ import Badge from "@/components/Badge";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import MatchCardActions from "./MatchCardActions";
+import {
+  CalendarDays,
+  MapPin,
+  Shield,
+  Clock3,
+  Trophy,
+  ArrowLeft,
+} from "lucide-react";
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -121,9 +130,24 @@ function formatStatus(status: string) {
   }
 }
 
+function getStatusClasses(status: string) {
+  switch (status) {
+    case "scheduled":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "postponed":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "cancelled":
+      return "bg-red-50 text-red-700 border-red-200";
+    case "finished":
+      return "bg-green-50 text-green-700 border-green-200";
+    default:
+      return "bg-neutral-100 text-neutral-700 border-neutral-200";
+  }
+}
+
 function formatScore(scoreTeam: number | null, scoreOpponent: number | null) {
   if (scoreTeam === null || scoreOpponent === null) {
-    return "Non renseigné";
+    return null;
   }
 
   return `${scoreTeam} - ${scoreOpponent}`;
@@ -140,6 +164,10 @@ export default async function AdminMatchsPage() {
     redirect("/espace-club");
   }
 
+  const role = session.user?.role;
+  const backHref = role === "admin" ? "/admin" : "/espace-club";
+  const backLabel = role === "admin" ? "Retour admin" : "Retour espace club";
+
   const matches = await prisma.match.findMany({
     orderBy: {
       matchDate: "asc",
@@ -149,42 +177,67 @@ export default async function AdminMatchsPage() {
   return (
     <Container>
       <div className="py-14">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>Admin</Badge>
-              <Badge>Matchs</Badge>
+        <section className="relative overflow-hidden rounded-[2rem] border border-neutral-200 bg-neutral-950 px-6 py-8 shadow-sm md:px-8 md:py-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950" />
+          <div className="absolute -right-12 top-0 h-40 w-40 rounded-full bg-csv-orange/20 blur-3xl" />
+
+          <div className="relative flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={backHref}>
+                  <Badge>{role === "admin" ? "Admin" : "Espace club"}</Badge>
+                </Link>
+
+                <Link href="/admin/matchs">
+                  <Badge>Matchs</Badge>
+                </Link>
+              </div>
+
+              <div className="mt-4">
+                <Link
+                  href={backHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15"
+                >
+                  <ArrowLeft size={14} />
+                  {backLabel}
+                </Link>
+              </div>
+
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                Gestion des matchs
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
+                Ajoute, consulte, modifie et supprime les rencontres du club
+                depuis une interface claire et centralisée.
+              </p>
             </div>
 
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
-              Gestion des matchs
-            </h1>
-
-            <p className="mt-3 text-base leading-relaxed text-neutral-700 md:text-lg">
-              Ajoute, consulte, modifie et supprime les rencontres du calendrier
-              du club.
-            </p>
+            <AdminLogoutButton />
           </div>
-          <AdminLogoutButton />
-        </div>
+        </section>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-extrabold text-neutral-900">
-              Ajouter un match
-            </h2>
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-700">
+                <CalendarDays size={20} />
+              </div>
 
-            <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-              Remplis les informations du match pour qu’il apparaisse
-              automatiquement sur la page calendrier.
-            </p>
+              <div>
+                <h2 className="text-xl font-extrabold text-neutral-900">
+                  Ajouter un match
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                  Remplis les informations pour publier automatiquement la
+                  rencontre sur le calendrier.
+                </p>
+              </div>
+            </div>
 
             <form action={createMatch} className="mt-6 space-y-5">
               <div>
-                <label
-                  htmlFor="category"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="category" className="label">
                   Catégorie
                 </label>
                 <input
@@ -192,16 +245,13 @@ export default async function AdminMatchsPage() {
                   name="category"
                   type="text"
                   placeholder="Ex : Seniors, U15, U13..."
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="team"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="team" className="label">
                   Équipe
                 </label>
                 <input
@@ -209,16 +259,13 @@ export default async function AdminMatchsPage() {
                   name="team"
                   type="text"
                   placeholder="Ex : Seniors 1"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="opponent"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="opponent" className="label">
                   Adversaire
                 </label>
                 <input
@@ -226,32 +273,26 @@ export default async function AdminMatchsPage() {
                   name="opponent"
                   type="text"
                   placeholder="Ex : FC Bourg"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="matchDate"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="matchDate" className="label">
                   Date et heure
                 </label>
                 <input
                   id="matchDate"
                   name="matchDate"
                   type="datetime-local"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="location"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="location" className="label">
                   Lieu
                 </label>
                 <input
@@ -259,23 +300,20 @@ export default async function AdminMatchsPage() {
                   name="location"
                   type="text"
                   placeholder="Ex : Stade Pierre Brichon"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="isHome"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="isHome" className="label">
                   Type de rencontre
                 </label>
                 <select
                   id="isHome"
                   name="isHome"
                   defaultValue="true"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                 >
                   <option value="true">Domicile</option>
                   <option value="false">Extérieur</option>
@@ -283,17 +321,14 @@ export default async function AdminMatchsPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="status"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="status" className="label">
                   Statut
                 </label>
                 <select
                   id="status"
                   name="status"
                   defaultValue="scheduled"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                 >
                   <option value="scheduled">Programmé</option>
                   <option value="postponed">Reporté</option>
@@ -304,10 +339,7 @@ export default async function AdminMatchsPage() {
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="scoreTeam"
-                    className="mb-2 block text-sm font-semibold text-neutral-900"
-                  >
+                  <label htmlFor="scoreTeam" className="label">
                     Score CS Viriat
                   </label>
                   <input
@@ -316,15 +348,12 @@ export default async function AdminMatchsPage() {
                     type="number"
                     min="0"
                     placeholder="Ex : 2"
-                    className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="scoreOpponent"
-                    className="mb-2 block text-sm font-semibold text-neutral-900"
-                  >
+                  <label htmlFor="scoreOpponent" className="label">
                     Score adversaire
                   </label>
                   <input
@@ -333,16 +362,13 @@ export default async function AdminMatchsPage() {
                     type="number"
                     min="0"
                     placeholder="Ex : 1"
-                    className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                    className="input"
                   />
                 </div>
               </div>
 
               <div>
-                <label
-                  htmlFor="scorers"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
+                <label htmlFor="scorers" className="label">
                   Buteurs
                 </label>
                 <textarea
@@ -350,7 +376,7 @@ export default async function AdminMatchsPage() {
                   name="scorers"
                   rows={3}
                   placeholder="Ex : Martin x2, Dupont ou Martin (12e), Dupont (57e)"
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
+                  className="input"
                 />
                 <p className="mt-2 text-xs text-neutral-500">
                   Format libre pour cette V1 : Martin x2, Dupont / CSC / Martin
@@ -358,28 +384,25 @@ export default async function AdminMatchsPage() {
                 </p>
               </div>
 
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-              >
+              <button type="submit" className="btn-primary">
                 Ajouter le match
               </button>
             </form>
           </div>
 
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-extrabold text-neutral-900">
                   Matchs enregistrés
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                  Les matchs ajoutés ici apparaissent automatiquement sur la
-                  page calendrier.
+                <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                  Les rencontres ajoutées ici apparaissent automatiquement sur
+                  la page calendrier.
                 </p>
               </div>
 
-              <div className="rounded-full bg-csv-orange/10 px-3 py-1 text-xs font-bold text-csv-black">
+              <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-neutral-900">
                 {matches.length} match{matches.length > 1 ? "s" : ""}
               </div>
             </div>
@@ -390,85 +413,115 @@ export default async function AdminMatchsPage() {
               </div>
             ) : (
               <div className="mt-6 space-y-4">
-                {matches.map((match: any) => (
-                  <article
-                    key={match.id}
-                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
-                  >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          {match.category}
-                        </div>
+                {matches.map((match) => {
+                  const score = formatScore(
+                    match.scoreTeam,
+                    match.scoreOpponent,
+                  );
 
-                        <h3 className="mt-2 text-base font-extrabold text-neutral-900">
-                          {match.team} vs {match.opponent}
-                        </h3>
+                  return (
+                    <article
+                      key={match.id}
+                      className="group rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5 transition hover:border-neutral-300 hover:bg-white hover:shadow-sm"
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
+                              {match.category}
+                            </span>
 
-                        <div className="mt-4 space-y-2 text-sm text-neutral-700">
-                          <div>
-                            <span className="font-semibold text-neutral-900">
-                              Date :
-                            </span>{" "}
-                            {formatDate(match.matchDate)}
+                            <span
+                              className={`rounded-full border px-3 py-1 text-[11px] font-bold ${getStatusClasses(
+                                match.status,
+                              )}`}
+                            >
+                              {formatStatus(match.status)}
+                            </span>
+
+                            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold text-neutral-600">
+                              {match.isHome ? "Domicile" : "Extérieur"}
+                            </span>
                           </div>
-                          <div>
-                            <span className="font-semibold text-neutral-900">
-                              Lieu :
-                            </span>{" "}
-                            {match.location}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-neutral-900">
-                              Type :
-                            </span>{" "}
-                            {match.isHome ? "Domicile" : "Extérieur"}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-neutral-900">
-                              Statut :
-                            </span>{" "}
-                            {formatStatus(match.status)}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-neutral-900">
-                              Score :
-                            </span>{" "}
-                            {formatScore(match.scoreTeam, match.scoreOpponent)}
+
+                          <h3 className="mt-4 text-xl font-extrabold tracking-tight text-neutral-900">
+                            {match.team}{" "}
+                            <span className="text-neutral-400">vs</span>{" "}
+                            {match.opponent}
+                          </h3>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
+                              <div className="mt-0.5 text-neutral-500">
+                                <Clock3 size={16} />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                                  Date
+                                </div>
+                                <div className="mt-1 text-sm font-semibold text-neutral-900">
+                                  {formatDate(match.matchDate)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
+                              <div className="mt-0.5 text-neutral-500">
+                                <MapPin size={16} />
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                                  Lieu
+                                </div>
+                                <div className="mt-1 text-sm font-semibold text-neutral-900">
+                                  {match.location}
+                                </div>
+                              </div>
+                            </div>
                           </div>
 
                           {match.scorers ? (
-                            <div>
-                              <span className="font-semibold text-neutral-900">
-                                Buteurs :
-                              </span>{" "}
-                              {match.scorers}
+                            <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
+                              <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                                Buteurs
+                              </div>
+                              <div className="mt-1 whitespace-pre-line text-sm font-semibold text-neutral-900">
+                                {match.scorers}
+                              </div>
                             </div>
                           ) : null}
                         </div>
-                      </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        <Link
-                          href={`/admin/matchs/${match.id}/edit`}
-                          className="inline-flex items-center justify-center rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
-                        >
-                          Modifier
-                        </Link>
+                        <div className="flex shrink-0 flex-col gap-3 lg:w-48">
+                          <div className="rounded-[1.25rem] border border-neutral-200 bg-white p-4 text-center shadow-sm">
+                            <div className="flex items-center justify-center gap-2 text-neutral-500">
+                              <Trophy size={16} />
+                              <span className="text-xs font-bold uppercase tracking-wide">
+                                Score
+                              </span>
+                            </div>
 
-                        <form action={deleteMatch}>
-                          <input type="hidden" name="id" value={match.id} />
-                          <button
-                            type="submit"
-                            className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                          >
-                            Supprimer
-                          </button>
-                        </form>
+                            <div className="mt-2 text-2xl font-extrabold tracking-tight text-neutral-900">
+                              {score || "—"}
+                            </div>
+                          </div>
+
+                          <MatchCardActions
+                            matchId={match.id}
+                            deleteAction={deleteMatch}
+                          />
+
+                          <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700">
+                            <Shield size={15} className="text-neutral-500" />
+                            <span className="font-medium">
+                              {match.isHome ? "Réception" : "Déplacement"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>

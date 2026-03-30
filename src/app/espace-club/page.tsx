@@ -1,9 +1,21 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { isUserRole, type UserRole } from "@/lib/roles";
+import {
+  Calendar,
+  Megaphone,
+  Users,
+  Wrench,
+  PartyPopper,
+  Beer,
+  Handshake,
+  UserCircle,
+  ArrowRight,
+} from "lucide-react";
 
 type ClubCard = {
   title: string;
@@ -11,6 +23,7 @@ type ClubCard = {
   href: string;
   roles: UserRole[];
   badge: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 };
 
 const CLUB_CARDS: ClubCard[] = [
@@ -21,67 +34,68 @@ const CLUB_CARDS: ClubCard[] = [
     href: "/admin/matchs",
     roles: ["admin", "educateurs"],
     badge: "Administration",
+    icon: Calendar,
   },
   {
     title: "Communication",
-    description:
-      "Organiser les contenus, visuels, publications et supports de communication du club.",
+    description: "Organiser les contenus, visuels et publications du club.",
     href: "/espace-communication",
     roles: ["admin", "communication"],
     badge: "Commission",
+    icon: Megaphone,
   },
   {
     title: "Bureau",
-    description:
-      "Coordonner les sujets transverses, l'organisation générale et le pilotage du club.",
+    description: "Coordonner l’organisation générale et le pilotage du club.",
     href: "/espace-bureau",
     roles: ["admin", "bureau"],
     badge: "Commission",
+    icon: Users,
   },
   {
     title: "Matériel",
-    description:
-      "Structurer le suivi des équipements, des besoins matériels et des ressources du club.",
+    description: "Suivi des équipements et gestion des ressources matérielles.",
     href: "/espace-materiel",
     roles: ["admin", "materiel"],
     badge: "Commission",
+    icon: Wrench,
   },
   {
     title: "Festivité",
-    description:
-      "Préparer les événements, animations et temps forts de la vie du club.",
+    description: "Organisation des événements et animations du club.",
     href: "/espace-festivite",
     roles: ["admin", "festivite"],
     badge: "Commission",
+    icon: PartyPopper,
   },
   {
     title: "Éducateurs",
-    description:
-      "Centraliser les informations, ressources et éléments utiles aux éducateurs.",
+    description: "Accès aux outils et à la gestion sportive des équipes.",
     href: "/espace-educateurs",
     roles: ["admin", "educateurs"],
     badge: "Commission",
+    icon: Users,
   },
   {
     title: "Buvette",
-    description:
-      "Préparer l’organisation, la logistique et les besoins liés à la buvette.",
+    description: "Organisation logistique et gestion de la buvette.",
     href: "/espace-buvette",
     roles: ["admin", "buvette"],
     badge: "Commission",
+    icon: Beer,
   },
   {
     title: "Sponsoring",
-    description:
-      "Gérer les partenaires, leur visibilité, leurs logos et leur mise en avant sur le site.",
+    description: "Gestion des partenaires et de leur visibilité.",
     href: "/espace-sponsoring",
     roles: ["admin", "sponsoring"],
     badge: "Commission",
+    icon: Handshake,
   },
   {
-    title: "Mon profil",
+    title: "Compte commission",
     description:
-      "Consulter tes informations personnelles, ton rôle et tes préférences de visibilité.",
+      "Informations du compte connecté et membres liés à la commission.",
     href: "/espace-club/profil",
     roles: [
       "admin",
@@ -93,7 +107,8 @@ const CLUB_CARDS: ClubCard[] = [
       "educateurs",
       "buvette",
     ],
-    badge: "Utilisateur",
+    badge: "Compte",
+    icon: UserCircle,
   },
 ];
 
@@ -132,47 +147,98 @@ export default async function EspaceClubPage() {
   return (
     <Container>
       <div className="py-14">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>Espace club</Badge>
-              <Badge>{ROLE_LABELS[role]}</Badge>
-            </div>
+        {/* HERO */}
+        <section className="relative overflow-hidden rounded-[2rem] border border-neutral-200 bg-neutral-950 px-6 py-8 shadow-sm md:px-8 md:py-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950" />
+          <div className="absolute -right-16 top-0 h-48 w-48 rounded-full bg-csv-orange/20 blur-3xl" />
+          <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
 
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
-              Bienvenue dans votre espace privé
-            </h1>
-
-            <p className="mt-3 text-base leading-relaxed text-neutral-700 md:text-lg">
-              Retrouvez ici les accès utiles selon votre rôle au sein du CS
-              Viriat.
-            </p>
-          </div>
-
-          <AdminLogoutButton />
-        </div>
-
-        <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {visibleCards.map((card) => (
-            <a
-              key={card.href}
-              href={card.href}
-              className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-                {card.badge}
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>Espace club</Badge>
+                <Badge>{ROLE_LABELS[role]}</Badge>
               </div>
 
-              <h2 className="mt-3 text-xl font-extrabold text-neutral-900">
-                {card.title}
-              </h2>
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                Votre espace privé CS Viriat
+              </h1>
 
-              <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-                {card.description}
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
+                Accédez rapidement aux outils, espaces et ressources utiles
+                selon votre commission. Une interface claire, centralisée et
+                pensée pour un usage quotidien.
               </p>
-            </a>
-          ))}
-        </div>
+            </div>
+
+            <div className="shrink-0">
+              <AdminLogoutButton />
+            </div>
+          </div>
+        </section>
+
+        {/* CARDS */}
+        <section className="mt-10">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-tight text-neutral-900">
+                Accès disponibles
+              </h2>
+              <p className="mt-1 text-sm text-neutral-600">
+                Ouvrez les espaces correspondant à votre rôle et à vos besoins.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {visibleCards.map((card) => {
+              const Icon = card.icon;
+
+              return (
+                <Link
+                  key={card.href}
+                  href={card.href}
+                  className="group relative overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-xl"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-orange-50/70 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  <div className="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-csv-orange/10 blur-2xl transition group-hover:bg-csv-orange/20" />
+
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
+                          {card.badge}
+                        </div>
+                      </div>
+
+                      <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-700 transition-all duration-200 group-hover:border-csv-orange group-hover:bg-csv-orange group-hover:text-white group-hover:shadow-md">
+                        <Icon size={20} />
+                      </div>
+                    </div>
+
+                    <h3 className="mt-5 text-xl font-extrabold tracking-tight text-neutral-900">
+                      {card.title}
+                    </h3>
+
+                    <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+                      {card.description}
+                    </p>
+
+                    <div className="mt-6 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-neutral-900">
+                        Ouvrir
+                      </span>
+
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-all duration-200 group-hover:border-csv-orange group-hover:text-csv-orange">
+                        <ArrowRight size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       </div>
     </Container>
   );

@@ -24,19 +24,18 @@ model Match {
 }
 
 model User {
-  id                 String       @id @default(cuid())
-  email              String       @unique
+  id                 String        @id @default(cuid())
+  email              String        @unique
   passwordHash       String
   name               String
   role               String
-  isActive           Boolean      @default(true)
-  staffMemberId      String?      @unique
-  showEmailToMembers Boolean      @default(false)
-  showPhoneToMembers Boolean      @default(false)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  isActive           Boolean       @default(true)
+  showEmailToMembers Boolean       @default(false)
+  showPhoneToMembers Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  staffMember        StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+  staffMembers       StaffMember[]
 }
 
 model StaffMember {
@@ -51,7 +50,10 @@ model StaffMember {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user         User?
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }
 
 model Partner {
@@ -65,6 +67,7 @@ model Partner {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
 model TeamGroup {
   id          String   @id @default(cuid())
   title       String
@@ -79,16 +82,16 @@ model TeamGroup {
 }
 
 model Team {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   category    String
   coach       String
-  sortOrder   Int      @default(0)
-  isPublished Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder   Int           @default(0)
+  isPublished Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   groupId     String
-  group       TeamGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group       TeamGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   schedules   TeamSchedule[]
 }

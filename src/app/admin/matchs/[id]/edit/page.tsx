@@ -1,525 +1,525 @@
-"use client";
-
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import AdminLogoutButton from "@/components/AdminLogoutButton";
+import { prisma } from "@/lib/prisma";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock3,
+  MapPin,
+  Pencil,
+  Shield,
+  Trophy,
+} from "lucide-react";
 
-type Match = {
-  id: string;
-  category: string;
-  team: string;
-  opponent: string;
-  matchDate: string;
-  location: string;
-  isHome: boolean;
-  status: string;
-  scoreTeam: number | null;
-  scoreOpponent: number | null;
-  scorers: string | null;
+type PageProps = {
+  params: Promise<{ id: string }>;
 };
 
-type AccessState =
-  | "loading"
-  | "ready"
-  | "unauthenticated"
-  | "forbidden"
-  | "error";
+function canManageMatches(role?: string | null) {
+  return role === "admin" || role === "educateurs";
+}
 
-function formatDateTimeLocal(dateString: string) {
-  const date = new Date(dateString);
+function parseLocalDateTime(value: string) {
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return new Date(year, month - 1, day, hours, minutes);
+}
+
+function toDatetimeLocalValue(date: Date | string) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-export default function EditMatchPage() {
-  const params = useParams<{ id: string }>();
-  const router = useRouter();
+function formatDate(date: Date) {
+  return new Date(date).toLocaleString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-  const [accessState, setAccessState] = useState<AccessState>("loading");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+function formatStatus(status: string) {
+  switch (status) {
+    case "scheduled":
+      return "Programmé";
+    case "postponed":
+      return "Reporté";
+    case "cancelled":
+      return "Annulé";
+    case "finished":
+      return "Terminé";
+    default:
+      return status;
+  }
+}
 
-  const [form, setForm] = useState({
-    category: "",
-    team: "",
-    opponent: "",
-    matchDate: "",
-    location: "",
-    isHome: true,
-    status: "scheduled",
-    scoreTeam: "",
-    scoreOpponent: "",
-    scorers: "",
+function getStatusClasses(status: string) {
+  switch (status) {
+    case "scheduled":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "postponed":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "cancelled":
+      return "bg-red-50 text-red-700 border-red-200";
+    case "finished":
+      return "bg-green-50 text-green-700 border-green-200";
+    default:
+      return "bg-neutral-100 text-neutral-700 border-neutral-200";
+  }
+}
+
+function formatScore(scoreTeam: number | null, scoreOpponent: number | null) {
+  if (scoreTeam === null || scoreOpponent === null) {
+    return null;
+  }
+
+  return `${scoreTeam} - ${scoreOpponent}`;
+}
+
+export default async function EditMatchPage({ params }: PageProps) {
+  const session = await auth();
+
+  if (!session) {
+    redirect("/admin/login");
+  }
+
+  if (!canManageMatches(session.user?.role)) {
+    redirect("/espace-club");
+  }
+
+  const { id } = await params;
+  const role = session.user?.role;
+  const backHref = role === "admin" ? "/admin/matchs" : "/admin/matchs";
+  const backLabel = "Retour aux matchs";
+
+  const match = await prisma.match.findUnique({
+    where: { id },
   });
 
-  useEffect(() => {
-    async function fetchMatch() {
-      try {
-        setAccessState("loading");
-        setError("");
+  if (!match) {
+    redirect("/admin/matchs");
+  }
 
-        const res = await fetch(`/api/matches/${params.id}`, {
-          cache: "no-store",
-        });
+  async function updateMatch(formData: FormData) {
+    "use server";
 
-        if (res.status === 401) {
-          setAccessState("unauthenticated");
-          return;
-        }
+    const session = await auth();
 
-        if (res.status === 403) {
-          setAccessState("forbidden");
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error("Impossible de charger le match.");
-        }
-
-        const data: Match = await res.json();
-
-        setForm({
-          category: data.category,
-          team: data.team,
-          opponent: data.opponent,
-          matchDate: formatDateTimeLocal(data.matchDate),
-          location: data.location,
-          isHome: data.isHome,
-          status: data.status,
-          scoreTeam: data.scoreTeam !== null ? String(data.scoreTeam) : "",
-          scoreOpponent:
-            data.scoreOpponent !== null ? String(data.scoreOpponent) : "",
-          scorers: data.scorers ?? "",
-        });
-
-        setAccessState("ready");
-      } catch (err) {
-        console.error(err);
-        setError("Erreur lors du chargement du match.");
-        setAccessState("error");
-      }
+    if (!session) {
+      redirect("/admin/login");
     }
 
-    if (params?.id) {
-      fetchMatch();
+    if (!canManageMatches(session.user?.role)) {
+      redirect("/espace-club");
     }
-  }, [params?.id]);
 
-  function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) {
-    const { name, value } = e.target;
+    const id = String(formData.get("id") || "").trim();
+    const category = String(formData.get("category") || "").trim();
+    const team = String(formData.get("team") || "").trim();
+    const opponent = String(formData.get("opponent") || "").trim();
+    const matchDate = String(formData.get("matchDate") || "").trim();
+    const location = String(formData.get("location") || "").trim();
+    const isHomeValue = String(formData.get("isHome") || "true").trim();
+    const status = String(formData.get("status") || "scheduled").trim();
+    const scoreTeamValue = String(formData.get("scoreTeam") || "").trim();
+    const scoreOpponentValue = String(
+      formData.get("scoreOpponent") || "",
+    ).trim();
+    const scorersValue = String(formData.get("scorers") || "").trim();
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === "isHome" ? value === "true" : value,
-    }));
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    try {
-      setSaving(true);
-      setError("");
-
-      const res = await fetch(`/api/matches/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      if (res.status === 401) {
-        setAccessState("unauthenticated");
-        return;
-      }
-
-      if (res.status === 403) {
-        setAccessState("forbidden");
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Erreur lors de la mise à jour.");
-      }
-
-      router.push("/admin/matchs");
-      router.refresh();
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Une erreur est survenue.");
-    } finally {
-      setSaving(false);
+    if (!id) {
+      throw new Error("ID du match manquant.");
     }
+
+    if (!category || !team || !opponent || !matchDate || !location) {
+      throw new Error("Tous les champs obligatoires doivent être remplis.");
+    }
+
+    const existingMatch = await prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!existingMatch) {
+      throw new Error("Match introuvable.");
+    }
+
+    await prisma.match.update({
+      where: { id },
+      data: {
+        category,
+        team,
+        opponent,
+        matchDate: parseLocalDateTime(matchDate),
+        location,
+        isHome: isHomeValue === "true",
+        status,
+        scoreTeam: scoreTeamValue ? Number(scoreTeamValue) : null,
+        scoreOpponent: scoreOpponentValue ? Number(scoreOpponentValue) : null,
+        scorers: scorersValue || null,
+      },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/admin/matchs");
+    revalidatePath(`/admin/matchs/${id}/edit`);
+    revalidatePath("/calendrier");
+
+    redirect("/admin/matchs");
   }
 
-  if (accessState === "loading") {
-    return (
-      <Container>
-        <div className="py-14">
-          <p className="text-sm text-neutral-600">Chargement du match...</p>
-        </div>
-      </Container>
-    );
-  }
-
-  if (accessState === "unauthenticated") {
-    return (
-      <Container>
-        <div className="py-14">
-          <div className="max-w-2xl rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>Admin</Badge>
-              <Badge>Connexion requise</Badge>
-            </div>
-
-            <h1 className="mt-4 text-2xl font-extrabold text-neutral-900">
-              Connexion requise
-            </h1>
-
-            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-              Tu dois être connecté avec un compte autorisé pour accéder à cette
-              page.
-            </p>
-
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => router.push("/admin/login")}
-                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Aller à la connexion
-              </button>
-            </div>
-          </div>
-        </div>
-      </Container>
-    );
-  }
-
-  if (accessState === "forbidden") {
-    return (
-      <Container>
-        <div className="py-14">
-          <div className="max-w-2xl rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>Admin</Badge>
-              <Badge>Accès interdit</Badge>
-            </div>
-
-            <h1 className="mt-4 text-2xl font-extrabold text-neutral-900">
-              Accès interdit
-            </h1>
-
-            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-              Cette page est réservée aux comptes autorisés à gérer les matchs.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/espace-club")}
-                className="inline-flex items-center justify-center rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
-              >
-                Aller à mon profil
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/")}
-                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Retour à l’accueil
-              </button>
-            </div>
-          </div>
-        </div>
-      </Container>
-    );
-  }
-
-  if (accessState === "error") {
-    return (
-      <Container>
-        <div className="py-14">
-          <div className="max-w-2xl rounded-3xl border border-red-200 bg-red-50 p-6">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>Admin</Badge>
-              <Badge>Erreur</Badge>
-            </div>
-
-            <h1 className="mt-4 text-2xl font-extrabold text-neutral-900">
-              Impossible de charger le match
-            </h1>
-
-            <p className="mt-3 text-sm leading-relaxed text-red-700">
-              {error || "Une erreur est survenue pendant le chargement."}
-            </p>
-
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => router.push("/admin/matchs")}
-                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Retour à la gestion des matchs
-              </button>
-            </div>
-          </div>
-        </div>
-      </Container>
-    );
-  }
+  const score = formatScore(match.scoreTeam, match.scoreOpponent);
 
   return (
     <Container>
       <div className="py-14">
-        <div className="max-w-3xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>Admin</Badge>
-            <Badge>Matchs</Badge>
-            <Badge>Édition</Badge>
-          </div>
-
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
-            Modifier un match
-          </h1>
-
-          <p className="mt-3 text-base leading-relaxed text-neutral-700 md:text-lg">
-            Mets à jour les informations du match puis enregistre les
-            modifications.
-          </p>
-        </div>
-
-        <div className="mt-10 max-w-3xl rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="category"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Catégorie
-              </label>
-              <input
-                id="category"
-                name="category"
-                type="text"
-                value={form.category}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="team"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Équipe
-              </label>
-              <input
-                id="team"
-                name="team"
-                type="text"
-                value={form.team}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="opponent"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Adversaire
-              </label>
-              <input
-                id="opponent"
-                name="opponent"
-                type="text"
-                value={form.opponent}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="matchDate"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Date et heure
-              </label>
-              <input
-                id="matchDate"
-                name="matchDate"
-                type="datetime-local"
-                value={form.matchDate}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="location"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Lieu
-              </label>
-              <input
-                id="location"
-                name="location"
-                type="text"
-                value={form.location}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="isHome"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Type de rencontre
-              </label>
-              <select
-                id="isHome"
-                name="isHome"
-                value={String(form.isHome)}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-              >
-                <option value="true">Domicile</option>
-                <option value="false">Extérieur</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="status"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Statut
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-              >
-                <option value="scheduled">Programmé</option>
-                <option value="postponed">Reporté</option>
-                <option value="cancelled">Annulé</option>
-                <option value="finished">Terminé</option>
-              </select>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="scoreTeam"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
-                >
-                  Score CS Viriat
-                </label>
-                <input
-                  id="scoreTeam"
-                  name="scoreTeam"
-                  type="number"
-                  min="0"
-                  value={form.scoreTeam}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                />
+        <section className="relative overflow-hidden rounded-[2rem] border border-neutral-200 bg-neutral-950 px-6 py-8 shadow-sm md:px-8 md:py-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950" />
+          <div className="absolute -right-12 top-0 h-40 w-40 rounded-full bg-csv-orange/20 blur-3xl" />
+          <div className="relative flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={role === "admin" ? "/admin" : "/espace-club"}>
+                  <Badge>{role === "admin" ? "Admin" : "Espace club"}</Badge>
+                </Link>
+                <Link href="/admin/matchs">
+                  <Badge>Matchs</Badge>
+                </Link>
+                <Badge>Édition</Badge>
               </div>
 
-              <div>
-                <label
-                  htmlFor="scoreOpponent"
-                  className="mb-2 block text-sm font-semibold text-neutral-900"
+              <div className="mt-4">
+                <Link
+                  href={backHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15"
                 >
-                  Score adversaire
-                </label>
-                <input
-                  id="scoreOpponent"
-                  name="scoreOpponent"
-                  type="number"
-                  min="0"
-                  value={form.scoreOpponent}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-                />
+                  <ArrowLeft size={14} />
+                  {backLabel}
+                </Link>
               </div>
-            </div>
 
-            <div>
-              <label
-                htmlFor="scorers"
-                className="mb-2 block text-sm font-semibold text-neutral-900"
-              >
-                Buteurs
-              </label>
-              <textarea
-                id="scorers"
-                name="scorers"
-                value={form.scorers}
-                onChange={handleChange}
-                rows={3}
-                placeholder="Ex : Martin x2, Dupont ou Martin (12e), Dupont (57e)"
-                className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-csv-orange"
-              />
-              <p className="mt-2 text-xs text-neutral-500">
-                Format libre pour cette V1 : Martin x2, Dupont / CSC / Martin
-                (12e).
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                Modifier un match
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
+                Mets à jour les informations de la rencontre, le score, le
+                statut et les buteurs depuis une interface claire et cohérente.
               </p>
             </div>
 
-            {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
+            <AdminLogoutButton />
+          </div>
+        </section>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-700">
+                <Pencil size={20} />
               </div>
-            ) : null}
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => router.push("/admin/matchs")}
-                className="inline-flex items-center justify-center rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
-              >
-                Annuler
-              </button>
+              <div>
+                <h2 className="text-xl font-extrabold text-neutral-900">
+                  Formulaire d’édition
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                  Modifie les informations du match puis enregistre les
+                  changements.
+                </p>
+              </div>
             </div>
-          </form>
+
+            <form action={updateMatch} className="mt-6 space-y-5">
+              <input type="hidden" name="id" value={match.id} />
+
+              <div>
+                <label htmlFor="category" className="label">
+                  Catégorie
+                </label>
+                <input
+                  id="category"
+                  name="category"
+                  type="text"
+                  defaultValue={match.category}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="team" className="label">
+                  Équipe
+                </label>
+                <input
+                  id="team"
+                  name="team"
+                  type="text"
+                  defaultValue={match.team}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="opponent" className="label">
+                  Adversaire
+                </label>
+                <input
+                  id="opponent"
+                  name="opponent"
+                  type="text"
+                  defaultValue={match.opponent}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="matchDate" className="label">
+                  Date et heure
+                </label>
+                <input
+                  id="matchDate"
+                  name="matchDate"
+                  type="datetime-local"
+                  defaultValue={toDatetimeLocalValue(match.matchDate)}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="location" className="label">
+                  Lieu
+                </label>
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  defaultValue={match.location}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="isHome" className="label">
+                  Type de rencontre
+                </label>
+                <select
+                  id="isHome"
+                  name="isHome"
+                  defaultValue={match.isHome ? "true" : "false"}
+                  className="input"
+                >
+                  <option value="true">Domicile</option>
+                  <option value="false">Extérieur</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="status" className="label">
+                  Statut
+                </label>
+                <select
+                  id="status"
+                  name="status"
+                  defaultValue={match.status}
+                  className="input"
+                >
+                  <option value="scheduled">Programmé</option>
+                  <option value="postponed">Reporté</option>
+                  <option value="cancelled">Annulé</option>
+                  <option value="finished">Terminé</option>
+                </select>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label htmlFor="scoreTeam" className="label">
+                    Score CS Viriat
+                  </label>
+                  <input
+                    id="scoreTeam"
+                    name="scoreTeam"
+                    type="number"
+                    min="0"
+                    defaultValue={match.scoreTeam ?? ""}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="scoreOpponent" className="label">
+                    Score adversaire
+                  </label>
+                  <input
+                    id="scoreOpponent"
+                    name="scoreOpponent"
+                    type="number"
+                    min="0"
+                    defaultValue={match.scoreOpponent ?? ""}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="scorers" className="label">
+                  Buteurs
+                </label>
+                <textarea
+                  id="scorers"
+                  name="scorers"
+                  rows={3}
+                  defaultValue={match.scorers ?? ""}
+                  className="input"
+                />
+                <p className="mt-2 text-xs text-neutral-500">
+                  Format libre pour cette V1 : Martin x2, Dupont / CSC / Martin
+                  (12e).
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button type="submit" className="btn-primary">
+                  Enregistrer les modifications
+                </button>
+
+                <Link href="/admin/matchs" className="btn-secondary">
+                  Retour
+                </Link>
+              </div>
+            </form>
+          </div>
+
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-extrabold text-neutral-900">
+                  Aperçu du match
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                  Vérifie rapidement les informations actuelles avant
+                  d’enregistrer.
+                </p>
+              </div>
+
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
+                  match.status,
+                )}`}
+              >
+                {formatStatus(match.status)}
+              </span>
+            </div>
+
+            <article className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
+                      {match.category}
+                    </span>
+
+                    <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold text-neutral-600">
+                      {match.isHome ? "Domicile" : "Extérieur"}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-4 text-xl font-extrabold tracking-tight text-neutral-900">
+                    {match.team} <span className="text-neutral-400">vs</span>{" "}
+                    {match.opponent}
+                  </h3>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
+                      <div className="mt-0.5 text-neutral-500">
+                        <Clock3 size={16} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                          Date
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-neutral-900">
+                          {formatDate(match.matchDate)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
+                      <div className="mt-0.5 text-neutral-500">
+                        <MapPin size={16} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                          Lieu
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-neutral-900">
+                          {match.location}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {match.scorers ? (
+                    <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
+                      <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                        Buteurs
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-neutral-900">
+                        {match.scorers}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex shrink-0 flex-col gap-3 lg:w-48">
+                  <div className="rounded-[1.25rem] border border-neutral-200 bg-white p-4 text-center shadow-sm">
+                    <div className="flex items-center justify-center gap-2 text-neutral-500">
+                      <Trophy size={16} />
+                      <span className="text-xs font-bold uppercase tracking-wide">
+                        Score
+                      </span>
+                    </div>
+
+                    <div className="mt-2 text-2xl font-extrabold tracking-tight text-neutral-900">
+                      {score || "—"}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700">
+                    <Shield size={15} className="text-neutral-500" />
+                    <span className="font-medium">
+                      {match.isHome ? "Réception" : "Déplacement"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700">
+                    <CalendarDays size={15} className="text-neutral-500" />
+                    <span className="font-medium">
+                      {formatStatus(match.status)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
         </div>
       </div>
     </Container>
