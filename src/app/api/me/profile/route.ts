@@ -18,7 +18,11 @@ export async function PATCH(request: Request) {
     const currentUser = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        staffMember: true,
+        staffMembers: {
+          orderBy: {
+            name: "asc",
+          },
+        },
       },
     });
 
@@ -29,7 +33,9 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (!currentUser.staffMemberId || !currentUser.staffMember) {
+    const linkedStaffMember = currentUser.staffMembers?.[0] ?? null;
+
+    if (!linkedStaffMember) {
       return NextResponse.json(
         { error: "Aucune fiche staff liée à ce compte." },
         { status: 400 },
@@ -51,10 +57,10 @@ export async function PATCH(request: Request) {
     const updatedUser = await prisma.user.update({
       where: { id: currentUser.id },
       data: {
-        showEmailToMembers: currentUser.staffMember.email
+        showEmailToMembers: linkedStaffMember.email
           ? showEmailToMembers
           : false,
-        showPhoneToMembers: currentUser.staffMember.phone
+        showPhoneToMembers: linkedStaffMember.phone
           ? showPhoneToMembers
           : false,
       },
