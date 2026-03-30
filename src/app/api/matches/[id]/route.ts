@@ -23,14 +23,14 @@ function forbiddenResponse() {
   return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
 }
 
-async function requireAdmin() {
+async function requireMatchManager() {
   const session = await auth();
 
   if (!session) {
     return { ok: false as const, response: unauthorizedResponse() };
   }
 
-  if (session.user?.role !== "admin") {
+  if (session.user?.role !== "admin" && session.user?.role !== "educateurs") {
     return { ok: false as const, response: forbiddenResponse() };
   }
 
@@ -39,7 +39,7 @@ async function requireAdmin() {
 
 export async function GET(_: Request, { params }: RouteContext) {
   try {
-    const access = await requireAdmin();
+    const access = await requireMatchManager();
     if (!access.ok) return access.response;
 
     const { id } = await params;
@@ -61,7 +61,7 @@ export async function GET(_: Request, { params }: RouteContext) {
 
 export async function PUT(request: Request, { params }: RouteContext) {
   try {
-    const access = await requireAdmin();
+    const access = await requireMatchManager();
     if (!access.ok) return access.response;
 
     const { id } = await params;
@@ -146,7 +146,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_: Request, { params }: RouteContext) {
   try {
-    const access = await requireAdmin();
+    const access = await requireMatchManager();
     if (!access.ok) return access.response;
 
     const { id } = await params;

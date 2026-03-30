@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import ProfileVisibilityForm from "@/components/ProfileVisibilityForm";
@@ -6,7 +7,7 @@ export default async function Page() {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return <div className="p-6">Non connecté</div>;
+    redirect("/admin/login");
   }
 
   const user = await prisma.user.findUnique({
@@ -21,8 +22,7 @@ export default async function Page() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6 space-y-6">
-      {/* HEADER */}
+    <div className="mx-auto max-w-3xl space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Mon profil</h1>
         <p className="text-sm text-neutral-500">
@@ -30,11 +30,10 @@ export default async function Page() {
         </p>
       </div>
 
-      {/* COMPTE */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
         <h2 className="text-lg font-semibold">Compte</h2>
 
-        <div className="text-sm text-neutral-700 space-y-1">
+        <div className="space-y-1 text-sm text-neutral-700">
           <p>
             <strong>Nom :</strong> {user.name}
           </p>
@@ -47,12 +46,11 @@ export default async function Page() {
         </div>
       </div>
 
-      {/* STAFF */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
         <h2 className="text-lg font-semibold">Fiche staff</h2>
 
         {user.staffMember ? (
-          <div className="text-sm text-neutral-700 space-y-1">
+          <div className="space-y-1 text-sm text-neutral-700">
             <p>
               <strong>Nom :</strong> {user.staffMember.name}
             </p>
@@ -74,9 +72,8 @@ export default async function Page() {
         )}
       </div>
 
-      {/* VISIBILITÉ */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold mb-4">
+        <h2 className="mb-4 text-lg font-semibold">
           Visibilité des informations
         </h2>
 

@@ -15,6 +15,10 @@ function parseLocalDateTime(value: string) {
   return new Date(year, month - 1, day, hours, minutes);
 }
 
+function canManageMatches(role?: string | null) {
+  return role === "admin" || role === "educateurs";
+}
+
 async function createMatch(formData: FormData) {
   "use server";
 
@@ -24,8 +28,8 @@ async function createMatch(formData: FormData) {
     redirect("/admin/login");
   }
 
-  if (session.user?.role !== "admin") {
-    redirect("/espace-club/profil");
+  if (!canManageMatches(session.user?.role)) {
+    redirect("/espace-club");
   }
 
   const category = String(formData.get("category") || "").trim();
@@ -72,8 +76,8 @@ async function deleteMatch(formData: FormData) {
     redirect("/admin/login");
   }
 
-  if (session.user?.role !== "admin") {
-    redirect("/espace-club/profil");
+  if (!canManageMatches(session.user?.role)) {
+    redirect("/espace-club");
   }
 
   const id = String(formData.get("id") || "").trim();
@@ -132,8 +136,8 @@ export default async function AdminMatchsPage() {
     redirect("/admin/login");
   }
 
-  if (session.user?.role !== "admin") {
-    redirect("/espace-club/profil");
+  if (!canManageMatches(session.user?.role)) {
+    redirect("/espace-club");
   }
 
   const matches = await prisma.match.findMany({

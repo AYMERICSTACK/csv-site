@@ -1,26 +1,9 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-
-async function requireSponsoringAccess() {
-  const session = await auth();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  const role = session.user?.role;
-
-  if (role !== "admin" && role !== "sponsoring") {
-    redirect("/espace-club/profil");
-  }
-
-  return session;
-}
+import { requireRole } from "@/lib/auth-guard";
 
 async function uploadPartnerLogo(file: File) {
   const formData = new FormData();
@@ -52,7 +35,7 @@ async function uploadPartnerLogo(file: File) {
 async function createPartner(formData: FormData) {
   "use server";
 
-  await requireSponsoringAccess();
+  await requireRole(["admin", "sponsoring"]);
 
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
@@ -111,7 +94,7 @@ async function createPartner(formData: FormData) {
 async function togglePartnerActive(formData: FormData) {
   "use server";
 
-  await requireSponsoringAccess();
+  await requireRole(["admin", "sponsoring"]);
 
   const id = String(formData.get("id") || "").trim();
 
@@ -141,7 +124,7 @@ async function togglePartnerActive(formData: FormData) {
 async function deletePartner(formData: FormData) {
   "use server";
 
-  await requireSponsoringAccess();
+  await requireRole(["admin", "sponsoring"]);
 
   const id = String(formData.get("id") || "").trim();
 
@@ -158,7 +141,7 @@ async function deletePartner(formData: FormData) {
 }
 
 export default async function EspaceSponsoringPage() {
-  const session = await requireSponsoringAccess();
+  const session = await requireRole(["admin", "sponsoring"]);
 
   const partners = await prisma.partner.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],

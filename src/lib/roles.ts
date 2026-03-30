@@ -13,13 +13,13 @@ export type UserRole = (typeof ROLES)[number];
 
 export const ROLE_HOME: Record<UserRole, string> = {
   admin: "/admin",
-  communication: "/espace-club/profil",
-  bureau: "/espace-club/profil",
-  materiel: "/espace-club/profil",
-  sponsoring: "/espace-sponsoring",
-  festivite: "/espace-club/profil",
-  educateurs: "/espace-club/profil",
-  buvette: "/espace-club/profil",
+  communication: "/espace-club",
+  bureau: "/espace-club",
+  materiel: "/espace-club",
+  sponsoring: "/espace-club",
+  festivite: "/espace-club",
+  educateurs: "/espace-club",
+  buvette: "/espace-club",
 };
 
 export function isUserRole(role: string): role is UserRole {
@@ -28,7 +28,7 @@ export function isUserRole(role: string): role is UserRole {
 
 export function getHomePathByRole(role?: string | null) {
   if (!role) return "/admin/login";
-  if (!isUserRole(role)) return "/espace-club/profil";
+  if (!isUserRole(role)) return "/espace-club";
 
   return ROLE_HOME[role];
 }

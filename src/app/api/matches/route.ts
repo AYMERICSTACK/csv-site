@@ -18,6 +18,9 @@ function unauthorizedResponse() {
 function forbiddenResponse() {
   return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
 }
+function canManageMatches(role?: string | null) {
+  return role === "admin" || role === "educateurs";
+}
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
       return unauthorizedResponse();
     }
 
-    if (session.user?.role !== "admin") {
+    if (!canManageMatches(session.user?.role)) {
       return forbiddenResponse();
     }
 

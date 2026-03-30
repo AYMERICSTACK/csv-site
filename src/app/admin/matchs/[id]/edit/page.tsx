@@ -191,8 +191,8 @@ export default function EditMatchPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-              Tu dois être connecté avec un compte administrateur pour accéder à
-              cette page.
+              Tu dois être connecté avec un compte autorisé pour accéder à cette
+              page.
             </p>
 
             <div className="mt-6">
@@ -225,13 +225,13 @@ export default function EditMatchPage() {
             </h1>
 
             <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-              Cette page est réservée aux administrateurs du site.
+              Cette page est réservée aux comptes autorisés à gérer les matchs.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => router.push("/espace-club/profil")}
+                onClick={() => router.push("/espace-club")}
                 className="inline-flex items-center justify-center rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
               >
                 Aller à mon profil

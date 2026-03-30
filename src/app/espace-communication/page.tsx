@@ -1,27 +1,10 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-
-async function requireCommunicationAccess() {
-  const session = await auth();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  const role = session.user?.role;
-
-  if (role !== "admin" && role !== "communication") {
-    redirect("/espace-club/profil");
-  }
-
-  return session;
-}
+import { requireRole } from "@/lib/auth-guard";
 
 export default async function EspaceCommunicationPage() {
-  const session = await requireCommunicationAccess();
+  const session = await requireRole(["admin", "communication"]);
 
   return (
     <Container>

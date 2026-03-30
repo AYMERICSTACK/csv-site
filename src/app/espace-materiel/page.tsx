@@ -1,27 +1,10 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-
-async function requireMaterielAccess() {
-  const session = await auth();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  const role = session.user?.role;
-
-  if (role !== "admin" && role !== "materiel") {
-    redirect("/espace-club/profil");
-  }
-
-  return session;
-}
+import { requireRole } from "@/lib/auth-guard";
 
 export default async function EspaceMaterielPage() {
-  const session = await requireMaterielAccess();
+  const session = await requireRole(["admin", "materiel"]);
 
   return (
     <Container>

@@ -65,3 +65,42 @@ model Partner {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+model TeamGroup {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String
+  badge       String
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teams       Team[]
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  category    String
+  coach       String
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  groupId     String
+  group       TeamGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  schedules   TeamSchedule[]
+}
+
+model TeamSchedule {
+  id          String   @id @default(cuid())
+  day         String
+  time        String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}

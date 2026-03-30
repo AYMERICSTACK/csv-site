@@ -1,27 +1,10 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-
-async function requireFestiviteAccess() {
-  const session = await auth();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  const role = session.user?.role;
-
-  if (role !== "admin" && role !== "festivite") {
-    redirect("/espace-club/profil");
-  }
-
-  return session;
-}
+import { requireRole } from "@/lib/auth-guard";
 
 export default async function EspaceFestivitePage() {
-  const session = await requireFestiviteAccess();
+  const session = await requireRole(["admin", "festivite"]);
 
   return (
     <Container>
