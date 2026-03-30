@@ -105,28 +105,33 @@ export default function ClubPage() {
     <Container>
       <div className="py-14">
         {/* Intro */}
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center rounded-full bg-csv-orange/10 px-3 py-1 text-xs font-bold text-csv-black">
-            Le club
+        <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-white via-orange-50/35 to-white px-6 py-8 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.18)] md:px-8 md:py-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,122,0,0.14),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.06),transparent_28%)]" />
+          <div className="absolute -right-10 top-0 h-32 w-32 rounded-full bg-csv-orange/10 blur-3xl" />
+
+          <div className="relative max-w-3xl">
+            <div className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">
+              Le club
+            </div>
+
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
+              Le CS Viriat, bien plus qu’un club
+            </h1>
+
+            <p className="mt-4 text-base leading-relaxed text-neutral-700 md:text-lg">
+              {site.slogan}
+            </p>
+
+            <p className="mt-3 text-sm leading-relaxed text-neutral-600 md:text-base">
+              Le CSV s’appuie sur des valeurs fortes qui guident la vie du club,
+              l’encadrement des joueurs et l’esprit collectif au quotidien.
+            </p>
           </div>
-
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
-            Le CS Viriat, bien plus qu’un club
-          </h1>
-
-          <p className="mt-4 text-base leading-relaxed text-neutral-700 md:text-lg">
-            {site.slogan}
-          </p>
-
-          <p className="mt-3 text-sm leading-relaxed text-neutral-600 md:text-base">
-            Le CSV s’appuie sur des valeurs fortes qui guident la vie du club,
-            l’encadrement des joueurs et l’esprit collectif au quotidien.
-          </p>
-        </div>
+        </section>
 
         {/* Visuel principal */}
         <div className="mt-10 flex justify-center">
-          <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
+          <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-sm">
             <Image
               src="/club/valeurs-globales.png"
               alt="Nos valeurs au CS Viriat"
@@ -149,11 +154,11 @@ export default function ClubPage() {
             </p>
           </div>
 
-          <div className="mt-6 grid max-w-3xl gap-6 md:grid-cols-2 mx-auto">
+          <div className="mx-auto mt-6 grid max-w-3xl gap-6 md:grid-cols-2">
             {valueCards.map((card) => (
               <article
                 key={card.title}
-                className="group overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                className="group overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-xl"
               >
                 <div className="overflow-hidden p-4">
                   <Image
@@ -161,7 +166,7 @@ export default function ClubPage() {
                     alt={card.title}
                     width={1600}
                     height={900}
-                    className="h-auto w-full max-w-[420px] mx-auto transition duration-500 group-hover:scale-[1.02]"
+                    className="mx-auto h-auto w-full max-w-[420px] transition duration-500 group-hover:scale-[1.02]"
                   />
                 </div>
               </article>
@@ -171,7 +176,7 @@ export default function ClubPage() {
 
         {/* Bloc complémentaire haut */}
         <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-orange-100 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-extrabold text-neutral-900">
               Unis par nos couleurs, montrons nos valeurs
             </h2>
@@ -182,7 +187,7 @@ export default function ClubPage() {
               représenter fièrement les couleurs du CSV.
             </p>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-200">
+            <div className="mt-5 overflow-hidden rounded-2xl border border-orange-100">
               <Image
                 src="/club/unis-par-nos-couleurs.png"
                 alt="Unis par nos couleurs, montrons nos valeurs"
@@ -193,7 +198,7 @@ export default function ClubPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-orange-100 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-extrabold text-neutral-900">
               Le club en chiffres
             </h2>
@@ -207,7 +212,7 @@ export default function ClubPage() {
               {clubStats.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center gap-4 rounded-2xl bg-neutral-50 p-4 transition hover:bg-neutral-100"
+                  className="flex items-center gap-4 rounded-2xl border border-orange-100 bg-gradient-to-br from-white to-orange-50/25 p-4 transition hover:border-orange-200 hover:shadow-sm"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-csv-orange/10 text-csv-orange">
                     {item.icon}
@@ -226,7 +231,7 @@ export default function ClubPage() {
         </div>
 
         {/* Histoire */}
-        <div className="mt-6 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="mt-6 rounded-3xl border border-orange-100 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-extrabold text-neutral-900">
             Notre histoire
           </h2>
@@ -249,13 +254,13 @@ export default function ClubPage() {
 
                 <div className="relative flex justify-center">
                   {index !== historyItems.length - 1 && (
-                    <div className="absolute top-3 bottom-[-24px] w-px bg-neutral-200" />
+                    <div className="absolute bottom-[-24px] top-3 w-px bg-orange-100" />
                   )}
                   <div className="relative mt-1 h-3 w-3 rounded-full bg-csv-orange ring-4 ring-csv-orange/10" />
                 </div>
 
                 <div>
-                  <div className="rounded-2xl bg-neutral-50 p-4">
+                  <div className="rounded-2xl border border-orange-100 bg-gradient-to-r from-white to-orange-50/25 p-4">
                     <p className="text-sm leading-relaxed text-neutral-700">
                       {item.text}
                     </p>

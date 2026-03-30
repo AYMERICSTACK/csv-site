@@ -153,6 +153,167 @@ function formatScore(scoreTeam: number | null, scoreOpponent: number | null) {
   return `${scoreTeam} - ${scoreOpponent}`;
 }
 
+type MatchItem = {
+  id: string;
+  category: string;
+  team: string;
+  opponent: string;
+  matchDate: Date;
+  location: string;
+  isHome: boolean;
+  status: string;
+  scoreTeam: number | null;
+  scoreOpponent: number | null;
+  scorers: string | null;
+};
+
+function MatchSection({
+  title,
+  description,
+  matches,
+  emptyLabel,
+  deleteAction,
+}: {
+  title: string;
+  description: string;
+  matches: MatchItem[];
+  emptyLabel: string;
+  deleteAction: (formData: FormData) => Promise<void>;
+}) {
+  return (
+    <section className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-4 md:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-extrabold tracking-tight text-neutral-900">
+            {title}
+          </h3>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+            {description}
+          </p>
+        </div>
+
+        <div className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-bold text-neutral-800">
+          {matches.length} match{matches.length > 1 ? "s" : ""}
+        </div>
+      </div>
+
+      {matches.length === 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-5 text-sm text-neutral-600">
+          {emptyLabel}
+        </div>
+      ) : (
+        <div className="mt-5 space-y-4">
+          {matches.map((match) => {
+            const score = formatScore(match.scoreTeam, match.scoreOpponent);
+
+            return (
+              <article
+                key={match.id}
+                className="group rounded-[1.5rem] border border-neutral-200 bg-white p-5 transition hover:border-neutral-300 hover:shadow-sm"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
+                        {match.category}
+                      </span>
+
+                      <span
+                        className={`rounded-full border px-3 py-1 text-[11px] font-bold ${getStatusClasses(
+                          match.status,
+                        )}`}
+                      >
+                        {formatStatus(match.status)}
+                      </span>
+
+                      <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold text-neutral-600">
+                        {match.isHome ? "Domicile" : "Extérieur"}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-4 text-xl font-extrabold tracking-tight text-neutral-900">
+                      {match.team} <span className="text-neutral-400">vs</span>{" "}
+                      {match.opponent}
+                    </h3>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                        <div className="mt-0.5 text-neutral-500">
+                          <Clock3 size={16} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                            Date
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-neutral-900">
+                            {formatDate(match.matchDate)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                        <div className="mt-0.5 text-neutral-500">
+                          <MapPin size={16} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                            Lieu
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-neutral-900">
+                            {match.location}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {match.scorers ? (
+                      <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                        <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                          Buteurs
+                        </div>
+                        <div className="mt-1 whitespace-pre-line text-sm font-semibold text-neutral-900">
+                          {match.scorers}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex shrink-0 flex-col gap-3 lg:w-48">
+                    <div className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50 p-4 text-center shadow-sm">
+                      <div className="flex items-center justify-center gap-2 text-neutral-500">
+                        <Trophy size={16} />
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                          Score
+                        </span>
+                      </div>
+
+                      <div className="mt-2 text-2xl font-extrabold tracking-tight text-neutral-900">
+                        {score || "—"}
+                      </div>
+                    </div>
+
+                    <MatchCardActions
+                      matchId={match.id}
+                      deleteAction={deleteAction}
+                    />
+
+                    <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+                      <Shield size={15} className="text-neutral-500" />
+                      <span className="font-medium">
+                        {match.isHome ? "Réception" : "Déplacement"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default async function AdminMatchsPage() {
   const session = await auth();
 
@@ -173,6 +334,13 @@ export default async function AdminMatchsPage() {
       matchDate: "asc",
     },
   });
+
+  const upcomingMatches = matches.filter(
+    (match) => match.status !== "finished",
+  );
+  const finishedMatches = matches.filter(
+    (match) => match.status === "finished",
+  );
 
   return (
     <Container>
@@ -403,127 +571,27 @@ export default async function AdminMatchsPage() {
               </div>
 
               <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-neutral-900">
-                {matches.length} match{matches.length > 1 ? "s" : ""}
+                {matches.length} match{matches.length > 1 ? "s" : ""} au total
               </div>
             </div>
 
-            {matches.length === 0 ? (
-              <div className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-sm text-neutral-600">
-                Aucun match enregistré pour le moment.
-              </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {matches.map((match) => {
-                  const score = formatScore(
-                    match.scoreTeam,
-                    match.scoreOpponent,
-                  );
+            <div className="mt-6 space-y-5">
+              <MatchSection
+                title="À venir / en cours"
+                description="Retrouve ici les rencontres programmées, reportées ou encore non finalisées."
+                matches={upcomingMatches}
+                emptyLabel="Aucun match à venir pour le moment."
+                deleteAction={deleteMatch}
+              />
 
-                  return (
-                    <article
-                      key={match.id}
-                      className="group rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5 transition hover:border-neutral-300 hover:bg-white hover:shadow-sm"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
-                              {match.category}
-                            </span>
-
-                            <span
-                              className={`rounded-full border px-3 py-1 text-[11px] font-bold ${getStatusClasses(
-                                match.status,
-                              )}`}
-                            >
-                              {formatStatus(match.status)}
-                            </span>
-
-                            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold text-neutral-600">
-                              {match.isHome ? "Domicile" : "Extérieur"}
-                            </span>
-                          </div>
-
-                          <h3 className="mt-4 text-xl font-extrabold tracking-tight text-neutral-900">
-                            {match.team}{" "}
-                            <span className="text-neutral-400">vs</span>{" "}
-                            {match.opponent}
-                          </h3>
-
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
-                              <div className="mt-0.5 text-neutral-500">
-                                <Clock3 size={16} />
-                              </div>
-                              <div>
-                                <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                                  Date
-                                </div>
-                                <div className="mt-1 text-sm font-semibold text-neutral-900">
-                                  {formatDate(match.matchDate)}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
-                              <div className="mt-0.5 text-neutral-500">
-                                <MapPin size={16} />
-                              </div>
-                              <div>
-                                <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                                  Lieu
-                                </div>
-                                <div className="mt-1 text-sm font-semibold text-neutral-900">
-                                  {match.location}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {match.scorers ? (
-                            <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
-                              <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                                Buteurs
-                              </div>
-                              <div className="mt-1 whitespace-pre-line text-sm font-semibold text-neutral-900">
-                                {match.scorers}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="flex shrink-0 flex-col gap-3 lg:w-48">
-                          <div className="rounded-[1.25rem] border border-neutral-200 bg-white p-4 text-center shadow-sm">
-                            <div className="flex items-center justify-center gap-2 text-neutral-500">
-                              <Trophy size={16} />
-                              <span className="text-xs font-bold uppercase tracking-wide">
-                                Score
-                              </span>
-                            </div>
-
-                            <div className="mt-2 text-2xl font-extrabold tracking-tight text-neutral-900">
-                              {score || "—"}
-                            </div>
-                          </div>
-
-                          <MatchCardActions
-                            matchId={match.id}
-                            deleteAction={deleteMatch}
-                          />
-
-                          <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700">
-                            <Shield size={15} className="text-neutral-500" />
-                            <span className="font-medium">
-                              {match.isHome ? "Réception" : "Déplacement"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
+              <MatchSection
+                title="Terminés"
+                description="Les matchs finalisés restent accessibles ici avec leur score et leurs buteurs."
+                matches={finishedMatches}
+                emptyLabel="Aucun match terminé pour le moment."
+                deleteAction={deleteMatch}
+              />
+            </div>
           </div>
         </div>
       </div>

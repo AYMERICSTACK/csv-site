@@ -107,3 +107,25 @@ model TeamSchedule {
   teamId      String
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }
+
+model NewsItem {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  excerpt       String?
+  content       String?
+  type          String
+  coverImageUrl String?
+  fileUrl       String?
+  externalUrl   String?
+  eventDate     DateTime?
+  location      String?
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([type, isPublished, publishedAt])
+  @@index([sortOrder])
+}

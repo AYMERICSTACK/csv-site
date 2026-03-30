@@ -66,33 +66,42 @@ export default function InscriptionsPage() {
   return (
     <Container>
       <div className="py-14">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge>Inscriptions</Badge>
-          <Badge>Saison 2026</Badge>
-        </div>
+        <section className="relative overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-white via-orange-50/40 to-white px-6 py-8 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.18)] md:px-8 md:py-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,122,0,0.14),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.06),transparent_28%)]" />
+          <div className="absolute -right-10 top-0 h-32 w-32 rounded-full bg-csv-orange/10 blur-3xl" />
 
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
-          S’inscrire au CS Viriat (CSV)
-        </h1>
+          <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>Inscriptions</Badge>
+              <Badge>Saison 2026</Badge>
+            </div>
 
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-neutral-700 md:text-lg">
-          Retrouvez ici les informations officielles pour l’inscription :
-          étapes, documents, contacts et informations pratiques.
-        </p>
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
+              S’inscrire au CS Viriat (CSV)
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-neutral-700 md:text-lg">
+              Retrouvez ici les informations officielles pour l’inscription :
+              étapes, documents, contacts et informations pratiques.
+            </p>
+          </div>
+        </section>
 
         {/* Étapes */}
         <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {steps.map((s) => (
+          {steps.map((s, index) => (
             <div
               key={s.title}
-              className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+              className="rounded-[1.5rem] border border-orange-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
             >
-              <div className="text-xs font-semibold text-neutral-500">
-                ÉTAPE
+              <div className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-700">
+                Étape {index + 1}
               </div>
-              <div className="mt-2 text-sm font-extrabold text-neutral-900">
+
+              <div className="mt-4 text-base font-extrabold text-neutral-900">
                 {s.title}
               </div>
+
               <div className="mt-2 text-sm leading-relaxed text-neutral-700">
                 {s.text}
               </div>
@@ -102,7 +111,7 @@ export default function InscriptionsPage() {
 
         {/* Tarifs + aide */}
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-extrabold text-neutral-900">
@@ -114,7 +123,7 @@ export default function InscriptionsPage() {
                 </p>
               </div>
 
-              <div className="rounded-full bg-csv-orange/10 px-3 py-1 text-xs font-bold text-csv-black">
+              <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">
                 Saison 2026
               </div>
             </div>
@@ -137,7 +146,7 @@ export default function InscriptionsPage() {
                 ].map((item) => (
                   <div
                     key={item.category}
-                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 transition hover:border-neutral-300 hover:bg-white"
+                    className="rounded-[1.35rem] border border-orange-100 bg-gradient-to-br from-white to-orange-50/35 p-5 transition hover:border-orange-200 hover:shadow-sm"
                   >
                     <div className="text-sm font-extrabold text-neutral-900">
                       {item.category}
@@ -168,7 +177,7 @@ export default function InscriptionsPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-extrabold text-neutral-900">
               Besoin d’aide ?
             </h2>
@@ -177,7 +186,7 @@ export default function InscriptionsPage() {
               inscriptions, contactez le club.
             </p>
 
-            <div className="mt-5 rounded-2xl bg-neutral-50 p-4">
+            <div className="mt-5 rounded-[1.25rem] border border-orange-100 bg-orange-50/50 p-4">
               <div className="text-sm font-bold text-neutral-900">
                 Contact officiel
               </div>
@@ -198,7 +207,7 @@ export default function InscriptionsPage() {
               </Button>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className="mt-6 rounded-[1.25rem] border border-orange-100 bg-white p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                 Conseil
               </div>
@@ -211,11 +220,14 @@ export default function InscriptionsPage() {
         </div>
 
         {/* Paiement premium */}
-        <div className="mt-12 overflow-hidden rounded-[28px] border border-neutral-200 shadow-sm">
-          <div className="bg-csv-black px-8 py-8 text-white">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="mt-12 overflow-hidden rounded-[28px] border border-neutral-800 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.4)]">
+          <div className="relative bg-neutral-950 px-8 py-8 text-white">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,122,0,0.22),transparent_24%)]" />
+            <div className="absolute -right-10 top-0 h-36 w-36 rounded-full bg-csv-orange/20 blur-3xl" />
+
+            <div className="relative flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
-                <div className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
                   Paiement en ligne
                 </div>
 
@@ -270,7 +282,7 @@ export default function InscriptionsPage() {
               {paymentOptions.map((option) => (
                 <div
                   key={option.title}
-                  className="group rounded-3xl border border-neutral-200 bg-gradient-to-br from-white to-neutral-50 p-6 transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md"
+                  className="group rounded-3xl border border-orange-100 bg-gradient-to-br from-white to-orange-50/25 p-6 transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-csv-orange/10 text-csv-orange">
@@ -290,7 +302,7 @@ export default function InscriptionsPage() {
                       </svg>
                     </div>
 
-                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
+                    <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">
                       {option.tag}
                     </span>
                   </div>
@@ -318,7 +330,7 @@ export default function InscriptionsPage() {
                         {option.cta}
                       </a>
                     ) : (
-                      <span className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-400">
+                      <span className="inline-flex items-center justify-center rounded-xl border border-orange-100 bg-white px-4 py-2 text-sm font-semibold text-neutral-400">
                         {option.cta}
                       </span>
                     )}
@@ -327,7 +339,7 @@ export default function InscriptionsPage() {
               ))}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-5">
+            <div className="mt-6 rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="text-sm font-bold text-neutral-900">
@@ -339,7 +351,7 @@ export default function InscriptionsPage() {
                   </p>
                 </div>
 
-                <div className="inline-flex items-center rounded-full bg-csv-orange/10 px-3 py-1 text-xs font-bold text-csv-black">
+                <div className="inline-flex items-center rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-bold text-orange-700">
                   HelloAsso / CB
                 </div>
               </div>
@@ -348,7 +360,7 @@ export default function InscriptionsPage() {
         </div>
 
         {/* Documents */}
-        <div className="mt-10 rounded-3xl border border-neutral-200 bg-white p-8 shadow-sm">
+        <div className="mt-10 rounded-[1.75rem] border border-orange-100 bg-white p-8 shadow-sm">
           <h2 className="text-xl font-extrabold text-neutral-900">Documents</h2>
           <p className="mt-2 text-sm text-neutral-700">
             Téléchargez ici les documents utiles pour préparer votre
@@ -362,7 +374,7 @@ export default function InscriptionsPage() {
               return (
                 <div
                   key={d.name}
-                  className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 transition hover:border-neutral-300 hover:bg-white sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-4 rounded-2xl border border-orange-100 bg-gradient-to-r from-white to-orange-50/25 p-4 transition hover:border-orange-200 hover:bg-white sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-csv-orange/10 text-csv-orange">
@@ -411,7 +423,7 @@ export default function InscriptionsPage() {
                       Télécharger le PDF
                     </a>
                   ) : (
-                    <span className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-400">
+                    <span className="inline-flex items-center justify-center rounded-xl border border-orange-100 bg-white px-4 py-2 text-sm font-semibold text-neutral-400">
                       Bientôt disponible
                     </span>
                   )}
@@ -426,11 +438,12 @@ export default function InscriptionsPage() {
           <h2 className="text-xl font-extrabold text-neutral-900">
             Questions fréquentes
           </h2>
+
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {faqs.map((f) => (
               <div
                 key={f.q}
-                className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+                className="rounded-[1.5rem] border border-orange-100 bg-white p-6 shadow-sm"
               >
                 <div className="text-sm font-extrabold text-neutral-900">
                   {f.q}
@@ -444,18 +457,21 @@ export default function InscriptionsPage() {
         </div>
 
         {/* CTA final */}
-        <div className="mt-12 rounded-3xl border border-neutral-200 bg-csv-black p-10 text-white shadow-sm">
+        <div className="mt-12 rounded-[2rem] border border-neutral-800 bg-neutral-950 p-10 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.45)]">
           <div className="max-w-2xl">
-            <div className="text-xs font-semibold text-white/70">
-              REJOINDRE LE CSV
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-400">
+              Rejoindre le CSV
             </div>
+
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
               Prêt à rejoindre le club ?
             </h2>
+
             <p className="mt-3 leading-relaxed text-white/80">
               Contactez-nous pour une question ou pour organiser un essai selon
               la catégorie.
             </p>
+
             <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href="/contact"
