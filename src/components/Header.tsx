@@ -185,7 +185,7 @@ export default function Header() {
               ))}
 
               <Link
-                href="/admin/matchs"
+                href="/admin/login"
                 className="mt-4 rounded-xl border border-neutral-300 px-3 py-3 text-center text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
                 onClick={() => setOpen(false)}
               >
