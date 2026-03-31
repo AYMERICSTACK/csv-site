@@ -164,7 +164,7 @@ export default async function EditCommunicationContentPage({
     revalidatePath("/espace-communication");
     revalidatePath(`/espace-communication/${id}/edit`);
 
-    redirect("/espace-communication");
+    redirect("/espace-communication?toast=updated");
   }
 
   async function deleteNewsItem(formData: FormData) {
@@ -185,7 +185,7 @@ export default async function EditCommunicationContentPage({
     revalidatePath("/actualites");
     revalidatePath("/espace-communication");
 
-    redirect("/espace-communication");
+    redirect("/espace-communication?toast=deleted");
   }
 
   return (

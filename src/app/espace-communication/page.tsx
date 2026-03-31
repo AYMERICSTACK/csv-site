@@ -6,6 +6,7 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 import DeleteNewsItemButton from "@/components/DeleteNewsItemButton";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
@@ -97,6 +98,10 @@ export default async function EspaceCommunicationPage() {
 
     revalidatePath("/actualites");
     revalidatePath("/espace-communication");
+
+    redirect(
+      `/espace-communication?toast=${nextIsPublished ? "published" : "draft"}`,
+    );
   }
 
   async function deleteNewsItem(formData: FormData) {
@@ -116,6 +121,8 @@ export default async function EspaceCommunicationPage() {
 
     revalidatePath("/actualites");
     revalidatePath("/espace-communication");
+
+    redirect("/espace-communication?toast=deleted");
   }
 
   const role = session.user?.role;
