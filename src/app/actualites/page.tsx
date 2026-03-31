@@ -211,22 +211,22 @@ export default async function ActualitesPage() {
               Aucune manifestation publiée pour le moment.
             </div>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="flex max-w-md flex-col gap-8">
               {manifestations.map((item) => {
-                const href = item.externalUrl || item.fileUrl;
+                const externalHref = item.externalUrl;
 
                 return (
                   <article
                     key={item.id}
-                    className="overflow-hidden rounded-[1.75rem] border border-orange-100 bg-white shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-lg"
+                    className="overflow-hidden rounded-[1.75rem] border border-orange-100 bg-white shadow-sm transition hover:border-orange-200 hover:shadow-lg"
                   >
                     {item.coverImageUrl ? (
-                      <div className="relative h-52 overflow-hidden border-b border-orange-100">
+                      <div className="border-b border-orange-100 bg-neutral-100">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.coverImageUrl}
                           alt={item.title}
-                          className="h-full w-full object-cover"
+                          className="h-auto w-full object-contain bg-neutral-100"
                         />
                       </div>
                     ) : null}
@@ -262,19 +262,19 @@ export default async function ActualitesPage() {
                         </p>
                       ) : null}
 
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {href ? (
+                      {externalHref ? (
+                        <div className="mt-5">
                           <a
-                            href={href}
+                            href={externalHref}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-csv-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
                           >
                             Voir plus
                             <ExternalLink size={15} />
                           </a>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
                   </article>
                 );
@@ -305,51 +305,64 @@ export default async function ActualitesPage() {
               Aucune annonce publiée pour le moment.
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex max-w-md flex-col gap-8">
               {annonces.map((item) => {
-                const href = item.externalUrl || item.fileUrl;
+                const externalHref = item.externalUrl;
 
                 return (
                   <article
                     key={item.id}
-                    className="rounded-[1.5rem] border border-orange-100 bg-white p-6 shadow-sm"
+                    className="overflow-hidden rounded-[1.75rem] border border-orange-100 bg-white shadow-sm transition hover:border-orange-200 hover:shadow-lg"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-bold text-neutral-700">
-                        <Megaphone size={14} />
-                        {getTypeLabel(item.type)}
-                      </span>
-
-                      {item.publishedAt ? (
-                        <span className="text-xs font-semibold text-neutral-500">
-                          {formatDate(item.publishedAt)}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <h3 className="mt-4 text-lg font-extrabold text-neutral-900">
-                      {item.title}
-                    </h3>
-
-                    {item.excerpt ? (
-                      <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                        {item.excerpt}
-                      </p>
-                    ) : null}
-
-                    {href ? (
-                      <div className="mt-5">
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
-                        >
-                          Ouvrir
-                          <ExternalLink size={15} />
-                        </a>
+                    {item.coverImageUrl ? (
+                      <div className="border-b border-orange-100 bg-neutral-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.coverImageUrl}
+                          alt={item.title}
+                          className="h-auto w-full object-contain bg-neutral-100"
+                        />
                       </div>
                     ) : null}
+
+                    <div className="p-6">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-bold text-neutral-700">
+                          <Megaphone size={14} />
+                          {getTypeLabel(item.type)}
+                        </span>
+
+                        {item.publishedAt ? (
+                          <span className="text-xs font-semibold text-neutral-500">
+                            {formatDate(item.publishedAt)}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <h3 className="mt-4 text-lg font-extrabold text-neutral-900">
+                        {item.title}
+                      </h3>
+
+                      {item.excerpt ? (
+                        <p className="mt-2 text-sm leading-relaxed text-neutral-700">
+                          {item.excerpt}
+                        </p>
+                      ) : null}
+
+                      {externalHref ? (
+                        <div className="mt-5">
+                          <a
+                            href={externalHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
+                          >
+                            Voir plus
+                            <ExternalLink size={15} />
+                          </a>
+                        </div>
+                      ) : null}
+                    </div>
                   </article>
                 );
               })}

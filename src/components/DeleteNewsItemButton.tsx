@@ -2,21 +2,31 @@
 
 import { useRef, useState } from "react";
 import { AlertTriangle, Trash2, X } from "lucide-react";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type DeleteNewsItemButtonProps = {
   id: string;
   title: string;
   action: (formData: FormData) => void | Promise<void>;
+  onOptimisticDelete?: () => void;
+  loadingTitle?: string;
+  loadingDescription?: string;
+  loadingVariant?: "success" | "error" | "info" | "brand" | "danger";
 };
 
 export default function DeleteNewsItemButton({
   id,
   title,
   action,
+  onOptimisticDelete,
+  loadingTitle = "Suppression en cours...",
+  loadingDescription = "Le contenu est en train d’être supprimé.",
+  loadingVariant = "danger",
 }: DeleteNewsItemButtonProps) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const toast = useToast();
 
   function closeModal() {
     if (submitting) return;
@@ -27,6 +37,15 @@ export default function DeleteNewsItemButton({
     if (!formRef.current || submitting) return;
 
     setSubmitting(true);
+
+    toast.showToast({
+      title: loadingTitle,
+      description: loadingDescription,
+      variant: loadingVariant,
+      duration: 2200,
+    });
+
+    onOptimisticDelete?.();
     formRef.current.requestSubmit();
   }
 

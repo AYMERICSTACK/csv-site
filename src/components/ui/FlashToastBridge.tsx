@@ -9,13 +9,13 @@ const TOAST_MESSAGES: Record<
   {
     title: string;
     description?: string;
-    variant?: "success" | "error" | "info";
+    variant?: "success" | "error" | "info" | "brand" | "danger";
   }
 > = {
   deleted: {
-    title: "Contenu supprimé ✅",
+    title: "Contenu supprimé",
     description: "Le contenu a bien été retiré.",
-    variant: "success",
+    variant: "danger",
   },
   updated: {
     title: "Modifications enregistrées ✅",
@@ -28,9 +28,9 @@ const TOAST_MESSAGES: Record<
     variant: "success",
   },
   published: {
-    title: "Contenu publié ✅",
+    title: "Contenu publié 🔥",
     description: "Le contenu est maintenant visible publiquement.",
-    variant: "success",
+    variant: "brand",
   },
   draft: {
     title: "Contenu repassé en brouillon",

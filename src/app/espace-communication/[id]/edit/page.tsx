@@ -8,6 +8,7 @@ import DeleteNewsItemButton from "@/components/DeleteNewsItemButton";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import NewsAssetUpload from "@/components/NewsAssetUpload";
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import {
   ArrowLeft,
   CalendarDays,
@@ -450,12 +451,14 @@ export default async function EditCommunicationContentPage({
               </div>
 
               <div className="flex flex-wrap gap-3 pt-2">
-                <button type="submit" className="btn-primary">
-                  <span className="inline-flex items-center gap-2">
-                    <Save size={16} />
-                    Enregistrer les modifications
-                  </span>
-                </button>
+                <FormSubmitButton
+                  idleLabel="Enregistrer les modifications"
+                  pendingLabel="Enregistrement..."
+                  loadingTitle="Enregistrement en cours..."
+                  loadingDescription="Les modifications sont en train d’être sauvegardées."
+                  className="btn-primary"
+                  icon={<Save size={16} />}
+                />
 
                 <Link href="/espace-communication" className="btn-secondary">
                   Annuler

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-import DeleteNewsItemButton from "@/components/DeleteNewsItemButton";
+import SortableNewsList from "@/components/communication/SortableNewsList";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
@@ -18,7 +18,6 @@ import {
   SquarePen,
   Trash2,
   Eye,
-  EyeOff,
 } from "lucide-react";
 
 const FACEBOOK_PAGE_URL = "https://www.facebook.com/CSViriat.football";
@@ -136,7 +135,7 @@ export default async function EspaceCommunicationPage() {
       { publishedAt: "desc" },
       { createdAt: "desc" },
     ],
-    take: 20,
+    take: 50,
   });
 
   const allItems = await prisma.newsItem.findMany({
@@ -159,6 +158,18 @@ export default async function EspaceCommunicationPage() {
   const annonceCount = allItems.filter(
     (item) => item.type === "annonce",
   ).length;
+
+  const sortableItems = items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    typeLabel: getTypeLabel(item.type),
+    typeClasses: getTypeClasses(item.type),
+    isPublished: item.isPublished,
+    excerpt: item.excerpt,
+    fileUrl: item.fileUrl,
+    externalUrl: item.externalUrl,
+    displayDate: formatDate(item.publishedAt || item.createdAt),
+  }));
 
   return (
     <Container>
@@ -199,8 +210,9 @@ export default async function EspaceCommunicationPage() {
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
                 Centralise les gazettes, manifestations, annonces et relais
-                officiels du club. Tu peux maintenant publier, masquer, modifier
-                et supprimer directement depuis le dashboard.
+                officiels du club. Tu peux maintenant publier, masquer,
+                modifier, supprimer et réorganiser les contenus directement
+                depuis le dashboard.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -355,106 +367,17 @@ export default async function EspaceCommunicationPage() {
                 </div>
               </div>
 
-              {items.length === 0 ? (
+              {sortableItems.length === 0 ? (
                 <div className="mt-6 rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-6 text-sm text-neutral-700">
                   Aucun contenu enregistré pour le moment.
                 </div>
               ) : (
-                <div className="mt-6 space-y-4">
-                  {items.map((item) => (
-                    <article
-                      key={item.id}
-                      className="rounded-2xl border border-orange-100 bg-gradient-to-r from-white to-orange-50/25 p-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${getTypeClasses(
-                              item.type,
-                            )}`}
-                          >
-                            {getTypeLabel(item.type)}
-                          </span>
-
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                              item.isPublished
-                                ? "border border-green-200 bg-green-100 text-green-700"
-                                : "border border-neutral-200 bg-neutral-100 text-neutral-600"
-                            }`}
-                          >
-                            {item.isPublished ? "Publié" : "Brouillon"}
-                          </span>
-                        </div>
-
-                        <div className="text-xs font-semibold text-neutral-500">
-                          {formatDate(item.publishedAt || item.createdAt)}
-                        </div>
-                      </div>
-
-                      <h3 className="mt-3 text-lg font-extrabold text-neutral-900">
-                        {item.title}
-                      </h3>
-
-                      {item.excerpt ? (
-                        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-neutral-700">
-                          {item.excerpt}
-                        </p>
-                      ) : null}
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Link
-                          href={`/espace-communication/${item.id}/edit`}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
-                        >
-                          <SquarePen size={15} />
-                          Modifier
-                        </Link>
-
-                        <form action={togglePublish}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <button
-                            type="submit"
-                            className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                              item.isPublished
-                                ? "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
-                                : "border border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-                            }`}
-                          >
-                            {item.isPublished ? (
-                              <>
-                                <EyeOff size={15} />
-                                Passer en brouillon
-                              </>
-                            ) : (
-                              <>
-                                <Eye size={15} />
-                                Publier
-                              </>
-                            )}
-                          </button>
-                        </form>
-
-                        {item.fileUrl || item.externalUrl ? (
-                          <a
-                            href={item.fileUrl || item.externalUrl || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
-                          >
-                            Ouvrir
-                            <LinkIcon size={15} />
-                          </a>
-                        ) : null}
-
-                        <DeleteNewsItemButton
-                          id={item.id}
-                          title={item.title}
-                          action={deleteNewsItem}
-                        />
-                      </div>
-                    </article>
-                  ))}
+                <div className="mt-6">
+                  <SortableNewsList
+                    items={sortableItems}
+                    togglePublishAction={togglePublish}
+                    deleteAction={deleteNewsItem}
+                  />
                 </div>
               )}
             </section>

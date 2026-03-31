@@ -8,9 +8,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  X,
+  Flame,
+  Trash2,
+} from "lucide-react";
 
-type ToastVariant = "success" | "error" | "info";
+type ToastVariant = "success" | "error" | "info" | "brand" | "danger";
 
 type ToastItem = {
   id: number;
@@ -31,6 +38,8 @@ type ToastContextValue = {
   success: (title: string, description?: string) => void;
   error: (title: string, description?: string) => void;
   info: (title: string, description?: string) => void;
+  brand: (title: string, description?: string) => void;
+  danger: (title: string, description?: string) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -45,6 +54,25 @@ function getToastStyles(variant: ToastVariant = "success") {
         accentClass:
           "bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.18),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.12),transparent_35%)]",
       };
+
+    case "danger":
+      return {
+        icon: <Trash2 size={18} className="text-red-400" />,
+        cardClass:
+          "border-red-500/20 bg-neutral-950 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.55)]",
+        accentClass:
+          "bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.20),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.10),transparent_35%)]",
+      };
+
+    case "brand":
+      return {
+        icon: <Flame size={18} className="text-orange-400" />,
+        cardClass:
+          "border-orange-500/20 bg-neutral-950 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.55)]",
+        accentClass:
+          "bg-[radial-gradient(circle_at_top_right,rgba(255,122,0,0.24),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_35%)]",
+      };
+
     case "error":
       return {
         icon: <AlertCircle size={18} className="text-red-400" />,
@@ -53,6 +81,7 @@ function getToastStyles(variant: ToastVariant = "success") {
         accentClass:
           "bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.18),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.10),transparent_35%)]",
       };
+
     case "info":
     default:
       return {
@@ -106,6 +135,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         showToast({ title, description, variant: "error" }),
       info: (title, description) =>
         showToast({ title, description, variant: "info" }),
+      brand: (title, description) =>
+        showToast({ title, description, variant: "brand" }),
+      danger: (title, description) =>
+        showToast({ title, description, variant: "danger" }),
     }),
     [showToast],
   );
