@@ -16,6 +16,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
+const DISPLAY_TIME_ZONE = "Europe/Paris";
+
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
@@ -105,14 +107,15 @@ async function deleteMatch(formData: FormData) {
 }
 
 function formatDate(date: Date) {
-  return new Date(date).toLocaleString("fr-FR", {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: DISPLAY_TIME_ZONE,
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }).format(new Date(date));
 }
 
 function formatStatus(status: string) {

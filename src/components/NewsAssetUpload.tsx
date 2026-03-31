@@ -1,7 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileUp, Loader2, Link as LinkIcon, CheckCircle2 } from "lucide-react";
+import {
+  FileUp,
+  Loader2,
+  Link as LinkIcon,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 
 type NewsAssetUploadProps = {
   label: string;
@@ -61,12 +67,19 @@ export default function NewsAssetUpload({
     }
   }
 
+  function clearValue() {
+    setValue("");
+    setMessage("");
+    setError("");
+  }
+
   return (
     <div>
       <label htmlFor={name} className="label">
         {label}
       </label>
 
+      {/* INPUT PRINCIPAL — SOURCE UNIQUE */}
       <input
         id={name}
         name={name}
@@ -77,6 +90,7 @@ export default function NewsAssetUpload({
         placeholder={placeholder}
       />
 
+      {/* UPLOAD */}
       <input
         ref={fileInputRef}
         type="file"
@@ -94,41 +108,51 @@ export default function NewsAssetUpload({
         <p className="mt-2 text-xs text-neutral-500">{helpText}</p>
       ) : null}
 
+      {/* STATUS */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        {isUploading ? (
+        {isUploading && (
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
             <Loader2 size={14} className="animate-spin" />
             Upload en cours...
           </div>
-        ) : null}
+        )}
 
-        {!isUploading && message ? (
+        {!isUploading && message && (
           <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
             <CheckCircle2 size={14} />
             {message}
           </div>
-        ) : null}
+        )}
 
-        {error ? (
+        {error && (
           <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
             {error}
           </div>
-        ) : null}
+        )}
 
-        {value ? (
-          <a
-            href={value}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
-          >
-            <LinkIcon size={14} />
-            Ouvrir le fichier
-          </a>
-        ) : null}
+        {value && (
+          <>
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
+            >
+              <LinkIcon size={14} />
+              Ouvrir
+            </a>
+
+            <button
+              type="button"
+              onClick={clearValue}
+              className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
+            >
+              <X size={14} />
+              Supprimer
+            </button>
+          </>
+        )}
       </div>
-
-      {value && <input type="hidden" name={name} value={value} readOnly />}
     </div>
   );
 }

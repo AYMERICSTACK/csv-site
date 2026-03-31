@@ -20,6 +20,8 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+const DISPLAY_TIME_ZONE = "Europe/Paris";
+
 function canManageMatches(role?: string | null) {
   return role === "admin" || role === "educateurs";
 }
@@ -32,26 +34,46 @@ function parseLocalDateTime(value: string) {
   return new Date(year, month - 1, day, hours, minutes);
 }
 
-function toDatetimeLocalValue(date: Date | string) {
+function getParisDateParts(date: Date | string) {
   const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
 
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: DISPLAY_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value || "";
+
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+  };
+}
+
+function toDatetimeLocalValue(date: Date | string) {
+  const { year, month, day, hour, minute } = getParisDateParts(date);
+  return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
 function formatDate(date: Date) {
-  return new Date(date).toLocaleString("fr-FR", {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: DISPLAY_TIME_ZONE,
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  }).format(new Date(date));
 }
 
 function formatStatus(status: string) {
@@ -105,7 +127,7 @@ export default async function EditMatchPage({ params }: PageProps) {
 
   const { id } = await params;
   const role = session.user?.role;
-  const backHref = role === "admin" ? "/admin/matchs" : "/admin/matchs";
+  const backHref = "/admin/matchs";
   const backLabel = "Retour aux matchs";
 
   const match = await prisma.match.findUnique({

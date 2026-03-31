@@ -353,45 +353,23 @@ export default async function EditCommunicationContentPage({
               </div>
 
               <div className="space-y-4 rounded-[1.25rem] border border-orange-100 bg-orange-50/30 p-4">
-                <div>
-                  <label htmlFor="coverImageUrl" className="label">
-                    URL image de couverture
-                  </label>
-                  <input
-                    id="coverImageUrl"
-                    name="coverImageUrl"
-                    type="text"
-                    className="input"
-                    defaultValue={item.coverImageUrl || ""}
-                    placeholder="Image de couverture"
-                  />
-                </div>
+                <NewsAssetUpload
+                  label="Image de couverture"
+                  name="coverImageUrl"
+                  defaultValue={item.coverImageUrl || ""}
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  placeholder="URL de l’image de couverture"
+                  helpText="Tu peux conserver l’URL existante, en coller une autre ou envoyer directement une nouvelle image."
+                />
 
-                <div>
-                  <label htmlFor="fileUrl" className="label">
-                    URL fichier principal (PDF / image)
-                  </label>
-                  <input
-                    id="fileUrl"
-                    name="fileUrl"
-                    type="text"
-                    className="input"
-                    defaultValue={item.fileUrl || ""}
-                    placeholder="Fichier principal"
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <NewsAssetUpload
-                    label="Uploader une image de couverture"
-                    name="coverImageUrl"
-                  />
-
-                  <NewsAssetUpload
-                    label="Uploader un fichier principal (PDF / image)"
-                    name="fileUrl"
-                  />
-                </div>
+                <NewsAssetUpload
+                  label="Fichier principal (PDF / image)"
+                  name="fileUrl"
+                  defaultValue={item.fileUrl || ""}
+                  accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg"
+                  placeholder="URL du fichier principal"
+                  helpText="Idéal pour remplacer une gazette PDF, une affiche JPG/PNG ou un document du club."
+                />
               </div>
 
               <div>
@@ -613,7 +591,8 @@ export default async function EditCommunicationContentPage({
 
               <p className="mt-2 text-sm leading-relaxed text-white/75">
                 Utilise l’upload pour récupérer rapidement une URL Vercel Blob,
-                puis colle-la dans le champ correspondant.
+                ou colle directement une URL existante dans le champ
+                correspondant.
               </p>
             </section>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -42,12 +42,14 @@ type SortableRowProps = {
   item: SortableNewsItem;
   togglePublishAction: (formData: FormData) => void | Promise<void>;
   deleteAction: (formData: FormData) => void | Promise<void>;
+  disabled?: boolean;
 };
 
 function SortableRow({
   item,
   togglePublishAction,
   deleteAction,
+  disabled = false,
 }: SortableRowProps) {
   const {
     attributes,
@@ -56,7 +58,10 @@ function SortableRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id });
+  } = useSortable({
+    id: item.id,
+    disabled,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -71,11 +76,15 @@ function SortableRow({
     >
       <div className="group relative">
         <div
-          className="absolute left-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-orange-200 bg-white text-neutral-500 shadow-sm transition hover:bg-orange-50 hover:text-csv-orange"
+          className={`absolute left-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-orange-200 bg-white text-neutral-500 shadow-sm transition hover:bg-orange-50 hover:text-csv-orange ${
+            disabled ? "cursor-not-allowed opacity-50" : ""
+          }`}
           {...attributes}
           {...listeners}
           aria-label={`Réordonner ${item.title}`}
-          title="Glisser pour réordonner"
+          title={
+            disabled ? "Enregistrement en cours..." : "Glisser pour réordonner"
+          }
         >
           <GripVertical size={16} />
         </div>
@@ -101,6 +110,10 @@ export default function SortableNewsList({
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
+  useEffect(() => {
+    setOrderedItems(items);
+  }, [items]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -115,45 +128,32 @@ export default function SortableNewsList({
   );
 
   async function persistOrder(nextItems: SortableNewsItem[]) {
-    setSaving(true);
+    const payload = nextItems.map((item, index) => ({
+      id: item.id,
+      sortOrder: index,
+    }));
 
-    try {
-      const payload = nextItems.map((item, index) => ({
-        id: item.id,
-        sortOrder: index,
-      }));
+    const response = await fetch("/api/news/reorder", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ items: payload }),
+    });
 
-      const response = await fetch("/api/news/reorder", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items: payload }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Impossible d’enregistrer le nouvel ordre.");
-      }
-
-      toast.success(
-        "Ordre enregistré ✅",
-        "L’ordre des contenus a bien été mis à jour.",
-      );
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        "Réorganisation impossible",
-        "Le nouvel ordre n’a pas pu être enregistré.",
-      );
-    } finally {
-      setSaving(false);
+    if (!response.ok) {
+      throw new Error("Impossible d’enregistrer le nouvel ordre.");
     }
   }
 
   async function handleDragEnd(event: DragEndEvent) {
+    if (saving) return;
+
     const { active, over } = event;
 
     if (!over || active.id === over.id) return;
+
+    const previousItems = orderedItems;
 
     const oldIndex = orderedItems.findIndex((item) => item.id === active.id);
     const newIndex = orderedItems.findIndex((item) => item.id === over.id);
@@ -162,13 +162,31 @@ export default function SortableNewsList({
 
     const nextItems = arrayMove(orderedItems, oldIndex, newIndex);
     setOrderedItems(nextItems);
+    setSaving(true);
 
     toast.brand(
       "Réorganisation en cours...",
       "Le nouvel ordre est en train d’être sauvegardé.",
     );
 
-    await persistOrder(nextItems);
+    try {
+      await persistOrder(nextItems);
+
+      toast.success(
+        "Ordre enregistré ✅",
+        "L’ordre des contenus a bien été mis à jour.",
+      );
+    } catch (error) {
+      console.error(error);
+      setOrderedItems(previousItems);
+
+      toast.error(
+        "Réorganisation impossible",
+        "Le nouvel ordre n’a pas pu être enregistré. L’ordre précédent a été restauré.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -195,6 +213,7 @@ export default function SortableNewsList({
                 item={item}
                 togglePublishAction={togglePublishAction}
                 deleteAction={deleteAction}
+                disabled={saving}
               />
             ))}
           </div>
