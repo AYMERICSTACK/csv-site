@@ -1,5 +1,6 @@
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
+import ImageLightboxTrigger from "@/components/actualites/ImageLightboxTrigger";
 import { prisma } from "@/lib/prisma";
 import {
   CalendarDays,
@@ -48,6 +49,22 @@ export default async function ActualitesPage() {
   const gazettes = items.filter((item) => item.type === "gazette");
   const manifestations = items.filter((item) => item.type === "manifestation");
   const annonces = items.filter((item) => item.type === "annonce");
+
+  const manifestationLightboxItems = manifestations
+    .filter((item) => !!item.coverImageUrl)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      imageUrl: item.coverImageUrl as string,
+    }));
+
+  const annonceLightboxItems = annonces
+    .filter((item) => !!item.coverImageUrl)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      imageUrl: item.coverImageUrl as string,
+    }));
 
   return (
     <Container>
@@ -222,9 +239,9 @@ export default async function ActualitesPage() {
                   >
                     {item.coverImageUrl ? (
                       <div className="border-b border-orange-100 bg-neutral-100">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.coverImageUrl}
+                        <ImageLightboxTrigger
+                          items={manifestationLightboxItems}
+                          currentId={item.id}
                           alt={item.title}
                           className="h-auto w-full object-contain bg-neutral-100"
                         />
@@ -316,9 +333,9 @@ export default async function ActualitesPage() {
                   >
                     {item.coverImageUrl ? (
                       <div className="border-b border-orange-100 bg-neutral-100">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.coverImageUrl}
+                        <ImageLightboxTrigger
+                          items={annonceLightboxItems}
+                          currentId={item.id}
                           alt={item.title}
                           className="h-auto w-full object-contain bg-neutral-100"
                         />

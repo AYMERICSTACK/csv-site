@@ -17,9 +17,9 @@ const quick = [
     href: "/equipes",
   },
   {
-    title: "Calendrier",
+    title: "Actualités",
     text: "Tournois, stages, AG et événements du club.",
-    href: "/calendrier",
+    href: "/actualites",
   },
 ];
 
