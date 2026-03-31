@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -23,7 +24,10 @@ export default function RootLayout({
         className="min-h-screen bg-white text-neutral-900"
       >
         <ToastProvider>
-          <FlashToastBridge />
+          <Suspense fallback={null}>
+            <FlashToastBridge />
+          </Suspense>
+
           <Header />
           <main className="pt-16">{children}</main>
           <Footer />
