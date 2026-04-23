@@ -89,7 +89,6 @@ export async function PATCH(_: Request, { params }: RouteContext) {
       prisma.commissionMembership.updateMany({
         where: {
           commissionId: commission.id,
-          isAdmin: true,
         },
         data: {
           isAdmin: false,

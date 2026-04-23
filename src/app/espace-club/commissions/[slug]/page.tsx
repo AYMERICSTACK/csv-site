@@ -5,9 +5,7 @@ import { auth } from "@/auth";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-import AddCommissionMemberForm from "@/components/AddCommissionMemberForm";
 import AddCommissionUserForm from "@/components/AddCommissionUserForm";
-import RemoveCommissionMemberButton from "@/components/RemoveCommissionMemberButton";
 import EditCommissionForm from "@/components/EditCommissionForm";
 import SetCommissionUserAdminButton from "@/components/SetCommissionUserAdminButton";
 import RemoveCommissionUserButton from "@/components/RemoveCommissionUserButton";
@@ -44,8 +42,21 @@ export default async function CommissionDetailPage({ params }: PageProps) {
   const commission = await prisma.commission.findUnique({
     where: { slug },
     include: {
-      members: {
-        orderBy: { name: "asc" },
+      memberships: {
+        orderBy: [{ isAdmin: "desc" }, { user: { name: "asc" } }],
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              role: true,
+              showEmailToMembers: true,
+              showPhoneToMembers: true,
+            },
+          },
+        },
       },
     },
   });
@@ -63,25 +74,6 @@ export default async function CommissionDetailPage({ params }: PageProps) {
   const isCommissionMember = Boolean(currentMembership);
   const isCommissionAdmin = currentMembership?.isAdmin === true;
   const canManageCommission = isGlobalAdmin || isCommissionAdmin;
-
-  const availableMembers = canManageCommission
-    ? await prisma.staffMember.findMany({
-        where: {
-          OR: [
-            { commissionId: null },
-            { commissionId: { not: commission.id } },
-          ],
-        },
-        orderBy: { name: "asc" },
-        select: {
-          id: true,
-          name: true,
-          roleLabel: true,
-          sectionTitle: true,
-          commissionId: true,
-        },
-      })
-    : [];
 
   const availableUsers = canManageCommission
     ? await prisma.user.findMany({
@@ -102,27 +94,14 @@ export default async function CommissionDetailPage({ params }: PageProps) {
       })
     : [];
 
-  const commissionUsers = await prisma.commissionMembership.findMany({
-    where: {
-      commissionId: commission.id,
-    },
-    orderBy: [{ isAdmin: "desc" }, { user: { name: "asc" } }],
-    select: {
-      isAdmin: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
-      },
-    },
-  });
+  const commissionMemberships = commission.memberships;
+  const visibleMemberships = commissionMemberships.filter(
+    (membership) => membership.isVisibleInCommission,
+  );
 
   return (
     <Container>
-      <div className="py-10 space-y-8">
+      <div className="space-y-8 py-10">
         <section className="overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_35%),linear-gradient(135deg,#111_0%,#000_100%)] px-6 py-8 text-white shadow-xl md:px-8 md:py-10">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="max-w-4xl">
@@ -177,13 +156,13 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                 ) : null}
 
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
-                  {commission.members.length} membre
-                  {commission.members.length > 1 ? "s" : ""}
+                  {visibleMemberships.length} membre
+                  {visibleMemberships.length > 1 ? "s" : ""}
                 </span>
 
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
-                  {commissionUsers.length} accès utilisateur
-                  {commissionUsers.length > 1 ? "s" : ""}
+                  {commissionMemberships.length} accès utilisateur
+                  {commissionMemberships.length > 1 ? "s" : ""}
                 </span>
               </div>
             </div>
@@ -231,12 +210,12 @@ export default async function CommissionDetailPage({ params }: PageProps) {
               )}
 
               <p>
-                <strong>Membres affichés :</strong> {commission.members.length}
+                <strong>Membres affichés :</strong> {visibleMemberships.length}
               </p>
 
               <p>
                 <strong>Utilisateurs avec accès :</strong>{" "}
-                {commissionUsers.length}
+                {commissionMemberships.length}
               </p>
             </div>
 
@@ -315,8 +294,8 @@ export default async function CommissionDetailPage({ params }: PageProps) {
             </div>
 
             <div className="mt-6 space-y-3">
-              {commissionUsers.length > 0 ? (
-                commissionUsers.map((membership) => (
+              {commissionMemberships.length > 0 ? (
+                commissionMemberships.map((membership) => (
                   <div
                     key={membership.user.id}
                     className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
@@ -376,7 +355,7 @@ export default async function CommissionDetailPage({ params }: PageProps) {
         ) : null}
 
         <section className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-4">
             <div className="max-w-2xl">
               <div className="text-sm font-bold uppercase tracking-wide text-neutral-500">
                 Affichage
@@ -385,73 +364,82 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                 Membres de la commission
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                Gère les membres affichés dans cette commission sur l’espace
-                club.
+                Les membres affichés ici proviennent directement des
+                utilisateurs ayant accès à cette commission, selon leurs
+                préférences de visibilité.
               </p>
             </div>
-
-            {canManageCommission ? (
-              <div className="w-full max-w-md">
-                <AddCommissionMemberForm
-                  slug={commission.slug}
-                  availableMembers={availableMembers}
-                />
-              </div>
-            ) : null}
           </div>
 
-          {commission.members.length > 0 ? (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {commission.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-base font-semibold text-neutral-900">
-                      {member.name}
-                    </div>
-                  </div>
+          {commission.showMembers ? (
+            visibleMemberships.length > 0 ? (
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {visibleMemberships.map((membership) => {
+                  const canShowEmail =
+                    commission.showEmail && membership.user.showEmailToMembers;
 
-                  <div className="mt-3 space-y-2 text-sm text-neutral-700">
-                    <p>
-                      <strong>Rôle :</strong> {member.roleLabel}
-                    </p>
+                  const canShowPhone =
+                    commission.showPhone && membership.user.showPhoneToMembers;
 
-                    {commission.showMembers ? (
-                      <>
+                  return (
+                    <div
+                      key={membership.user.id}
+                      className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-base font-semibold text-neutral-900">
+                            {membership.user.name}
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {membership.user.role === "admin" ? (
+                              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-bold text-violet-700">
+                                Admin global
+                              </span>
+                            ) : null}
+
+                            {membership.isAdmin ? (
+                              <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700">
+                                Admin commission
+                              </span>
+                            ) : null}
+
+                            {membership.roleLabel ? (
+                              <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-600">
+                                {membership.roleLabel}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2 text-sm text-neutral-700">
                         <p>
                           <strong>Email :</strong>{" "}
-                          {commission.showEmail
-                            ? member.email || "—"
-                            : "Masqué"}
+                          {canShowEmail ? membership.user.email : "Masqué"}
                         </p>
 
                         <p>
                           <strong>Téléphone :</strong>{" "}
-                          {commission.showPhone
-                            ? member.phone || "—"
+                          {canShowPhone
+                            ? membership.user.phone || "—"
                             : "Masqué"}
                         </p>
-                      </>
-                    ) : null}
-                  </div>
-
-                  {canManageCommission ? (
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <RemoveCommissionMemberButton
-                        slug={commission.slug}
-                        memberId={member.id}
-                        memberName={member.name}
-                      />
+                      </div>
                     </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-neutral-500">
+                Aucun membre visible dans cette commission.
+              </p>
+            )
           ) : (
             <p className="mt-6 text-sm text-neutral-500">
-              Aucun membre dans cette commission.
+              L’affichage des membres est actuellement désactivé pour cette
+              commission.
             </p>
           )}
         </section>

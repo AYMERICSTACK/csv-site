@@ -122,6 +122,8 @@ export async function POST(request: Request, { params }: RouteContext) {
         userId: targetUser.id,
         commissionId: commission.id,
         isAdmin: false,
+        isVisibleInCommission: true,
+        roleLabel: null,
       },
     });
 

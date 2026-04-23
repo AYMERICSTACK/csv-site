@@ -1,5 +1,6 @@
 export const ROLES = [
   "admin",
+  "member",
   "communication",
   "bureau",
   "materiel",
@@ -13,6 +14,7 @@ export type UserRole = (typeof ROLES)[number];
 
 export const ROLE_HOME: Record<UserRole, string> = {
   admin: "/admin",
+  member: "/espace-club",
   communication: "/espace-club",
   bureau: "/espace-club",
   materiel: "/espace-club",

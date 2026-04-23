@@ -86,6 +86,38 @@ export async function DELETE(_: Request, { params }: RouteContext) {
       );
     }
 
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+      },
+    });
+
+    if (targetUser?.role === "admin" && !isGlobalAdmin) {
+      return NextResponse.json(
+        { error: "Seul un admin global peut retirer un admin global." },
+        { status: 403 },
+      );
+    }
+
+    if (targetMembership.isAdmin) {
+      const adminCount = await prisma.commissionMembership.count({
+        where: {
+          commissionId: commission.id,
+          isAdmin: true,
+        },
+      });
+
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          {
+            error: "Impossible de supprimer le dernier admin de la commission.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     await prisma.commissionMembership.delete({
       where: {
         userId_commissionId: {

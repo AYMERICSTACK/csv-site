@@ -42,6 +42,22 @@ export default async function AdminDashboardPage() {
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <a
+            href="/admin/demandes"
+            className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+          >
+            <div className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+              Administration
+            </div>
+            <h2 className="mt-3 text-xl font-extrabold text-neutral-900">
+              Demandes d’accès
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              Valider les inscriptions internes et activer les comptes en
+              attente.
+            </p>
+          </a>
+
+          <a
             href="/admin/matchs"
             className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
           >
