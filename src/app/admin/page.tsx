@@ -57,6 +57,22 @@ export default async function AdminDashboardPage() {
           </a>
 
           <a
+            href="/espace-club/commissions"
+            className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+          >
+            <div className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+              Administration
+            </div>
+            <h2 className="mt-3 text-xl font-extrabold text-neutral-900">
+              Commissions
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              Gérer les commissions, leurs membres affichés et les accès
+              utilisateurs.
+            </p>
+          </a>
+
+          <a
             href="/espace-sponsoring"
             className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
           >

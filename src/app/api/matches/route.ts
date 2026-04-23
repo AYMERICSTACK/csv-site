@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import {
+  hasOnlyOneScoreFilled,
+  normalizeMatchStatus,
+} from "@/lib/match-status";
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -18,8 +22,17 @@ function unauthorizedResponse() {
 function forbiddenResponse() {
   return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
 }
+
 function canManageMatches(role?: string | null) {
   return role === "admin" || role === "educateurs";
+}
+
+function normalizeScore(value: unknown) {
+  if (value === "" || value === null || typeof value === "undefined") {
+    return null;
+  }
+
+  return Number(value);
 }
 
 export async function POST(request: Request) {
@@ -64,6 +77,24 @@ export async function POST(request: Request) {
       );
     }
 
+    if (hasOnlyOneScoreFilled(scoreTeam, scoreOpponent)) {
+      return NextResponse.json(
+        {
+          error:
+            "Tu dois renseigner les deux scores ou laisser les deux vides.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const normalizedScoreTeam = normalizeScore(scoreTeam);
+    const normalizedScoreOpponent = normalizeScore(scoreOpponent);
+    const normalizedStatus = normalizeMatchStatus(
+      status,
+      scoreTeam,
+      scoreOpponent,
+    );
+
     const createdMatch = await prisma.match.create({
       data: {
         category,
@@ -72,19 +103,9 @@ export async function POST(request: Request) {
         matchDate: parseLocalDateTime(matchDate),
         location,
         isHome,
-        status,
-        scoreTeam:
-          scoreTeam === "" ||
-          scoreTeam === null ||
-          typeof scoreTeam === "undefined"
-            ? null
-            : Number(scoreTeam),
-        scoreOpponent:
-          scoreOpponent === "" ||
-          scoreOpponent === null ||
-          typeof scoreOpponent === "undefined"
-            ? null
-            : Number(scoreOpponent),
+        status: normalizedStatus,
+        scoreTeam: normalizedScoreTeam,
+        scoreOpponent: normalizedScoreOpponent,
         scorers:
           typeof scorers === "string" && scorers.trim() !== ""
             ? scorers.trim()

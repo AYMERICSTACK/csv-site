@@ -1,16 +1,16 @@
+export const revalidate = 900;
+
 import HomeHero from "@/components/HomeHero";
 import Container from "@/components/Container";
 import Button from "@/components/Button";
 import SectionHeader from "@/components/SectionHeader";
-import WeekendResults from "@/components/WeekendResults";
-import UpcomingWeekendMatches from "@/components/UpcomingWeekendMatches";
+import HomeWeekendMatches from "@/components/HomeWeekendMatches";
 
 export default function HomePage() {
   return (
     <>
       <HomeHero />
-      <WeekendResults />
-      <UpcomingWeekendMatches />
+      <HomeWeekendMatches />
 
       <section>
         <Container>

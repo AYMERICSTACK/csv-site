@@ -1,7 +1,17 @@
 import Link from "next/link";
 import Container from "@/components/Container";
+import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { requireRole } from "@/lib/auth-guard";
+import {
+  ArrowLeft,
+  CalendarDays,
+  ClipboardList,
+  FolderOpen,
+  ShieldCheck,
+  Trophy,
+  Users,
+} from "lucide-react";
 
 type EducatorCard = {
   title: string;
@@ -50,88 +60,116 @@ const EDUCATOR_CARDS: EducatorCard[] = [
 export default async function EspaceEducateursPage() {
   const session = await requireRole(["admin", "educateurs"]);
 
+  const role = session.user?.role;
+  const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
+  const dashboardLabel =
+    role === "admin" ? "Retour dashboard admin" : "Retour espace club";
+
   return (
     <Container>
       <div className="py-14">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/espace-club"
-                className="inline-flex items-center rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
-              >
-                Espace club
-              </Link>
+        <section className="relative overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950 px-6 py-8 shadow-[0_30px_70px_-35px_rgba(0,0,0,0.55)] md:px-8 md:py-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,122,0,0.18),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.10),transparent_28%)]" />
+          <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-csv-orange/20 blur-3xl" />
 
-              <span className="inline-flex items-center rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700">
-                Commission éducateurs
-              </span>
+          <div className="relative flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={dashboardHref}>
+                  <Badge>Espace privé</Badge>
+                </Link>
+
+                <Link href="/espace-educateurs">
+                  <Badge>Éducateurs</Badge>
+                </Link>
+              </div>
+
+              <div className="mt-4">
+                <Link
+                  href={dashboardHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15"
+                >
+                  <ArrowLeft size={14} />
+                  {dashboardLabel}
+                </Link>
+              </div>
+
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                Espace éducateurs
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
+                Retrouvez ici les accès utiles à l’encadrement sportif et aux
+                actions du quotidien. Cet espace devient le point central pour
+                suivre les matchs, les équipes et les futurs outils
+                d’organisation sportive.
+              </p>
             </div>
 
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
-              Espace éducateurs
-            </h1>
-
-            <p className="mt-3 text-base leading-relaxed text-neutral-700 md:text-lg">
-              Retrouvez ici les accès utiles à l’encadrement sportif et aux
-              actions du quotidien.
-            </p>
+            <AdminLogoutButton />
           </div>
+        </section>
 
-          <AdminLogoutButton />
-        </div>
+        <div className="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
+            <section className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-csv-orange">
+                  <Trophy size={20} />
+                </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-extrabold text-neutral-900">
-              Tableau de bord éducateurs
-            </h2>
+                <div>
+                  <h2 className="text-xl font-extrabold text-neutral-900">
+                    Tableau de bord éducateurs
+                  </h2>
 
-            <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-              Cet espace devient le point central des éducateurs pour suivre les
-              matchs, consulter les équipes et préparer les futurs outils
-              d’organisation sportive.
-            </p>
+                  <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                    Vue d’ensemble des accès et des futurs outils utiles à
+                    l’encadrement sportif.
+                  </p>
+                </div>
+              </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {EDUCATOR_CARDS.map((card) =>
-                card.href ? (
-                  <Link
-                    key={card.title}
-                    href={card.href}
-                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                  >
-                    <h3 className="text-sm font-bold text-neutral-900">
-                      {card.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-neutral-600">
-                      {card.description}
-                    </p>
-                  </Link>
-                ) : (
-                  <div
-                    key={card.title}
-                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 opacity-75"
-                  >
-                    <div className="flex items-start justify-between gap-3">
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {EDUCATOR_CARDS.map((card) =>
+                  card.href ? (
+                    <Link
+                      key={card.title}
+                      href={card.href}
+                      className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                    >
                       <h3 className="text-sm font-bold text-neutral-900">
                         {card.title}
                       </h3>
-                      <span className="rounded-full bg-neutral-200 px-2.5 py-1 text-[11px] font-bold text-neutral-600">
-                        À venir
-                      </span>
+                      <p className="mt-2 text-sm text-neutral-600">
+                        {card.description}
+                      </p>
+                    </Link>
+                  ) : (
+                    <div
+                      key={card.title}
+                      className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 opacity-80"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-sm font-bold text-neutral-900">
+                          {card.title}
+                        </h3>
+                        <span className="rounded-full bg-neutral-200 px-2.5 py-1 text-[11px] font-bold text-neutral-600">
+                          À venir
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-neutral-600">
+                        {card.description}
+                      </p>
                     </div>
-                    <p className="mt-2 text-sm text-neutral-600">
-                      {card.description}
-                    </p>
-                  </div>
-                ),
-              )}
-            </div>
+                  ),
+                )}
+              </div>
+            </section>
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <section className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-extrabold text-neutral-900">Accès</h2>
 
               <div className="mt-4 space-y-3 text-sm text-neutral-700">
@@ -141,10 +179,12 @@ export default async function EspaceEducateursPage() {
                   </span>{" "}
                   {session.user?.name || session.user?.email || "Utilisateur"}
                 </p>
+
                 <p>
                   <span className="font-semibold text-neutral-900">Rôle :</span>{" "}
                   {session.user?.role}
                 </p>
+
                 <p>
                   <span className="font-semibold text-neutral-900">
                     Espace autorisé :
@@ -152,36 +192,85 @@ export default async function EspaceEducateursPage() {
                   admin + educateurs
                 </p>
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-extrabold text-neutral-900">
+            <section className="rounded-[1.75rem] border border-neutral-800 bg-neutral-950 p-6 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.45)]">
+              <h2 className="text-xl font-extrabold tracking-tight">
                 Raccourcis utiles
               </h2>
 
-              <div className="mt-4 flex flex-col gap-3">
+              <p className="mt-2 text-sm leading-relaxed text-white/75">
+                Accède rapidement aux outils essentiels pour le suivi sportif et
+                l’organisation des éducateurs.
+              </p>
+
+              <div className="mt-5 space-y-3">
                 <Link
                   href="/admin/matchs"
-                  className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
-                  Ouvrir la gestion des matchs
+                  <span>Ouvrir la gestion des matchs</span>
+                  <CalendarDays size={16} className="text-orange-400" />
                 </Link>
 
                 <Link
                   href="/equipes"
-                  className="inline-flex items-center justify-center rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
+                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
-                  Voir les équipes & horaires
+                  <span>Voir les équipes & horaires</span>
+                  <Users size={16} className="text-orange-400" />
                 </Link>
 
                 <Link
                   href="/espace-club"
-                  className="inline-flex items-center justify-center rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-50"
+                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
-                  Retour à l’espace club
+                  <span>Retour à l’espace club</span>
+                  <ShieldCheck size={16} className="text-orange-400" />
                 </Link>
               </div>
-            </div>
+            </section>
+
+            <section className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-extrabold text-neutral-900">
+                Vision éducateurs
+              </h2>
+
+              <div className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-neutral-900">
+                    <ClipboardList size={16} className="text-csv-orange" />
+                    Matchs & suivi
+                  </div>
+                  <p className="mt-2 text-sm text-neutral-600">
+                    Faciliter le suivi des rencontres et la mise à jour des
+                    informations utiles.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-neutral-900">
+                    <Users size={16} className="text-csv-orange" />
+                    Organisation des équipes
+                  </div>
+                  <p className="mt-2 text-sm text-neutral-600">
+                    Structurer les catégories, responsables et informations
+                    d’encadrement.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-neutral-900">
+                    <FolderOpen size={16} className="text-csv-orange" />
+                    Ressources à venir
+                  </div>
+                  <p className="mt-2 text-sm text-neutral-600">
+                    Préparer un futur espace central pour les documents,
+                    plannings et consignes.
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>

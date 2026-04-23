@@ -81,6 +81,7 @@ function getCategoryGroup(category: string): FilterKey {
     value.includes("u16") ||
     value.includes("u17") ||
     value.includes("u18") ||
+    value.includes("u19") ||
     value.includes("jeune")
   ) {
     return "jeunes";
@@ -92,6 +93,56 @@ function getCategoryGroup(category: string): FilterKey {
 function matchPassesFilter(match: MatchItem, filter: FilterKey) {
   if (filter === "all") return true;
   return getCategoryGroup(match.category) === filter;
+}
+
+function getCategoryOrder(category: string) {
+  const value = normalize(category);
+
+  if (value.includes("senior")) return 100;
+  if (value.includes("femin")) return 90;
+  if (value.includes("veteran")) return 80;
+  if (value.includes("u19")) return 70;
+  if (value.includes("u18")) return 69;
+  if (value.includes("u17")) return 68;
+  if (value.includes("u16")) return 67;
+  if (value.includes("u15")) return 66;
+  if (value.includes("u14")) return 65;
+  if (value.includes("u13")) return 64;
+  if (value.includes("u12")) return 63;
+  if (value.includes("u11")) return 62;
+  if (value.includes("u10")) return 61;
+  if (value.includes("u9")) return 60;
+  if (value.includes("u8")) return 59;
+  if (value.includes("u7")) return 58;
+  if (value.includes("u6")) return 57;
+
+  return 10;
+}
+
+function groupMatchesByCategory(matches: MatchItem[]) {
+  const groups = new Map<string, MatchItem[]>();
+
+  for (const match of matches) {
+    const current = groups.get(match.category) ?? [];
+    current.push(match);
+    groups.set(match.category, current);
+  }
+
+  return Array.from(groups.entries())
+    .sort((a, b) => {
+      const orderA = getCategoryOrder(a[0]);
+      const orderB = getCategoryOrder(b[0]);
+
+      if (orderA !== orderB) {
+        return orderB - orderA;
+      }
+
+      return a[0].localeCompare(b[0], "fr");
+    })
+    .map(([category, items]) => ({
+      category,
+      items,
+    }));
 }
 
 function formatDate(dateString: string) {
@@ -165,22 +216,6 @@ function getVenueBadge(match: MatchItem) {
   };
 }
 
-function getScorePanelClasses(isHome: boolean) {
-  if (isHome) {
-    return "flex h-[72px] sm:h-[76px] items-center justify-center rounded-[1.1rem] sm:rounded-[1.25rem] border border-orange-500 bg-orange-500 px-4 py-2.5 text-center text-white shadow-[0_18px_35px_-18px_rgba(255,122,0,0.8)]";
-  }
-
-  return "flex h-[72px] sm:h-[76px] items-center justify-center rounded-[1.1rem] sm:rounded-[1.25rem] border border-orange-300 bg-white px-4 py-2.5 text-center text-orange-600";
-}
-
-function getVenueDetailClasses(isHome: boolean) {
-  if (isHome) {
-    return "mt-4 inline-flex items-center rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700";
-  }
-
-  return "mt-4 inline-flex items-center rounded-full border border-orange-300 bg-white px-3 py-1 text-xs font-bold text-orange-700";
-}
-
 function CategoryChip({
   active,
   onClick,
@@ -242,36 +277,36 @@ function ResultCard({ match }: { match: MatchItem }) {
   const leftScore = match.isHome ? match.scoreTeam : match.scoreOpponent;
   const rightScore = match.isHome ? match.scoreOpponent : match.scoreTeam;
 
-  const leftLabel = match.isHome ? "CSV" : "Adversaire";
-  const rightLabel = match.isHome ? "Adversaire" : "CSV";
+  const leftLabel = match.isHome ? "CSV" : "ADV";
+  const rightLabel = match.isHome ? "ADV" : "CSV";
 
   return (
-    <article className="group relative overflow-hidden rounded-[1.8rem] border border-neutral-800 bg-neutral-950 p-4 sm:p-6 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.65)] transition duration-300 hover:-translate-y-1 hover:border-orange-500/60 hover:shadow-[0_28px_70px_-28px_rgba(255,122,0,0.28)]">
+    <article className="group relative overflow-hidden rounded-[1.4rem] border border-neutral-800 bg-neutral-950 p-4 text-white shadow-[0_18px_45px_-28px_rgba(0,0,0,0.72)] transition duration-300 hover:-translate-y-0.5 hover:border-orange-500/60 hover:shadow-[0_24px_55px_-28px_rgba(255,122,0,0.24)]">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500" />
-      <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-orange-500/15 blur-2xl transition duration-300 group-hover:bg-orange-500/25" />
+      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-orange-500/10 blur-2xl transition duration-300 group-hover:bg-orange-500/20" />
 
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-full border border-orange-500/30 bg-orange-500/12 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-300">
+              <div className="inline-flex rounded-full border border-orange-500/25 bg-orange-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-300">
                 {match.category}
               </div>
 
               <div
-                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${venueBadge.className}`}
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
               >
-                {venueBadge.label}
+                {match.isHome ? "Domicile" : "Extérieur"}
               </div>
             </div>
 
-            <h3 className="mt-3 text-lg sm:text-xl font-extrabold leading-tight text-white">
-              {leftTeam} <span className="text-white/35">vs</span> {rightTeam}
+            <h3 className="mt-2 text-base font-extrabold leading-tight text-white sm:text-lg">
+              {leftTeam} <span className="text-white/30">vs</span> {rightTeam}
             </h3>
           </div>
 
           <div
-            className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-bold shadow-sm ${getResultBadgeClasses(
+            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getResultBadgeClasses(
               match.scoreTeam,
               match.scoreOpponent,
             )}`}
@@ -280,82 +315,55 @@ function ResultCard({ match }: { match: MatchItem }) {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 rounded-[1.35rem] sm:rounded-[1.5rem] border border-orange-500/20 bg-gradient-to-r from-neutral-900 via-black to-neutral-900 p-3 sm:p-4">
-          <div className="text-right min-w-0">
-            <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wide text-white/45">
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[1.15rem] border border-orange-500/15 bg-white/[0.03] px-3 py-3">
+          <div className="min-w-0 text-right">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
               {leftLabel}
             </div>
-            <div className="mt-1 text-sm sm:text-base font-extrabold leading-snug text-white line-clamp-2 text-balance">
+            <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
               {leftTeam}
             </div>
           </div>
 
-          <div className={getScorePanelClasses(match.isHome)}>
-            <div
-              className={`flex h-full w-full items-center justify-center text-[22px] sm:text-2xl font-extrabold tracking-tight ${
-                match.isHome ? "text-white" : "text-orange-600"
-              }`}
-            >
-              {leftScore} - {rightScore}
-            </div>
+          <div className="inline-flex min-w-[84px] items-center justify-center rounded-2xl border border-orange-500 bg-orange-500 px-3 py-2 text-lg font-extrabold tracking-tight text-white shadow-[0_12px_24px_-14px_rgba(255,122,0,0.9)]">
+            {leftScore} - {rightScore}
           </div>
 
-          <div className="text-left min-w-0">
-            <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wide text-white/45">
+          <div className="min-w-0 text-left">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
               {rightLabel}
             </div>
-            <div className="mt-1 text-sm sm:text-base font-extrabold leading-snug text-white line-clamp-2 text-balance">
+            <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
               {rightTeam}
             </div>
           </div>
         </div>
 
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80">
+            <Clock3 size={14} className="text-orange-400" />
+            <span className="font-medium">{formatDate(match.matchDate)}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80">
+            <MapPin size={14} className="text-orange-400" />
+            <span className="font-medium">{match.location}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80">
+            <Trophy size={14} className="text-orange-400" />
+            <span className="font-medium">
+              {match.isHome ? "Domicile" : "Extérieur"}
+            </span>
+          </div>
+        </div>
+
         {match.scorers ? (
-          <div className="mt-4 rounded-[1.25rem] border border-orange-500/20 bg-orange-500/10 px-4 py-3 text-sm text-white/80">
+          <div className="mt-3 rounded-[1rem] border border-orange-500/15 bg-orange-500/8 px-3 py-2 text-sm text-white/80">
             <span className="font-bold text-white">Buteurs :</span>{" "}
             <span className="whitespace-pre-line">{match.scorers}</span>
           </div>
         ) : null}
-
-        <div className="mt-4 grid gap-3 text-sm">
-          <div className="flex items-start gap-3 rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-            <Clock3 size={16} className="mt-0.5 shrink-0 text-orange-400" />
-            <div className="min-w-0">
-              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                Date
-              </div>
-              <div className="mt-1 font-semibold text-white">
-                {formatDate(match.matchDate)}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-start gap-3 rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-              <MapPin size={16} className="mt-0.5 shrink-0 text-orange-400" />
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                  Lieu
-                </div>
-                <div className="mt-1 font-semibold text-white break-words">
-                  {match.location}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3">
-              <Trophy size={16} className="mt-0.5 shrink-0 text-orange-400" />
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                  Type
-                </div>
-                <div className="mt-1 font-semibold text-white">
-                  {match.isHome ? "Domicile" : "Extérieur"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </article>
   );
@@ -367,33 +375,33 @@ function UpcomingCard({ match }: { match: MatchItem }) {
   const rightTeam = match.isHome ? match.opponent : match.team;
 
   return (
-    <article className="group relative overflow-hidden rounded-[1.8rem] border border-neutral-800 bg-white p-4 sm:p-6 text-neutral-900 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-1 hover:border-orange-400 hover:shadow-[0_24px_60px_-28px_rgba(255,122,0,0.28)]">
+    <article className="group relative overflow-hidden rounded-[1.4rem] border border-neutral-200 bg-white p-4 text-neutral-900 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 hover:border-orange-400 hover:shadow-[0_20px_48px_-28px_rgba(255,122,0,0.24)]">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500" />
-      <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl transition duration-300 group-hover:bg-orange-500/20" />
+      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-orange-500/8 blur-2xl transition duration-300 group-hover:bg-orange-500/16" />
 
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-700">
+              <div className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-700">
                 {match.category}
               </div>
 
               <div
-                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${venueBadge.className}`}
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
               >
-                {venueBadge.label}
+                {match.isHome ? "Domicile" : "Extérieur"}
               </div>
             </div>
 
-            <h3 className="mt-3 text-lg sm:text-xl font-extrabold leading-tight text-neutral-900">
+            <h3 className="mt-2 text-base font-extrabold leading-tight text-neutral-900 sm:text-lg">
               {leftTeam} <span className="text-neutral-400">vs</span>{" "}
               {rightTeam}
             </h3>
           </div>
 
           <div
-            className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-bold shadow-sm ${getUpcomingStatusClasses(
+            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getUpcomingStatusClasses(
               match.status,
             )}`}
           >
@@ -401,55 +409,49 @@ function UpcomingCard({ match }: { match: MatchItem }) {
           </div>
         </div>
 
-        <div className="mt-5 rounded-[1.35rem] sm:rounded-[1.5rem] border border-orange-200 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black p-4 text-white">
-          <div className="grid gap-3 text-sm">
-            <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <CalendarDays
-                size={16}
-                className="mt-0.5 shrink-0 text-orange-400"
-              />
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                  Date
-                </div>
-                <div className="mt-1 font-semibold text-white">
-                  {formatDate(match.matchDate)}
-                </div>
-              </div>
-            </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-neutral-700">
+            <CalendarDays size={14} className="text-orange-500" />
+            <span className="font-medium">{formatDate(match.matchDate)}</span>
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <MapPin size={16} className="mt-0.5 shrink-0 text-orange-400" />
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                    Lieu
-                  </div>
-                  <div className="mt-1 font-semibold text-white break-words">
-                    {match.location}
-                  </div>
-                </div>
-              </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-neutral-700">
+            <MapPin size={14} className="text-orange-500" />
+            <span className="font-medium">{match.location}</span>
+          </div>
 
-              <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <Trophy size={16} className="mt-0.5 shrink-0 text-orange-400" />
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                    Type
-                  </div>
-                  <div className="mt-1 font-semibold text-white">
-                    {match.isHome ? "Domicile" : "Extérieur"}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-neutral-700">
+            <Trophy size={14} className="text-orange-500" />
+            <span className="font-medium">
+              {match.isHome ? "Domicile" : "Extérieur"}
+            </span>
           </div>
         </div>
 
-        <div className={getVenueDetailClasses(match.isHome)}>
-          {match.isHome
-            ? "🏠 Réception au CS Viriat"
-            : "✈️ Déplacement à l’extérieur"}
+        <div className="mt-4 rounded-[1.05rem] border border-orange-200 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black px-4 py-3 text-white">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="min-w-0 text-right">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
+                {match.isHome ? "CSV" : "ADV"}
+              </div>
+              <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+                {leftTeam}
+              </div>
+            </div>
+
+            <div className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-orange-300">
+              Match
+            </div>
+
+            <div className="min-w-0 text-left">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
+                {match.isHome ? "ADV" : "CSV"}
+              </div>
+              <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+                {rightTeam}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </article>
@@ -475,6 +477,14 @@ export default function CalendarMatchesClient({
     );
   }, [upcomingMatches, activeFilter]);
 
+  const groupedRecentResults = useMemo(() => {
+    return groupMatchesByCategory(filteredRecentResults);
+  }, [filteredRecentResults]);
+
+  const groupedUpcomingMatches = useMemo(() => {
+    return groupMatchesByCategory(filteredUpcomingMatches);
+  }, [filteredUpcomingMatches]);
+
   const showResults = activeView === "all" || activeView === "results";
   const showUpcoming = activeView === "all" || activeView === "upcoming";
 
@@ -483,7 +493,7 @@ export default function CalendarMatchesClient({
   const hasContent = hasVisibleResults || hasVisibleUpcoming;
 
   return (
-    <div className="mt-10 space-y-10">
+    <div className="mt-10 space-y-8">
       <section className="rounded-[2rem] border border-neutral-800 bg-neutral-950 p-5 text-white shadow-[0_28px_70px_-35px_rgba(0,0,0,0.55)] md:p-6">
         <div className="space-y-5">
           <div>
@@ -550,7 +560,7 @@ export default function CalendarMatchesClient({
       ) : null}
 
       {hasVisibleResults ? (
-        <section className="space-y-5">
+        <section className="space-y-6">
           <div className="max-w-2xl">
             <div className="inline-flex rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-700">
               Résultats
@@ -559,23 +569,36 @@ export default function CalendarMatchesClient({
             <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-neutral-900 md:text-3xl">
               Résultats récents
             </h2>
-
-            <p className="mt-2 text-sm leading-relaxed text-neutral-700 md:text-base">
-              Les matchs terminés des 7 derniers jours, avec un rendu plus
-              percutant pour le score, les buteurs et la lecture du résultat.
-            </p>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredRecentResults.map((match) => (
-              <ResultCard key={match.id} match={match} />
+          <div className="space-y-8">
+            {groupedRecentResults.map((group) => (
+              <section key={group.category} className="space-y-4">
+                <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-3">
+                  <div>
+                    <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 md:text-xl">
+                      {group.category}
+                    </h3>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      {group.items.length} match
+                      {group.items.length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {group.items.map((match) => (
+                    <ResultCard key={match.id} match={match} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>
       ) : null}
 
       {hasVisibleUpcoming ? (
-        <section className="space-y-5">
+        <section className="space-y-6">
           <div className="max-w-2xl">
             <div className="inline-flex rounded-full border border-orange-300 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-700">
               À venir
@@ -586,14 +609,32 @@ export default function CalendarMatchesClient({
             </h2>
 
             <p className="mt-2 text-sm leading-relaxed text-neutral-700 md:text-base">
-              Les rencontres à venir du vendredi soir au dimanche dans un style
-              plus premium, plus sport et plus contrasté.
+              Les rencontres à venir du club, regroupées par catégorie pour une
+              lecture plus claire.
             </p>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredUpcomingMatches.map((match) => (
-              <UpcomingCard key={match.id} match={match} />
+          <div className="space-y-8">
+            {groupedUpcomingMatches.map((group) => (
+              <section key={group.category} className="space-y-4">
+                <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-3">
+                  <div>
+                    <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 md:text-xl">
+                      {group.category}
+                    </h3>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      {group.items.length} match
+                      {group.items.length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {group.items.map((match) => (
+                    <UpcomingCard key={match.id} match={match} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>

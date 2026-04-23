@@ -15,6 +15,10 @@ import {
   Shield,
   Trophy,
 } from "lucide-react";
+import {
+  hasOnlyOneScoreFilled,
+  normalizeMatchStatus,
+} from "@/lib/match-status";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -173,6 +177,12 @@ export default async function EditMatchPage({ params }: PageProps) {
       throw new Error("Tous les champs obligatoires doivent être remplis.");
     }
 
+    if (hasOnlyOneScoreFilled(scoreTeamValue, scoreOpponentValue)) {
+      throw new Error(
+        "Tu dois renseigner les deux scores ou laisser les deux vides.",
+      );
+    }
+
     const existingMatch = await prisma.match.findUnique({
       where: { id },
     });
@@ -180,6 +190,12 @@ export default async function EditMatchPage({ params }: PageProps) {
     if (!existingMatch) {
       throw new Error("Match introuvable.");
     }
+
+    const normalizedStatus = normalizeMatchStatus(
+      status,
+      scoreTeamValue,
+      scoreOpponentValue,
+    );
 
     await prisma.match.update({
       where: { id },
@@ -190,7 +206,7 @@ export default async function EditMatchPage({ params }: PageProps) {
         matchDate: parseLocalDateTime(matchDate),
         location,
         isHome: isHomeValue === "true",
-        status,
+        status: normalizedStatus,
         scoreTeam: scoreTeamValue ? Number(scoreTeamValue) : null,
         scoreOpponent: scoreOpponentValue ? Number(scoreOpponentValue) : null,
         scorers: scorersValue || null,

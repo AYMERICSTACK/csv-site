@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import {
+  hasOnlyOneScoreFilled,
+  normalizeMatchStatus,
+} from "@/lib/match-status";
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -21,6 +25,14 @@ function unauthorizedResponse() {
 
 function forbiddenResponse() {
   return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+}
+
+function normalizeScore(value: unknown) {
+  if (value === "" || value === null || typeof value === "undefined") {
+    return null;
+  }
+
+  return Number(value);
 }
 
 async function requireMatchManager() {
@@ -95,6 +107,16 @@ export async function PUT(request: Request, { params }: RouteContext) {
       );
     }
 
+    if (hasOnlyOneScoreFilled(scoreTeam, scoreOpponent)) {
+      return NextResponse.json(
+        {
+          error:
+            "Tu dois renseigner les deux scores ou laisser les deux vides.",
+        },
+        { status: 400 },
+      );
+    }
+
     const existingMatch = await prisma.match.findUnique({
       where: { id },
     });
@@ -102,6 +124,14 @@ export async function PUT(request: Request, { params }: RouteContext) {
     if (!existingMatch) {
       return NextResponse.json({ error: "Match introuvable" }, { status: 404 });
     }
+
+    const normalizedScoreTeam = normalizeScore(scoreTeam);
+    const normalizedScoreOpponent = normalizeScore(scoreOpponent);
+    const normalizedStatus = normalizeMatchStatus(
+      status,
+      scoreTeam,
+      scoreOpponent,
+    );
 
     const updatedMatch = await prisma.match.update({
       where: { id },
@@ -112,19 +142,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
         matchDate: parseLocalDateTime(matchDate),
         location,
         isHome,
-        status,
-        scoreTeam:
-          scoreTeam === "" ||
-          scoreTeam === null ||
-          typeof scoreTeam === "undefined"
-            ? null
-            : Number(scoreTeam),
-        scoreOpponent:
-          scoreOpponent === "" ||
-          scoreOpponent === null ||
-          typeof scoreOpponent === "undefined"
-            ? null
-            : Number(scoreOpponent),
+        status: normalizedStatus,
+        scoreTeam: normalizedScoreTeam,
+        scoreOpponent: normalizedScoreOpponent,
         scorers:
           typeof scorers === "string" && scorers.trim() !== ""
             ? scorers.trim()
