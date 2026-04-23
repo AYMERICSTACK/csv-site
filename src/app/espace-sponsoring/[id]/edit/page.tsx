@@ -22,7 +22,7 @@ function slugifyFileName(value: string) {
 }
 
 export default async function EditPartnerPage({ params }: PageProps) {
-  const session = await requireRole(["admin", "sponsoring"]);
+  const { user } = await requireRole(["admin", "sponsoring"]);
   const { id } = await params;
 
   const partner = await prisma.partner.findUnique({
@@ -346,11 +346,11 @@ export default async function EditPartnerPage({ params }: PageProps) {
                 <span className="font-semibold text-neutral-900">
                   Connecté :
                 </span>{" "}
-                {session.user?.name || session.user?.email || "Utilisateur"}
+                {user.name || user.email || "Utilisateur"}
               </p>
               <p className="mt-2">
                 <span className="font-semibold text-neutral-900">Rôle :</span>{" "}
-                {session.user?.role}
+                {user.role}
               </p>
               <p className="mt-2">
                 <span className="font-semibold text-neutral-900">

@@ -127,13 +127,13 @@ async function deletePartner(formData: FormData) {
 }
 
 export default async function EspaceSponsoringPage() {
-  const session = await requireRole(["admin", "sponsoring"]);
+  const { user } = await requireRole(["admin", "sponsoring"]);
 
   const partners = await prisma.partner.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
 
-  const role = session.user?.role;
+  const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
     role === "admin" ? "Retour dashboard admin" : "Retour espace club";
@@ -379,7 +379,7 @@ export default async function EspaceSponsoringPage() {
                   <span className="font-semibold text-neutral-900">
                     Connecté :
                   </span>{" "}
-                  {session.user?.name || session.user?.email || "Utilisateur"}
+                  {user.name || user.email || "Utilisateur"}
                 </p>
                 <p className="mt-1">
                   <span className="font-semibold text-neutral-900">Rôle :</span>{" "}

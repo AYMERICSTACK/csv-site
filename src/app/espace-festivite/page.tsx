@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 
 export default async function EspaceFestivitePage() {
-  const session = await requireRole(["admin", "festivite"]);
+  const { user } = await requireRole(["admin", "festivite"]);
 
-  const role = session.user?.role;
+  const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
     role === "admin" ? "Retour dashboard admin" : "Retour espace club";
@@ -136,12 +136,12 @@ export default async function EspaceFestivitePage() {
                   <span className="font-semibold text-neutral-900">
                     Connecté :
                   </span>{" "}
-                  {session.user?.name || session.user?.email || "Utilisateur"}
+                  {user.name || user.email || "Utilisateur"}
                 </p>
 
                 <p>
                   <span className="font-semibold text-neutral-900">Rôle :</span>{" "}
-                  {session.user?.role}
+                  {user.role}
                 </p>
 
                 <p>

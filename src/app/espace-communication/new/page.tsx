@@ -42,8 +42,8 @@ function typeLabel(type: string) {
 }
 
 export default async function NewCommunicationContentPage() {
-  const session = await requireRole(["admin", "communication"]);
-  const role = session.user?.role;
+  const { user } = await requireRole(["admin", "communication"]);
+  const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
     role === "admin" ? "Retour dashboard admin" : "Retour espace club";
