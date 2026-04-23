@@ -9,6 +9,7 @@ import AddCommissionUserForm from "@/components/AddCommissionUserForm";
 import EditCommissionForm from "@/components/EditCommissionForm";
 import SetCommissionUserAdminButton from "@/components/SetCommissionUserAdminButton";
 import RemoveCommissionUserButton from "@/components/RemoveCommissionUserButton";
+import EditCommissionUserMembershipForm from "@/components/EditCommissionUserMembershipForm";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -343,6 +344,17 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                         userName={membership.user.name}
                       />
                     </div>
+
+                    {canManageCommission ? (
+                      <EditCommissionUserMembershipForm
+                        slug={commission.slug}
+                        userId={membership.user.id}
+                        initialRoleLabel={membership.roleLabel}
+                        initialIsVisibleInCommission={
+                          membership.isVisibleInCommission
+                        }
+                      />
+                    ) : null}
                   </div>
                 ))
               ) : (

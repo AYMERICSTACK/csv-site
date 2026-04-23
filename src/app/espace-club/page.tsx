@@ -121,6 +121,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   festivite: "Commission festivité",
   educateurs: "Commission éducateurs",
   buvette: "Commission buvette",
+  member: "Membre",
 };
 
 export default async function EspaceClubPage() {
