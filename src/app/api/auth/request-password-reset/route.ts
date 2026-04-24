@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     await resend.emails.send({
-      from: "CS Viriat <no-reply@ton-domaine.fr>",
+      from: "CS Viriat <onboarding@resend.dev>",
       to: user.email,
       subject: "Définir votre mot de passe",
       html: `
