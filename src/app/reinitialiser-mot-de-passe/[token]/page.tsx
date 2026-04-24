@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Container from "@/components/Container";
 
@@ -17,12 +18,24 @@ export default async function ResetPasswordPage({ params }: PageProps) {
 }
 
 function ResetPasswordForm({ token }: { token: string }) {
+  const router = useRouter();
+
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (status === "success") {
+      const timeout = setTimeout(() => {
+        router.push("/admin/login");
+      }, 2000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [status, router]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -114,8 +127,8 @@ function ResetPasswordForm({ token }: { token: string }) {
 
             {status === "success" ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                Mot de passe défini avec succès. Tu peux maintenant te
-                connecter.
+                Mot de passe défini avec succès. Redirection vers la
+                connexion...
               </div>
             ) : null}
 
