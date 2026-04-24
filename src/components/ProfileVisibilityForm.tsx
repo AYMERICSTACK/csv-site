@@ -5,15 +5,15 @@ import { useState } from "react";
 type Props = {
   showEmailToMembers: boolean;
   showPhoneToMembers: boolean;
-  staffEmail?: string | null;
-  staffPhone?: string | null;
+  userEmail?: string | null;
+  userPhone?: string | null;
 };
 
 export default function ProfileVisibilityForm({
   showEmailToMembers,
   showPhoneToMembers,
-  staffEmail,
-  staffPhone,
+  userEmail,
+  userPhone,
 }: Props) {
   const [emailVisible, setEmailVisible] = useState(showEmailToMembers);
   const [phoneVisible, setPhoneVisible] = useState(showPhoneToMembers);
@@ -65,64 +65,61 @@ export default function ProfileVisibilityForm({
   return (
     <form onSubmit={handleSubmit} className="mt-5 space-y-5">
       <div className="space-y-4">
-        {/* EMAIL */}
         <label className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
           <input
             type="checkbox"
             checked={emailVisible}
             onChange={(e) => setEmailVisible(e.target.checked)}
-            disabled={!staffEmail}
+            disabled={!userEmail}
             className="mt-1 h-4 w-4 rounded border-neutral-300"
           />
+
           <div>
             <div className="text-sm font-semibold text-neutral-900">
               Afficher mon email aux membres connectés
             </div>
             <div className="mt-1 text-sm text-neutral-600">
-              {staffEmail
-                ? `Email actuel : ${staffEmail}`
-                : "Aucun email renseigné dans la fiche staff."}
+              {userEmail
+                ? `Email actuel : ${userEmail}`
+                : "Aucun email renseigné sur mon compte."}
             </div>
           </div>
         </label>
 
-        {/* TELEPHONE */}
         <label className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4">
           <input
             type="checkbox"
             checked={phoneVisible}
             onChange={(e) => setPhoneVisible(e.target.checked)}
-            disabled={!staffPhone}
+            disabled={!userPhone}
             className="mt-1 h-4 w-4 rounded border-neutral-300"
           />
+
           <div>
             <div className="text-sm font-semibold text-neutral-900">
               Afficher mon téléphone aux membres connectés
             </div>
             <div className="mt-1 text-sm text-neutral-600">
-              {staffPhone
-                ? `Téléphone actuel : ${staffPhone}`
-                : "Aucun téléphone renseigné dans la fiche staff."}
+              {userPhone
+                ? `Téléphone actuel : ${userPhone}`
+                : "Aucun téléphone renseigné sur mon compte."}
             </div>
           </div>
         </label>
       </div>
 
-      {/* ERROR */}
-      {error && (
+      {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
-      {/* SUCCESS */}
-      {success && (
+      {success ? (
         <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {success}
         </div>
-      )}
+      ) : null}
 
-      {/* BUTTON */}
       <button
         type="submit"
         disabled={saving || !hasChanged}

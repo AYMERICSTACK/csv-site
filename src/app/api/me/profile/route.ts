@@ -12,17 +12,15 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
 
-    const showEmailToMembers = Boolean(body?.showEmailToMembers);
-    const showPhoneToMembers = Boolean(body?.showPhoneToMembers);
-
     const currentUser = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
-        staffMembers: {
-          orderBy: {
-            name: "asc",
-          },
-        },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        showEmailToMembers: true,
+        showPhoneToMembers: true,
       },
     });
 
@@ -33,39 +31,39 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const linkedStaffMember = currentUser.staffMembers?.[0] ?? null;
+    const { name, email, phone, showEmailToMembers, showPhoneToMembers } = body;
 
-    if (!linkedStaffMember) {
+    const cleanName = typeof name === "string" ? name.trim() : "";
+    const cleanEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
+    const cleanPhone = typeof phone === "string" ? phone.trim() : "";
+
+    const existingEmailUser =
+      cleanEmail && cleanEmail !== currentUser.email
+        ? await prisma.user.findUnique({ where: { email: cleanEmail } })
+        : null;
+
+    if (existingEmailUser) {
       return NextResponse.json(
-        { error: "Aucune fiche staff liée à ce compte." },
+        { error: "Cet email est déjà utilisé." },
         { status: 400 },
       );
-    }
-
-    // 🔥 optimisation : éviter update inutile
-    if (
-      showEmailToMembers === currentUser.showEmailToMembers &&
-      showPhoneToMembers === currentUser.showPhoneToMembers
-    ) {
-      return NextResponse.json({
-        id: currentUser.id,
-        showEmailToMembers: currentUser.showEmailToMembers,
-        showPhoneToMembers: currentUser.showPhoneToMembers,
-      });
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: currentUser.id },
       data: {
-        showEmailToMembers: linkedStaffMember.email
-          ? showEmailToMembers
-          : false,
-        showPhoneToMembers: linkedStaffMember.phone
-          ? showPhoneToMembers
-          : false,
+        name: cleanName || currentUser.name,
+        email: cleanEmail || currentUser.email,
+        phone: cleanPhone || null,
+        showEmailToMembers: cleanEmail ? Boolean(showEmailToMembers) : false,
+        showPhoneToMembers: cleanPhone ? Boolean(showPhoneToMembers) : false,
       },
       select: {
         id: true,
+        name: true,
+        email: true,
+        phone: true,
         showEmailToMembers: true,
         showPhoneToMembers: true,
       },

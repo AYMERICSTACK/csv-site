@@ -17,7 +17,7 @@ export default function HomePage() {
           <div className="py-14">
             <SectionHeader
               eyebrow="ADN DU CLUB"
-              title="Former, rassembler, performer — avec le sourire"
+              title="Former, rassembler, performer avec le sourire"
               subtitle="Une organisation claire et une vraie vie de club : l’objectif est de progresser, tout en gardant l’esprit familial qui fait la force du CSV."
             />
 
