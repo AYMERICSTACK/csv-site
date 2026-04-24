@@ -84,7 +84,6 @@ export async function POST(request: Request, { params }: RouteContext) {
         id: true,
         name: true,
         email: true,
-        isActive: true,
       },
     });
 
@@ -93,10 +92,6 @@ export async function POST(request: Request, { params }: RouteContext) {
         { error: "Utilisateur introuvable." },
         { status: 404 },
       );
-    }
-
-    if (!targetUser.isActive) {
-      return badRequestResponse("Cet utilisateur est inactif.");
     }
 
     const existingMembership = await prisma.commissionMembership.findUnique({
@@ -132,7 +127,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      message: `${targetUser.name} a maintenant accès à la commission ${commission.name}.`,
+      message: `${targetUser.name || targetUser.email} a maintenant accès à la commission ${commission.name}.`,
     });
   } catch (error) {
     console.error("Erreur ajout utilisateur commission :", error);

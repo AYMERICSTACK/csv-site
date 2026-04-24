@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type UserOption = {
   id: string;
-  name: string;
+  name: string | null;
   email: string;
 };
 
@@ -60,7 +60,7 @@ export default function AddCommissionUserForm({ slug, availableUsers }: Props) {
   if (availableUsers.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-500">
-        Aucun utilisateur disponible à ajouter pour le moment.
+        Tous les utilisateurs sont déjà rattachés à cette commission.
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function AddCommissionUserForm({ slug, availableUsers }: Props) {
           <option value="">Sélectionner un utilisateur</option>
           {availableUsers.map((user) => (
             <option key={user.id} value={user.id}>
-              {user.name} — {user.email}
+              {user.name || user.email} — {user.email}
             </option>
           ))}
         </select>

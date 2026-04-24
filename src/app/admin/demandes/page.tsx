@@ -164,8 +164,8 @@ export default async function AdminDemandesPage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
-                Valide les nouveaux comptes internes et vérifie les commissions
-                demandées avant activation.
+                Valide les nouveaux comptes internes, y compris ceux préparés
+                depuis l’organigramme du club.
               </p>
             </div>
 
@@ -186,8 +186,8 @@ export default async function AdminDemandesPage() {
                     Comptes en attente
                   </h2>
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Comptes créés via l’inscription interne, à activer après
-                    vérification.
+                    Comptes créés via l’inscription interne ou préparés depuis
+                    l’organigramme, à activer après vérification.
                   </p>
                 </div>
               </div>

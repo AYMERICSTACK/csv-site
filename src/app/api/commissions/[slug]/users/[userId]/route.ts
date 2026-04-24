@@ -174,6 +174,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const roleLabel =
       typeof body?.roleLabel === "string" ? body.roleLabel.trim() : "";
 
+    if (roleLabel.length > 80) {
+      return NextResponse.json(
+        { error: "Le rôle est trop long." },
+        { status: 400 },
+      );
+    }
+
     const isVisibleInCommission =
       typeof body?.isVisibleInCommission === "boolean"
         ? body.isVisibleInCommission

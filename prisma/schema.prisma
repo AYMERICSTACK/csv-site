@@ -36,6 +36,7 @@ model User {
   signupNote         String?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
+  passwordResetTokens PasswordResetToken[]
 
   // TEMPORAIRE — à garder pendant la transition
   commissionId       String?
@@ -228,4 +229,15 @@ model RegistrationDocument {
   updatedAt DateTime @updatedAt
 
   @@index([sortOrder])
+}
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

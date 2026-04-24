@@ -57,12 +57,8 @@ export async function PATCH(_: Request, { params }: RouteContext) {
     }
 
     const isGlobalAdmin = currentUser.role === "admin";
-    const currentMembership = currentUser.memberships.find(
-      (membership) => membership.commissionId === commission.id,
-    );
-    const isCommissionAdmin = currentMembership?.isAdmin === true;
 
-    if (!isGlobalAdmin && !isCommissionAdmin) {
+    if (!isGlobalAdmin) {
       return forbiddenResponse();
     }
 

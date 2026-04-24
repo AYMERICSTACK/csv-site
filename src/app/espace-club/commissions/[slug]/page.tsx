@@ -79,7 +79,6 @@ export default async function CommissionDetailPage({ params }: PageProps) {
   const availableUsers = canManageCommission
     ? await prisma.user.findMany({
         where: {
-          isActive: true,
           memberships: {
             none: {
               commissionId: commission.id,
@@ -304,7 +303,7 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <p className="text-sm font-semibold text-neutral-900">
-                          {membership.user.name}
+                          {membership.user.name || membership.user.email}
                         </p>
                         <p className="text-sm text-neutral-600">
                           {membership.user.email}
@@ -334,14 +333,14 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                       <SetCommissionUserAdminButton
                         slug={commission.slug}
                         userId={membership.user.id}
-                        userName={membership.user.name}
+                        userName={membership.user.name || membership.user.email}
                         isCurrentAdmin={membership.isAdmin}
                       />
 
                       <RemoveCommissionUserButton
                         slug={commission.slug}
                         userId={membership.user.id}
-                        userName={membership.user.name}
+                        userName={membership.user.name || membership.user.email}
                       />
                     </div>
 
@@ -401,7 +400,7 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-base font-semibold text-neutral-900">
-                            {membership.user.name}
+                            {membership.user.name || membership.user.email}
                           </div>
 
                           <div className="mt-2 flex flex-wrap gap-2">
