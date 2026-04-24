@@ -8,6 +8,7 @@ export const ROLES = [
   "festivite",
   "educateurs",
   "buvette",
+  "licence",
 ] as const;
 
 export type UserRole = (typeof ROLES)[number];
@@ -22,6 +23,7 @@ export const ROLE_HOME: Record<UserRole, string> = {
   festivite: "/espace-club",
   educateurs: "/espace-club",
   buvette: "/espace-club",
+  licence: "/espace-club",
 };
 
 export function isUserRole(role: string): role is UserRole {

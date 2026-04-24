@@ -74,6 +74,16 @@ async function main() {
       showEmail: true,
       showPhone: false,
     },
+    {
+      name: "Licence",
+      slug: "licence",
+      description:
+        "Gestion des licences, dossiers joueurs et démarches administratives liées aux inscriptions.",
+      isPublished: true,
+      showMembers: true,
+      showEmail: false,
+      showPhone: false,
+    },
   ];
 
   for (const commission of commissions) {

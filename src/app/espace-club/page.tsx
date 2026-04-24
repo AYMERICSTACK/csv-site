@@ -16,6 +16,7 @@ import {
   Handshake,
   UserCircle,
   ArrowRight,
+  IdCard,
 } from "lucide-react";
 
 type ClubCard = {
@@ -44,6 +45,15 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "communication"],
     badge: "Commission",
     icon: Megaphone,
+  },
+  {
+    title: "Licence",
+    description:
+      "Suivi des licences, dossiers joueurs et démarches administratives.",
+    href: "/espace-licence",
+    roles: ["admin", "licence"],
+    badge: "Commission",
+    icon: IdCard,
   },
   {
     title: "Bureau",
@@ -124,6 +134,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   educateurs: "Commission éducateurs",
   buvette: "Commission buvette",
   member: "Membre",
+  licence: "Commission licence",
 };
 
 export default async function EspaceClubPage() {
