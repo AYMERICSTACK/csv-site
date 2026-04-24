@@ -33,6 +33,15 @@ export default async function AdminLoginPage() {
           <div className="mt-8 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
             <LoginForm />
 
+            <div className="mt-4 text-center">
+              <Link
+                href="/mot-de-passe-oublie"
+                className="text-sm font-semibold text-neutral-600 transition hover:text-orange-600"
+              >
+                Mot de passe oublié ? Définir mon mot de passe
+              </Link>
+            </div>
+
             {/* 👉 INSCRIPTION */}
             <div className="mt-6 text-center">
               <p className="text-sm text-neutral-500">
