@@ -193,3 +193,39 @@ model NewsItem {
   @@index([type, isPublished, publishedAt])
   @@index([sortOrder])
 }
+model RegistrationSettings {
+  id                 String   @id @default(cuid())
+  seasonLabel        String   @default("Saison 2026")
+  introTitle         String   @default("S’inscrire au CS Viriat (CSV)")
+  introText          String
+  periodText         String   @default("juin → septembre")
+  contactEmail       String   @default("csviriat-football@orange.fr")
+  helloAssoUrl       String?
+  cardPaymentUrl     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model RegistrationFee {
+  id        String   @id @default(cuid())
+  category  String
+  fee       String
+  tombola   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+model RegistrationDocument {
+  id        String   @id @default(cuid())
+  name      String
+  fileUrl   String?
+  status    String   @default("À venir")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}

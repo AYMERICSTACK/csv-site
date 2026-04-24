@@ -101,7 +101,89 @@ async function main() {
     });
   }
 
-  console.log("✅ Commissions créées / mises à jour");
+  await prisma.registrationSettings.upsert({
+    where: { id: "default-registration-settings" },
+    update: {
+      seasonLabel: "Saison 2026",
+      introTitle: "S’inscrire au CS Viriat (CSV)",
+      introText:
+        "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
+      periodText: "juin → septembre",
+      contactEmail: "csviriat-football@orange.fr",
+      helloAssoUrl: null,
+      cardPaymentUrl: null,
+    },
+    create: {
+      id: "default-registration-settings",
+      seasonLabel: "Saison 2026",
+      introTitle: "S’inscrire au CS Viriat (CSV)",
+      introText:
+        "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
+      periodText: "juin → septembre",
+      contactEmail: "csviriat-football@orange.fr",
+      helloAssoUrl: null,
+      cardPaymentUrl: null,
+    },
+  });
+
+  const fees = [
+    { category: "U7 – U9", fee: "150 €", tombola: "30 €", sortOrder: 1 },
+    { category: "U11 – U13", fee: "160 €", tombola: "30 €", sortOrder: 2 },
+    { category: "U15 – U17", fee: "170 €", tombola: "30 €", sortOrder: 3 },
+    { category: "U18", fee: "200 €", tombola: "30 €", sortOrder: 4 },
+    { category: "Seniors", fee: "220 €", tombola: "30 €", sortOrder: 5 },
+  ];
+
+  for (const fee of fees) {
+    await prisma.registrationFee.upsert({
+      where: { id: `fee-${fee.sortOrder}` },
+      update: fee,
+      create: {
+        id: `fee-${fee.sortOrder}`,
+        ...fee,
+      },
+    });
+  }
+
+  const documents = [
+    {
+      name: "Fiche d’inscription (PDF)",
+      status: "À venir",
+      fileUrl: null,
+      sortOrder: 1,
+    },
+    {
+      name: "Règlement intérieur (PDF)",
+      status: "À venir",
+      fileUrl: null,
+      sortOrder: 2,
+    },
+    {
+      name: "Autorisation photo (PDF)",
+      status: "À venir",
+      fileUrl: null,
+      sortOrder: 3,
+    },
+    {
+      name: "Certificat médical (PDF)",
+      status: "Disponible",
+      fileUrl: "/certificat_medical_2025_2026.pdf",
+      sortOrder: 4,
+    },
+  ];
+
+  for (const document of documents) {
+    await prisma.registrationDocument.upsert({
+      where: { id: `document-${document.sortOrder}` },
+      update: document,
+      create: {
+        id: `document-${document.sortOrder}`,
+        ...document,
+      },
+    });
+  }
+
+  console.log("✅ Commissions + inscriptions créées / mises à jour");
 }
 
 main()

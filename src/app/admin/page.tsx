@@ -194,6 +194,22 @@ export default async function AdminDashboardPage() {
           </a>
 
           <a
+            href="/espace-licence"
+            className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+          >
+            <div className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+              Commission
+            </div>
+            <h2 className="mt-3 text-xl font-extrabold text-neutral-900">
+              Licence
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              Suivre les licences, dossiers joueurs et démarches
+              administratives.
+            </p>
+          </a>
+
+          <a
             href="/espace-club/profil"
             className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
           >
