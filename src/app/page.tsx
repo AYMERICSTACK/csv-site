@@ -5,9 +5,29 @@ import Container from "@/components/Container";
 import Button from "@/components/Button";
 import SectionHeader from "@/components/SectionHeader";
 import HomeWeekendMatches from "@/components/HomeWeekendMatches";
+import HomeNextManifestation from "@/components/HomeNextManifestation";
 import { prisma } from "@/lib/prisma";
 
 export default async function HomePage() {
+  const nextManifestation = await prisma.newsItem.findFirst({
+    where: {
+      type: "manifestation",
+      isPublished: true,
+      eventDate: {
+        gte: new Date(),
+      },
+    },
+    orderBy: [{ eventDate: "asc" }, { sortOrder: "asc" }],
+    select: {
+      title: true,
+      excerpt: true,
+      coverImageUrl: true,
+      eventDate: true,
+      location: true,
+      externalUrl: true,
+    },
+  });
+
   const partners = await prisma.partner.findMany({
     where: {
       isActive: true,
@@ -21,6 +41,7 @@ export default async function HomePage() {
     <>
       <HomeHero />
       <HomeWeekendMatches />
+      <HomeNextManifestation manifestation={nextManifestation} />
 
       <section>
         <Container>

@@ -41,7 +41,18 @@ function typeLabel(type: string) {
   }
 }
 
-export default async function NewCommunicationContentPage() {
+export default async function NewCommunicationContentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ type?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const requestedType = resolvedSearchParams?.type || "annonce";
+  const defaultType = ["gazette", "manifestation", "annonce"].includes(
+    requestedType,
+  )
+    ? requestedType
+    : "annonce";
   const { user } = await requireRole(["admin", "communication"]);
   const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
@@ -233,7 +244,7 @@ export default async function NewCommunicationContentPage() {
                   <select
                     id="type"
                     name="type"
-                    defaultValue="annonce"
+                    defaultValue={defaultType}
                     className="input"
                   >
                     <option value="gazette">Gazette</option>

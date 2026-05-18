@@ -162,14 +162,47 @@ export default async function EspaceCommunicationPage() {
   const sortableItems = items.map((item) => ({
     id: item.id,
     title: item.title,
+    type: item.type,
     typeLabel: getTypeLabel(item.type),
     typeClasses: getTypeClasses(item.type),
     isPublished: item.isPublished,
     excerpt: item.excerpt,
     fileUrl: item.fileUrl,
     externalUrl: item.externalUrl,
+    eventDate: item.eventDate,
+    location: item.location,
     displayDate: formatDate(item.publishedAt || item.createdAt),
   }));
+
+  const communicationSections = [
+    {
+      id: "gazette",
+      title: "Gazettes",
+      description: "Résultats, supports PDF, visuels du week-end et documents à consulter.",
+      icon: <Newspaper size={20} />,
+      count: gazetteCount,
+      color: "orange",
+      items: sortableItems.filter((item) => item.type === "gazette"),
+    },
+    {
+      id: "manifestation",
+      title: "Manifestations",
+      description: "Repas, tournois, stages, réunions et dates simples de l’agenda.",
+      icon: <CalendarDays size={20} />,
+      count: manifestationCount,
+      color: "blue",
+      items: sortableItems.filter((item) => item.type === "manifestation"),
+    },
+    {
+      id: "annonce",
+      title: "Infos club",
+      description: "Communications rapides, annonces officielles et liens utiles.",
+      icon: <Megaphone size={20} />,
+      count: annonceCount,
+      color: "neutral",
+      items: sortableItems.filter((item) => item.type === "annonce"),
+    },
+  ];
 
   return (
     <Container>
@@ -341,11 +374,12 @@ export default async function EspaceCommunicationPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-extrabold text-neutral-900">
-                    Derniers contenus
+                    Contenus par rubrique
                   </h2>
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Aperçu rapide des dernières gazettes, manifestations et
-                    annonces.
+                    Le back office est séparé comme la page publique : gazettes,
+                    manifestations et infos club. C’est plus simple pour choisir
+                    où ajouter ou modifier un contenu.
                   </p>
                 </div>
 
@@ -367,19 +401,100 @@ export default async function EspaceCommunicationPage() {
                 </div>
               </div>
 
-              {sortableItems.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-6 text-sm text-neutral-700">
-                  Aucun contenu enregistré pour le moment.
-                </div>
-              ) : (
-                <div className="mt-6">
-                  <SortableNewsList
-                    items={sortableItems}
-                    togglePublishAction={togglePublish}
-                    deleteAction={deleteNewsItem}
-                  />
-                </div>
-              )}
+              <div className="mt-6 grid gap-3 md:grid-cols-3">
+                {communicationSections.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+                      section.color === "blue"
+                        ? "border-blue-100 bg-blue-50/60"
+                        : section.color === "orange"
+                          ? "border-orange-100 bg-orange-50/60"
+                          : "border-neutral-200 bg-neutral-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
+                          section.color === "blue"
+                            ? "bg-white text-blue-600"
+                            : section.color === "orange"
+                              ? "bg-white text-csv-orange"
+                              : "bg-white text-neutral-800"
+                        }`}
+                      >
+                        {section.icon}
+                      </span>
+                      <span className="text-2xl font-black text-neutral-950">
+                        {section.count}
+                      </span>
+                    </div>
+                    <div className="mt-3 text-sm font-black text-neutral-950">
+                      {section.title}
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-600">
+                      {section.description}
+                    </p>
+                  </a>
+                ))}
+              </div>
+
+              <div className="mt-7 space-y-8">
+                {communicationSections.map((section) => (
+                  <div
+                    key={section.id}
+                    id={section.id}
+                    className="scroll-mt-28 rounded-[1.5rem] border border-neutral-200 bg-neutral-50/60 p-4 md:p-5"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                            section.color === "blue"
+                              ? "bg-blue-100 text-blue-700"
+                              : section.color === "orange"
+                                ? "bg-orange-100 text-csv-orange"
+                                : "bg-neutral-200 text-neutral-800"
+                          }`}
+                        >
+                          {section.icon}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-neutral-950">
+                            {section.title}
+                          </h3>
+                          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                            {section.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/espace-communication/new?type=${section.id}`}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-bold text-neutral-800 transition hover:bg-neutral-50"
+                      >
+                        <Plus size={15} />
+                        Ajouter
+                      </Link>
+                    </div>
+
+                    <div className="mt-5">
+                      {section.items.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-6 text-sm text-neutral-600">
+                          Aucun contenu dans cette rubrique pour le moment.
+                        </div>
+                      ) : (
+                        <SortableNewsList
+                          items={section.items}
+                          togglePublishAction={togglePublish}
+                          deleteAction={deleteNewsItem}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
           </div>
 

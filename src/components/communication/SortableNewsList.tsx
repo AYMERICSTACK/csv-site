@@ -23,12 +23,15 @@ import { useToast } from "@/components/ui/ToastProvider";
 type SortableNewsItem = {
   id: string;
   title: string;
+  type: string;
   typeLabel: string;
   typeClasses: string;
   isPublished: boolean;
   excerpt: string | null;
   fileUrl: string | null;
   externalUrl: string | null;
+  eventDate?: Date | string | null;
+  location?: string | null;
   displayDate: string;
 };
 
