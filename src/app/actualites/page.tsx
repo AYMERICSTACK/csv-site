@@ -4,6 +4,7 @@ import ImageLightboxTrigger from "@/components/actualites/ImageLightboxTrigger";
 import { prisma } from "@/lib/prisma";
 import {
   CalendarDays,
+  Clock,
   FileText,
   Megaphone,
   MapPin,
@@ -18,6 +19,31 @@ function formatDate(date: Date | string) {
     day: "numeric",
     month: "long",
     year: "numeric",
+  });
+}
+
+function formatShortEventDate(date: Date | string | null) {
+  if (!date) return "Date à confirmer";
+
+  return new Date(date).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+function formatEventTime(date: Date | string | null) {
+  if (!date) return null;
+
+  const parsedDate = new Date(date);
+  const hours = parsedDate.getHours();
+  const minutes = parsedDate.getMinutes();
+
+  if (hours === 0 && minutes === 0) return null;
+
+  return parsedDate.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -49,6 +75,35 @@ export default async function ActualitesPage() {
   const gazettes = items.filter((item) => item.type === "gazette");
   const manifestations = items.filter((item) => item.type === "manifestation");
   const annonces = items.filter((item) => item.type === "annonce");
+
+  const now = new Date();
+  const datedManifestations = manifestations.filter((item) => item.eventDate);
+  const undatedManifestations = manifestations.filter((item) => !item.eventDate);
+
+  const upcomingManifestations = datedManifestations
+    .filter((item) => item.eventDate && new Date(item.eventDate) >= now)
+    .sort(
+      (a, b) =>
+        new Date(a.eventDate as Date).getTime() -
+        new Date(b.eventDate as Date).getTime(),
+    );
+
+  const pastManifestations = datedManifestations
+    .filter((item) => item.eventDate && new Date(item.eventDate) < now)
+    .sort(
+      (a, b) =>
+        new Date(b.eventDate as Date).getTime() -
+        new Date(a.eventDate as Date).getTime(),
+    );
+
+  const agendaManifestations = [
+    ...upcomingManifestations,
+    ...undatedManifestations,
+    ...pastManifestations,
+  ];
+
+  const highlightedManifestation =
+    upcomingManifestations[0] || undatedManifestations[0] || pastManifestations[0];
 
   const manifestationLightboxItems = manifestations
     .filter((item) => !!item.coverImageUrl)
@@ -214,12 +269,12 @@ export default async function ActualitesPage() {
             </div>
 
             <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-neutral-900 md:text-3xl">
-              Événements du club
+              Agenda du club
             </h2>
 
             <p className="mt-2 text-sm leading-relaxed text-neutral-700 md:text-base">
-              Tournois, repas, stages, animations, buvette et temps forts à
-              venir.
+              Toutes les dates importantes du CS Viriat : tournois, repas,
+              stages, animations, buvette, réunions et temps forts à venir.
             </p>
           </div>
 
@@ -228,21 +283,45 @@ export default async function ActualitesPage() {
               Aucune manifestation publiée pour le moment.
             </div>
           ) : (
-            <div className="flex max-w-md flex-col gap-8">
-              {manifestations.map((item) => {
-                const externalHref = item.externalUrl;
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)]">
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-2xl border border-orange-100 bg-white p-4 text-center shadow-sm">
+                    <div className="text-2xl font-black text-orange-600">
+                      {upcomingManifestations.length}
+                    </div>
+                    <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+                      à venir
+                    </div>
+                  </div>
 
-                return (
-                  <article
-                    key={item.id}
-                    className="overflow-hidden rounded-[1.75rem] border border-orange-100 bg-white shadow-sm transition hover:border-orange-200 hover:shadow-lg"
-                  >
-                    {item.coverImageUrl ? (
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
+                    <div className="text-2xl font-black text-neutral-900">
+                      {pastManifestations.length}
+                    </div>
+                    <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+                      passés
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-4 text-center shadow-sm">
+                    <div className="text-2xl font-black text-neutral-900">
+                      {manifestations.length}
+                    </div>
+                    <div className="mt-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+                      total
+                    </div>
+                  </div>
+                </div>
+
+                {highlightedManifestation ? (
+                  <article className="overflow-hidden rounded-[1.75rem] border border-orange-100 bg-white shadow-sm transition hover:border-orange-200 hover:shadow-lg">
+                    {highlightedManifestation.coverImageUrl ? (
                       <div className="border-b border-orange-100 bg-neutral-100">
                         <ImageLightboxTrigger
                           items={manifestationLightboxItems}
-                          currentId={item.id}
-                          alt={item.title}
+                          currentId={highlightedManifestation.id}
+                          alt={highlightedManifestation.title}
                           className="h-auto w-full object-contain bg-neutral-100"
                         />
                       </div>
@@ -251,38 +330,43 @@ export default async function ActualitesPage() {
                     <div className="p-5">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                          Manifestation
+                          Prochaine manifestation
                         </span>
 
-                        {item.eventDate ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-600">
+                          <CalendarDays size={14} />
+                          {formatShortEventDate(highlightedManifestation.eventDate)}
+                        </span>
+
+                        {formatEventTime(highlightedManifestation.eventDate) ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-600">
-                            <CalendarDays size={14} />
-                            {formatDate(item.eventDate)}
+                            <Clock size={14} />
+                            {formatEventTime(highlightedManifestation.eventDate)}
                           </span>
                         ) : null}
                       </div>
 
                       <h3 className="mt-4 text-lg font-extrabold text-neutral-900">
-                        {item.title}
+                        {highlightedManifestation.title}
                       </h3>
 
-                      {item.location ? (
+                      {highlightedManifestation.location ? (
                         <div className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-neutral-700">
                           <MapPin size={15} className="text-csv-orange" />
-                          {item.location}
+                          {highlightedManifestation.location}
                         </div>
                       ) : null}
 
-                      {item.excerpt ? (
+                      {highlightedManifestation.excerpt ? (
                         <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-                          {item.excerpt}
+                          {highlightedManifestation.excerpt}
                         </p>
                       ) : null}
 
-                      {externalHref ? (
+                      {highlightedManifestation.externalUrl ? (
                         <div className="mt-5">
                           <a
-                            href={externalHref}
+                            href={highlightedManifestation.externalUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
@@ -294,8 +378,91 @@ export default async function ActualitesPage() {
                       ) : null}
                     </div>
                   </article>
-                );
-              })}
+                ) : null}
+              </div>
+
+              <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
+                <div className="flex flex-col gap-2 border-b border-neutral-100 pb-5 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <h3 className="text-xl font-black text-neutral-900">
+                      Toutes les dates
+                    </h3>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      Une vue rapide pour ne manquer aucun temps fort du club.
+                    </p>
+                  </div>
+
+                  <span className="inline-flex w-fit rounded-full bg-orange-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700">
+                    Agenda
+                  </span>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {agendaManifestations.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-5 text-sm text-neutral-700">
+                      Les prochaines dates seront ajoutées ici dès publication.
+                    </div>
+                  ) : (
+                    agendaManifestations.map((item) => {
+                      const eventTime = formatEventTime(item.eventDate);
+
+                      return (
+                        <article
+                          key={item.id}
+                          className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 transition hover:border-orange-200 hover:bg-white hover:shadow-sm"
+                        >
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-neutral-700 ring-1 ring-neutral-200">
+                                  <CalendarDays size={13} />
+                                  {formatShortEventDate(item.eventDate)}
+                                </span>
+
+                                {eventTime ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-neutral-700 ring-1 ring-neutral-200">
+                                    <Clock size={13} />
+                                    {eventTime}
+                                  </span>
+                                ) : null}
+
+                                {item.location ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold text-neutral-700 ring-1 ring-neutral-200">
+                                    <MapPin size={13} />
+                                    {item.location}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <h4 className="mt-3 text-base font-extrabold text-neutral-950">
+                                {item.title}
+                              </h4>
+
+                              {item.excerpt ? (
+                                <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                                  {item.excerpt}
+                                </p>
+                              ) : null}
+                            </div>
+
+                            {item.externalUrl ? (
+                              <a
+                                href={item.externalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-csv-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                              >
+                                Voir
+                                <ExternalLink size={14} />
+                              </a>
+                            ) : null}
+                          </div>
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </section>

@@ -108,7 +108,12 @@ export default function SortableNewsList({
 }: SortableNewsListProps) {
   const [orderedItems, setOrderedItems] = useState(items);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const toast = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setOrderedItems(items);
@@ -187,6 +192,33 @@ export default function SortableNewsList({
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!mounted) {
+    return (
+      <div>
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3 text-sm">
+          <div className="text-neutral-700">
+            Glisse les contenus via la poignée pour modifier l’ordre d’affichage.
+          </div>
+          <div className="font-semibold text-neutral-500">
+            Chargement du tri...
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {orderedItems.map((item) => (
+            <div key={item.id} className="pl-14">
+              <NewsListItem
+                item={item}
+                togglePublishAction={togglePublishAction}
+                deleteAction={deleteAction}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

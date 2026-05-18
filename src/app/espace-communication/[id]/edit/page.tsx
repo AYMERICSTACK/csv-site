@@ -326,6 +326,32 @@ export default async function EditCommunicationContentPage({
                 </div>
               </div>
 
+              <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-csv-orange shadow-sm">
+                    <CalendarDays size={18} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-extrabold text-neutral-900">
+                      Manifestation : deux usages possibles
+                    </h3>
+
+                    <div className="mt-3 grid gap-3 text-sm leading-relaxed text-neutral-700 md:grid-cols-2">
+                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
+                        <span className="font-bold text-neutral-950">Avec affiche :</span>{" "}
+                        ajoute une image ou un fichier pour mettre l’événement en avant sur la page actualités.
+                      </div>
+
+                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
+                        <span className="font-bold text-neutral-950">Date simple :</span>{" "}
+                        renseigne seulement le titre, la date et le lieu. L’événement apparaîtra dans “Toutes les dates”.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="excerpt" className="label">
                   Extrait
@@ -388,7 +414,7 @@ export default async function EditCommunicationContentPage({
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="eventDate" className="label">
-                    Date de l’événement
+                    Date / heure de la manifestation
                   </label>
                   <input
                     id="eventDate"
@@ -397,6 +423,9 @@ export default async function EditCommunicationContentPage({
                     className="input"
                     defaultValue={toDatetimeLocalValue(item.eventDate)}
                   />
+                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                    Pour une date simple agenda, ce champ suffit avec le titre.
+                  </p>
                 </div>
 
                 <div>
@@ -410,6 +439,9 @@ export default async function EditCommunicationContentPage({
                     className="input"
                     defaultValue={item.location || ""}
                   />
+                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                    Optionnel mais recommandé pour les manifestations.
+                  </p>
                 </div>
               </div>
 
@@ -535,7 +567,7 @@ export default async function EditCommunicationContentPage({
                   <span className="font-bold text-neutral-900">
                     Manifestation :
                   </span>{" "}
-                  ajoute une date et un lieu pour enrichir la carte publique.
+                  ajoute une date et un lieu. L’image est optionnelle : sans affiche, l’événement reste visible dans “Toutes les dates”.
                 </div>
 
                 <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">

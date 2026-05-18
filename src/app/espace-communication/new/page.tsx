@@ -64,7 +64,7 @@ export default async function NewCommunicationContentPage() {
     const eventDateValue = String(formData.get("eventDate") || "").trim();
     const location = String(formData.get("location") || "").trim();
     const sortOrderValue = String(formData.get("sortOrder") || "0").trim();
-    const isPublishedValue = String(formData.get("isPublished") || "false");
+    const isPublishedValue = String(formData.get("isPublished") || "true");
 
     if (!title) {
       throw new Error("Le titre est obligatoire.");
@@ -257,6 +257,38 @@ export default async function NewCommunicationContentPage() {
                 </div>
               </div>
 
+              <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-csv-orange shadow-sm">
+                    <CalendarDays size={18} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-extrabold text-neutral-900">
+                      Manifestation : deux usages possibles
+                    </h3>
+
+                    <div className="mt-3 grid gap-3 text-sm leading-relaxed text-neutral-700 md:grid-cols-2">
+                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
+                        <span className="font-bold text-neutral-950">
+                          Avec affiche :
+                        </span>{" "}
+                        ajoute une image ou un fichier pour mettre l’événement
+                        en avant sur la page actualités.
+                      </div>
+
+                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
+                        <span className="font-bold text-neutral-950">
+                          Date simple :
+                        </span>{" "}
+                        renseigne seulement le titre, la date et le lieu.
+                        L’événement apparaîtra dans “Toutes les dates”.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="excerpt" className="label">
                   Extrait
@@ -284,11 +316,11 @@ export default async function NewCommunicationContentPage() {
               </div>
 
               <NewsAssetUpload
-                label="Image de couverture"
+                label="Image de couverture / affiche de manifestation"
                 name="coverImageUrl"
                 accept="image/png,image/jpeg,image/webp,image/jpg"
-                placeholder="URL de l’image de couverture"
-                helpText="Tu peux coller une URL existante ou envoyer directement une image."
+                placeholder="URL de l’image ou de l’affiche"
+                helpText="Optionnel pour une manifestation simple. Ajoute une affiche seulement pour les événements à mettre en avant visuellement."
               />
 
               <NewsAssetUpload
@@ -315,7 +347,7 @@ export default async function NewCommunicationContentPage() {
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="eventDate" className="label">
-                    Date de l’événement
+                    Date / heure de la manifestation
                   </label>
                   <input
                     id="eventDate"
@@ -323,6 +355,9 @@ export default async function NewCommunicationContentPage() {
                     type="datetime-local"
                     className="input"
                   />
+                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                    Pour une date simple agenda, ce champ suffit avec le titre.
+                  </p>
                 </div>
 
                 <div>
@@ -336,6 +371,9 @@ export default async function NewCommunicationContentPage() {
                     className="input"
                     placeholder="Ex : Stade Pierre Brichon"
                   />
+                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                    Optionnel mais recommandé pour les manifestations.
+                  </p>
                 </div>
               </div>
 
@@ -346,7 +384,7 @@ export default async function NewCommunicationContentPage() {
                 <select
                   id="isPublished"
                   name="isPublished"
-                  defaultValue="false"
+                  defaultValue="true"
                   className="input"
                 >
                   <option value="false">Brouillon</option>
@@ -391,7 +429,7 @@ export default async function NewCommunicationContentPage() {
                     icon: (
                       <CalendarDays size={16} className="text-orange-400" />
                     ),
-                    text: "Pour les tournois, repas, stages, portes ouvertes, animations et événements du club.",
+                    text: "Pour les événements avec affiche ou les dates simples de l’agenda : tournois, repas, stages, buvette, réunions et temps forts.",
                   },
                   {
                     type: "annonce",
