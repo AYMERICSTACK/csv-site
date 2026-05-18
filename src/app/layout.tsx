@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import FlashToastBridge from "@/components/ui/FlashToastBridge";
+import BackToTopButton from "@/components/BackToTopButton";
 
 export const metadata: Metadata = {
   title: "CS Viriat (CSV) — Club de football",
@@ -31,6 +32,7 @@ export default function RootLayout({
           <Header />
           <main className="pt-16">{children}</main>
           <Footer />
+          <BackToTopButton />
         </ToastProvider>
       </body>
     </html>
