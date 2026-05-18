@@ -21,72 +21,62 @@ model Match {
   scorers       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  goals         MatchGoal[]
+  events        MatchEvent[]
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
+  id                  String                 @id @default(cuid())
+  email               String                 @unique
   passwordHash        String
   name                String
   role                String
-  isActive            Boolean              @default(true)
-  showEmailToMembers  Boolean              @default(false)
-  showPhoneToMembers  Boolean              @default(false)
+  isActive            Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  showEmailToMembers  Boolean                @default(false)
+  showPhoneToMembers  Boolean                @default(false)
+  commissionId        String?
   phone               String?
   signupNote          String?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  memberships         CommissionMembership[]
   passwordResetTokens PasswordResetToken[]
-
-  // TEMPORAIRE — à garder pendant la transition
-  commissionId String?
-  commission   Commission? @relation("LegacyUserCommission", fields: [commissionId], references: [id], onDelete: SetNull)
-
-  // TEMPORAIRE — à garder pour ne pas casser l'existant tout de suite
-  staffMembers StaffMember[]
-
-  // NOUVELLE RELATION PROPRE
-  memberships CommissionMembership[]
+  staffMembers        StaffMember[]
+  commission          Commission?            @relation("LegacyUserCommission", fields: [commissionId], references: [id])
 
   @@index([commissionId])
 }
 
 model Commission {
-  id          String   @id @default(cuid())
+  id          String                 @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String                 @unique
   description String?
   email       String?
   phone       String?
-  isPublished Boolean  @default(true)
-  showMembers Boolean  @default(true)
-  showEmail   Boolean  @default(false)
-  showPhone   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // TEMPORAIRE — ancien système
-  users User[] @relation("LegacyUserCommission")
-
-  // Affichage site / organigramme
-  members StaffMember[]
-
-  // NOUVELLE RELATION PROPRE
+  isPublished Boolean                @default(true)
+  showMembers Boolean                @default(true)
+  showEmail   Boolean                @default(false)
+  showPhone   Boolean                @default(false)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
   memberships CommissionMembership[]
+  members     StaffMember[]
+  users       User[]                 @relation("LegacyUserCommission")
 }
 
 model CommissionMembership {
-  id                    String   @id @default(cuid())
+  id                    String     @id @default(cuid())
   userId                String
   commissionId          String
-  isAdmin               Boolean  @default(false)
+  isAdmin               Boolean    @default(false)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  isVisibleInCommission Boolean    @default(true)
   roleLabel             String?
-  isVisibleInCommission Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  commission Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  commission            Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commissionId])
   @@index([userId])
@@ -94,28 +84,21 @@ model CommissionMembership {
 }
 
 model StaffMember {
-  id           String  @id @default(cuid())
-  name         String
-  roleLabel    String
-  sectionTitle String
-  photo        String?
-  email        String?
-  phone        String?
-  isPublished  Boolean @default(true)
-
-  // TEMPORAIRE — à supprimer plus tard quand tout passera par CommissionMembership
-  isCommissionAdmin Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // TEMPORAIRE — à garder si tu veux encore relier un membre staff à un user plus tard
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  // Sert à l’AFFICHAGE des membres dans une commission
-  commissionId String?
-  commission   Commission? @relation(fields: [commissionId], references: [id], onDelete: SetNull)
+  id                String      @id @default(cuid())
+  name              String
+  roleLabel         String
+  sectionTitle      String
+  photo             String?
+  email             String?
+  phone             String?
+  isPublished       Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  userId            String?
+  commissionId      String?
+  isCommissionAdmin Boolean     @default(false)
+  commission        Commission? @relation(fields: [commissionId], references: [id])
+  user              User?       @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([commissionId])
@@ -133,6 +116,15 @@ model Partner {
   updatedAt   DateTime @updatedAt
 }
 
+
+model TeamSetting {
+  id        String   @id @default(cuid())
+  team      String   @unique
+  fffUrl    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model TeamGroup {
   id          String   @id @default(cuid())
   title       String
@@ -142,23 +134,20 @@ model TeamGroup {
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  teams Team[]
+  teams       Team[]
 }
 
 model Team {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   category    String
   coach       String
-  sortOrder   Int      @default(0)
-  isPublished Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  groupId String
-  group   TeamGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  schedules TeamSchedule[]
+  sortOrder   Int            @default(0)
+  isPublished Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  groupId     String
+  group       TeamGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  schedules   TeamSchedule[]
 }
 
 model TeamSchedule {
@@ -168,9 +157,8 @@ model TeamSchedule {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  teamId String
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }
 
 model NewsItem {
@@ -238,21 +226,19 @@ model PasswordResetToken {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model TopScorer {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
   category  String
-  goals     Int     @default(0)
+  goals     Int      @default(0)
   photoUrl  String?
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -268,6 +254,58 @@ model MatchGoal {
 
   createdAt DateTime @default(now())
 
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
   @@index([matchId])
   @@index([category])
+}
+
+model MatchEvent {
+  id        String   @id @default(cuid())
+
+  matchId   String
+  playerId  String
+  type      String
+
+  createdAt DateTime @default(now())
+
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([playerId])
+  @@index([type])
+}
+
+model Player {
+  id             String       @id @default(cuid())
+  firstName      String
+  lastName       String
+
+  team           String?
+  category       String?
+
+  photoUrl       String?
+  photoConsent   Boolean      @default(false)
+
+  isActive       Boolean      @default(true)
+
+  stats          PlayerStat[]
+  matchEvents    MatchEvent[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PlayerStat {
+  id        String   @id @default(cuid())
+  playerId  String
+  season    String
+  goals     Int      @default(0)
+  assists   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, season])
 }

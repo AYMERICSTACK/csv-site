@@ -7,6 +7,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import MatchCardActions from "./MatchCardActions";
+import { CLUB_CATEGORIES } from "@/lib/categories";
+import { CLUB_TEAMS } from "@/lib/teams";
 import {
   CalendarDays,
   MapPin,
@@ -411,28 +413,30 @@ export default async function AdminMatchsPage() {
                 <label htmlFor="category" className="label">
                   Catégorie
                 </label>
-                <input
-                  id="category"
-                  name="category"
-                  type="text"
-                  placeholder="Ex : Seniors, U15, U13..."
-                  className="input"
-                  required
-                />
+                <select id="category" name="category" className="input" required>
+                  <option value="">Sélectionner une catégorie</option>
+
+                  {CLUB_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label htmlFor="team" className="label">
                   Équipe
                 </label>
-                <input
-                  id="team"
-                  name="team"
-                  type="text"
-                  placeholder="Ex : Seniors 1"
-                  className="input"
-                  required
-                />
+                <select id="team" name="team" className="input" required>
+                  <option value="">Sélectionner une équipe</option>
+
+                  {CLUB_TEAMS.map((team) => (
+                    <option key={team} value={team}>
+                      {team}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

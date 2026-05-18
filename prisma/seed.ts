@@ -104,34 +104,38 @@ async function main() {
   await prisma.registrationSettings.upsert({
     where: { id: "default-registration-settings" },
     update: {
-      seasonLabel: "Saison 2026",
+      seasonLabel: "Saison 2026/2027",
       introTitle: "S’inscrire au CS Viriat (CSV)",
       introText:
         "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
       periodText: "juin → septembre",
       contactEmail: "csviriat-football@orange.fr",
-      helloAssoUrl: null,
+      helloAssoUrl: "https://www.helloasso.com/associations/club-sportif-de-viriat/adhesions/licences-2026-2027-csv-football",
       cardPaymentUrl: null,
     },
     create: {
       id: "default-registration-settings",
-      seasonLabel: "Saison 2026",
+      seasonLabel: "Saison 2026/2027",
       introTitle: "S’inscrire au CS Viriat (CSV)",
       introText:
         "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
       periodText: "juin → septembre",
       contactEmail: "csviriat-football@orange.fr",
-      helloAssoUrl: null,
+      helloAssoUrl: "https://www.helloasso.com/associations/club-sportif-de-viriat/adhesions/licences-2026-2027-csv-football",
       cardPaymentUrl: null,
     },
   });
 
   const fees = [
-    { category: "U7 – U9", fee: "150 €", tombola: "30 €", sortOrder: 1 },
-    { category: "U11 – U13", fee: "160 €", tombola: "30 €", sortOrder: 2 },
-    { category: "U15 – U17", fee: "170 €", tombola: "30 €", sortOrder: 3 },
-    { category: "U18", fee: "200 €", tombola: "30 €", sortOrder: 4 },
-    { category: "Seniors", fee: "220 €", tombola: "30 €", sortOrder: 5 },
+    { category: "U7 (2020/2021)", fee: "150 €", tombola: "Short + chaussettes inclus", sortOrder: 1 },
+    { category: "U9 (2018/2019)", fee: "150 €", tombola: "Short + chaussettes inclus", sortOrder: 2 },
+    { category: "U11 (2016/2017)", fee: "175 €", tombola: "Short + chaussettes inclus", sortOrder: 3 },
+    { category: "U13 (2014/2015)", fee: "175 €", tombola: "Short + chaussettes inclus", sortOrder: 4 },
+    { category: "U15 (2012/2013)", fee: "185 €", tombola: "Short + chaussettes inclus", sortOrder: 5 },
+    { category: "U17 (2010/2011)", fee: "205 €", tombola: "Short + chaussettes inclus", sortOrder: 6 },
+    { category: "Féminines (née avant 2009)", fee: "170 €", tombola: "Short + chaussettes inclus", sortOrder: 7 },
+    { category: "U20 – Seniors (né avant 2009)", fee: "220 €", tombola: "Short + chaussettes inclus", sortOrder: 8 },
+    { category: "Vétérans (né avant 1991)", fee: "130 €", tombola: "Short + chaussettes inclus", sortOrder: 9 },
   ];
 
   for (const fee of fees) {
@@ -147,28 +151,34 @@ async function main() {
 
   const documents = [
     {
-      name: "Fiche d’inscription (PDF)",
-      status: "À venir",
-      fileUrl: null,
+      name: "Tarifs licences 2026/2027",
+      status: "Disponible",
+      fileUrl: "/inscriptions/tarifs-licences-2026-2027.pdf",
       sortOrder: 1,
     },
     {
-      name: "Règlement intérieur (PDF)",
+      name: "Fiche d’inscription (PDF)",
       status: "À venir",
       fileUrl: null,
       sortOrder: 2,
     },
     {
-      name: "Autorisation photo (PDF)",
+      name: "Règlement intérieur (PDF)",
       status: "À venir",
       fileUrl: null,
       sortOrder: 3,
     },
     {
+      name: "Autorisation photo (PDF)",
+      status: "À venir",
+      fileUrl: null,
+      sortOrder: 4,
+    },
+    {
       name: "Certificat médical (PDF)",
       status: "Disponible",
       fileUrl: "/certificat_medical_2025_2026.pdf",
-      sortOrder: 4,
+      sortOrder: 5,
     },
   ];
 

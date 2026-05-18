@@ -5,8 +5,18 @@ import Container from "@/components/Container";
 import Button from "@/components/Button";
 import SectionHeader from "@/components/SectionHeader";
 import HomeWeekendMatches from "@/components/HomeWeekendMatches";
+import { prisma } from "@/lib/prisma";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const partners = await prisma.partner.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: 24,
+  });
+
+  const scrollingPartners = [...partners, ...partners];
   return (
     <>
       <HomeHero />
@@ -62,16 +72,62 @@ export default function HomePage() {
               subtitle="Visibilité claire et cohérente : une page dédiée et des mises en avant régulières."
             />
 
-            <div className="mt-8 grid gap-4 md:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-center rounded-2xl border border-neutral-200 bg-white p-6 text-sm font-semibold text-neutral-500"
-                >
-                  Logo partenaire
+            {partners.length > 0 ? (
+              <div className="mt-8 overflow-hidden rounded-3xl border border-neutral-200 bg-white py-5 shadow-sm">
+                <div className="partner-marquee flex w-max gap-4 px-4">
+                  {scrollingPartners.map((partner, index) => (
+                    <a
+                      key={`${partner.id}-${index}`}
+                      href={partner.websiteUrl || "/partenaires"}
+                      target={partner.websiteUrl ? "_blank" : undefined}
+                      rel={partner.websiteUrl ? "noreferrer" : undefined}
+                      className="flex h-24 w-56 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50 px-6 text-center text-sm font-extrabold text-neutral-700 transition hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50"
+                      aria-label={`Voir ${partner.name}`}
+                    >
+                      {partner.logoUrl ? (
+                        <img
+                          src={partner.logoUrl}
+                          alt={partner.name}
+                          className="max-h-16 max-w-full object-contain"
+                        />
+                      ) : (
+                        <span>{partner.name}</span>
+                      )}
+                    </a>
+                  ))}
                 </div>
-              ))}
-            </div>
+
+                <style>{`
+                  @keyframes partner-marquee {
+                    from {
+                      transform: translateX(0);
+                    }
+                    to {
+                      transform: translateX(-50%);
+                    }
+                  }
+
+                  .partner-marquee {
+                    animation: partner-marquee 32s linear infinite;
+                  }
+
+                  .partner-marquee:hover {
+                    animation-play-state: paused;
+                  }
+                `}</style>
+              </div>
+            ) : (
+              <div className="mt-8 grid gap-4 md:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-center rounded-2xl border border-neutral-200 bg-white p-6 text-sm font-semibold text-neutral-500"
+                  >
+                    Logo partenaire
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-6">
               <Button href="/partenaires" variant="ghost">

@@ -1,20 +1,29 @@
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import Button from "@/components/Button";
+import RegistrationChoice from "@/components/RegistrationChoice";
 import { prisma } from "@/lib/prisma";
+
+const helloAssoLicencesUrl =
+  "https://www.helloasso.com/associations/club-sportif-de-viriat/adhesions/licences-2026-2027-csv-football";
+
+const helloAssoWidgetUrl = `${helloAssoLicencesUrl}/widget`;
+
+const renewalAnchor = "#renouvellement-licence";
+const newPlayerAnchor = "#nouvelle-inscription";
 
 const steps = [
   {
-    title: "Préparer le dossier",
-    text: "Télécharger la fiche d’inscription et réunir les documents demandés.",
+    title: "Vérifier la catégorie",
+    text: "Consulter le tarif correspondant à la catégorie du joueur ou de la joueuse pour la saison 2026/2027.",
   },
   {
-    title: "Compléter & signer",
-    text: "Remplir le dossier et vérifier les informations.",
+    title: "Renouveler en ligne",
+    text: "Remplir le formulaire HelloAsso uniquement pour un renouvellement de licence au CS Viriat.",
   },
   {
-    title: "Déposer au club",
-    text: "Déposer le dossier complet lors des permanences ou auprès du référent.",
+    title: "Finaliser le dossier",
+    text: "Transmettre les éventuels documents complémentaires demandés par le club si besoin.",
   },
 ];
 
@@ -29,7 +38,7 @@ const faqs = [
   },
   {
     q: "Quels sont les modes de paiement ?",
-    a: "Le club proposera prochainement un paiement en ligne via HelloAsso ou carte bancaire, selon les solutions mises en place.",
+    a: "Le paiement en ligne via HelloAsso est réservé aux renouvellements de licences. Pour une première inscription, merci de contacter d’abord le club.",
   },
 ];
 
@@ -41,42 +50,26 @@ export default async function InscriptionsPage() {
   });
 
   const docs = await prisma.registrationDocument.findMany({
+    where: { name: { not: "Tarifs licences 2026/2027" } },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
-  const registrationSettings = settings || {
-    seasonLabel: "Saison 2026",
-    introTitle: "S’inscrire au CS Viriat (CSV)",
-    introText:
-      "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
-    periodText: "juin → septembre",
-    contactEmail: "csviriat-football@orange.fr",
-    helloAssoUrl: null,
-    cardPaymentUrl: null,
-  };
-
-  const paymentOptions = [
-    {
-      title: "Paiement via HelloAsso",
-      text: "Solution simple et sécurisée pour régler l’adhésion en ligne.",
-      cta: registrationSettings.helloAssoUrl
-        ? "Payer via HelloAsso"
-        : "Bientôt disponible",
-      href: registrationSettings.helloAssoUrl || "#",
-      available: Boolean(registrationSettings.helloAssoUrl),
-      tag: "Associatif",
-    },
-    {
-      title: "Paiement par carte bancaire",
-      text: "Le paiement par CB pourra être proposé directement en ligne selon la solution retenue par le club.",
-      cta: registrationSettings.cardPaymentUrl
-        ? "Payer par CB"
-        : "Bientôt disponible",
-      href: registrationSettings.cardPaymentUrl || "#",
-      available: Boolean(registrationSettings.cardPaymentUrl),
-      tag: "En ligne",
-    },
-  ];
+  const registrationSettings = settings
+    ? {
+        ...settings,
+        seasonLabel: settings.seasonLabel || "Saison 2026/2027",
+        helloAssoUrl: settings.helloAssoUrl || helloAssoLicencesUrl,
+      }
+    : {
+        seasonLabel: "Saison 2026/2027",
+        introTitle: "Licences 2026/2027 au CS Viriat",
+        introText:
+          "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
+        periodText: "juin → septembre",
+        contactEmail: "csviriat-football@orange.fr",
+        helloAssoUrl: helloAssoLicencesUrl,
+        cardPaymentUrl: null,
+      };
 
   return (
     <Container>
@@ -148,7 +141,8 @@ export default async function InscriptionsPage() {
                 Tarifs
               </h3>
               <p className="mt-2 text-sm text-neutral-600">
-                Les 30 € de tombola sont récupérables via la vente des tickets.
+                Tarifs officiels des licences 2026/2027. Une paire de
+                chaussettes et un short sont compris dans le tarif.
               </p>
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -173,10 +167,10 @@ export default async function InscriptionsPage() {
 
                       <div className="text-right">
                         <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Tombola
+                          Info
                         </div>
                         <div className="mt-1 text-base font-bold text-csv-orange">
-                          {item.tombola ? `+ ${item.tombola}` : "—"}
+                          {item.tombola || "Licence"}
                         </div>
                       </div>
                     </div>
@@ -218,79 +212,48 @@ export default async function InscriptionsPage() {
           </div>
         </div>
 
-        <div className="mt-12 overflow-hidden rounded-[28px] border border-neutral-800 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.4)]">
-          <div className="relative bg-neutral-950 px-8 py-8 text-white">
-            <div className="relative flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-                  Paiement en ligne
-                </div>
+        <RegistrationChoice
+          seasonLabel={registrationSettings.seasonLabel}
+          helloAssoLicencesUrl={helloAssoLicencesUrl}
+          helloAssoWidgetUrl={helloAssoWidgetUrl}
+        />
 
-                <h2 className="mt-4 text-2xl font-extrabold tracking-tight md:text-3xl">
-                  Réglez prochainement votre cotisation en ligne
-                </h2>
-
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/80 md:text-base">
-                  Le club prépare une solution de paiement simple, moderne et
-                  sécurisée.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-csv-orange px-4 py-3 text-sm font-bold text-white shadow-sm">
-                Ouverture prochaine
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white px-8 py-8">
-            <div className="grid gap-5 md:grid-cols-2">
-              {paymentOptions.map((option) => (
-                <div
-                  key={option.title}
-                  className="group rounded-3xl border border-orange-100 bg-gradient-to-br from-white to-orange-50/25 p-6 transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
-                >
-                  <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">
-                    {option.tag}
-                  </span>
-
-                  <h3 className="mt-5 text-lg font-extrabold text-neutral-900">
-                    {option.title}
-                  </h3>
-
-                  <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                    {option.text}
-                  </p>
-
-                  <div className="mt-6">
-                    {option.available ? (
-                      <a
-                        href={option.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                      >
-                        {option.cta}
-                      </a>
-                    ) : (
-                      <span className="inline-flex items-center justify-center rounded-xl border border-orange-100 bg-white px-4 py-2 text-sm font-semibold text-neutral-400">
-                        {option.cta}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10 rounded-[1.75rem] border border-orange-100 bg-white p-8 shadow-sm">
-          <h2 className="text-xl font-extrabold text-neutral-900">Documents</h2>
-          <p className="mt-2 text-sm text-neutral-700">
-            Téléchargez ici les documents utiles pour préparer votre
-            inscription.
+        <div
+          id="nouvelle-inscription"
+          className="mt-10 scroll-mt-24 rounded-[1.75rem] border border-orange-100 bg-white p-8 shadow-sm"
+        >
+          <h2 className="text-xl font-extrabold text-neutral-900">
+            Nouvelle inscription
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-neutral-700">
+            Pour une première licence ou une arrivée au CS Viriat, merci de
+            consulter les documents utiles puis de contacter le club avant toute
+            démarche en ligne.
           </p>
 
           <div className="mt-6 grid gap-4">
+            <div className="flex flex-col gap-4 rounded-2xl border border-orange-100 bg-gradient-to-r from-white to-orange-50/25 p-4 transition hover:border-orange-200 hover:bg-white sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-bold text-neutral-900">
+                  Tarifs licences 2026/2027
+                </div>
+                <div className="mt-2">
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                    Disponible
+                  </span>
+                </div>
+              </div>
+
+              <a
+                href="/inscriptions/tarifs-licences-2026-2027.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Télécharger le PDF
+              </a>
+            </div>
+
             {docs.map((d) => {
               const isAvailable =
                 d.status === "Disponible" && Boolean(d.fileUrl);
