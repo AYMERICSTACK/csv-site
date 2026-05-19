@@ -130,7 +130,7 @@ const CLUB_CARDS: ClubCard[] = [
     href: "/admin/staff",
     roles: ["admin", "bureau"],
     badge: "Organisation",
-    section: "commissions",
+    section: "administration",
     tone: "manage",
     icon: Users,
   },

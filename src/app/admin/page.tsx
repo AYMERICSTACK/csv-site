@@ -28,6 +28,7 @@ type DashboardCard = {
   icon: typeof LayoutDashboard;
   featured?: boolean;
   external?: boolean;
+  tone?: "manage" | "info";
 };
 
 const priorityCards: DashboardCard[] = [
@@ -39,6 +40,7 @@ const priorityCards: DashboardCard[] = [
     eyebrow: "Sportif",
     icon: Trophy,
     featured: true,
+    tone: "manage",
   },
   {
     title: "Gestion des matchs",
@@ -47,6 +49,7 @@ const priorityCards: DashboardCard[] = [
     eyebrow: "Calendrier",
     icon: CalendarDays,
     featured: true,
+    tone: "manage",
   },
   {
     title: "Partenaires",
@@ -55,6 +58,7 @@ const priorityCards: DashboardCard[] = [
     eyebrow: "Sponsoring",
     icon: Handshake,
     featured: true,
+    tone: "manage",
   },
   {
     title: "Voir le site public",
@@ -74,6 +78,7 @@ const administrationCards: DashboardCard[] = [
     href: "/admin/demandes",
     eyebrow: "Accès",
     icon: ClipboardCheck,
+    tone: "manage",
   },
   {
     title: "Commissions",
@@ -81,6 +86,16 @@ const administrationCards: DashboardCard[] = [
     href: "/espace-club/commissions",
     eyebrow: "Organisation",
     icon: ShieldCheck,
+    tone: "manage",
+  },
+  {
+    title: "Staff & organigramme",
+    description:
+      "Gérer les membres du bureau, référents et responsables du club.",
+    href: "/admin/staff",
+    eyebrow: "Organisation",
+    icon: Users,
+    tone: "manage",
   },
   {
     title: "Mon profil",
@@ -88,6 +103,7 @@ const administrationCards: DashboardCard[] = [
     href: "/espace-club/profil",
     eyebrow: "Utilisateur",
     icon: UserCog,
+    tone: "info",
   },
 ];
 
@@ -98,6 +114,7 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-sponsoring",
     eyebrow: "Partenaires",
     icon: Handshake,
+    tone: "manage",
   },
   {
     title: "Communication",
@@ -105,6 +122,7 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-communication",
     eyebrow: "Contenus",
     icon: Megaphone,
+    tone: "manage",
   },
   {
     title: "Bureau",
@@ -112,6 +130,7 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-bureau",
     eyebrow: "Pilotage",
     icon: LayoutDashboard,
+    tone: "manage",
   },
   {
     title: "Matériel",
@@ -119,6 +138,7 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-materiel",
     eyebrow: "Logistique",
     icon: Wrench,
+    tone: "manage",
   },
   {
     title: "Festivité",
@@ -126,6 +146,7 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-festivite",
     eyebrow: "Événements",
     icon: Wine,
+    tone: "manage",
   },
   {
     title: "Éducateurs",
@@ -133,6 +154,7 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-educateurs",
     eyebrow: "Sportif",
     icon: Users,
+    tone: "manage",
   },
   {
     title: "Buvette",
@@ -140,23 +162,28 @@ const commissionCards: DashboardCard[] = [
     href: "/espace-buvette",
     eyebrow: "Match day",
     icon: Wine,
+    tone: "manage",
   },
   {
     title: "Licence",
-    description: "Suivre les licences, dossiers joueurs et démarches administratives.",
+    description:
+      "Suivre les licences, dossiers joueurs et démarches administratives.",
     href: "/espace-licence",
     eyebrow: "Dossiers",
     icon: ClipboardCheck,
+    tone: "manage",
   },
 ];
 
 const sportCards: DashboardCard[] = [
   {
     title: "Gestion des équipes",
-    description: "Gérer les effectifs, les groupes, les stats et les liens FFF.",
+    description:
+      "Gérer les effectifs, les groupes, les stats et les liens FFF.",
     href: "/admin/equipes",
     eyebrow: "Équipes",
     icon: Trophy,
+    tone: "manage",
   },
   {
     title: "Matchs",
@@ -164,6 +191,7 @@ const sportCards: DashboardCard[] = [
     href: "/admin/matchs",
     eyebrow: "Rencontres",
     icon: CalendarDays,
+    tone: "manage",
   },
   {
     title: "Classements publics",
@@ -178,6 +206,8 @@ const sportCards: DashboardCard[] = [
 function DashboardCardItem({ card }: { card: DashboardCard }) {
   const Icon = card.icon;
 
+  const isManageCard = card.tone === "manage";
+
   return (
     <Link
       href={card.href}
@@ -185,8 +215,12 @@ function DashboardCardItem({ card }: { card: DashboardCard }) {
       rel={card.external ? "noreferrer" : undefined}
       className={
         card.featured
-          ? "group flex h-full flex-col justify-between overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950 p-6 text-white shadow-[0_24px_80px_-45px_rgba(0,0,0,0.75)] transition hover:-translate-y-1 hover:border-orange-400 hover:shadow-2xl"
-          : "group flex h-full flex-col justify-between rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-xl"
+          ? "group flex h-full flex-col justify-between overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950 p-6 text-white shadow-[0_24px_80px_-45px_rgba(0,0,0,0.75)] transition-all duration-300 hover:-translate-y-1 hover:border-orange-400 hover:shadow-2xl"
+          : `group flex h-full flex-col justify-between rounded-[2rem] border p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+              isManageCard
+                ? "border-orange-200 bg-gradient-to-br from-orange-50 to-white hover:border-orange-300"
+                : "border-neutral-200 bg-white hover:border-neutral-300"
+            }`
       }
     >
       <div>
@@ -195,7 +229,9 @@ function DashboardCardItem({ card }: { card: DashboardCard }) {
             className={
               card.featured
                 ? "inline-flex rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-200"
-                : "inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700"
+                : isManageCard
+                  ? "inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700"
+                  : "inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-neutral-700"
             }
           >
             {card.eyebrow}
@@ -205,7 +241,9 @@ function DashboardCardItem({ card }: { card: DashboardCard }) {
             className={
               card.featured
                 ? "rounded-2xl bg-white/10 p-3 text-orange-200 transition group-hover:bg-orange-500 group-hover:text-white"
-                : "rounded-2xl bg-neutral-950 p-3 text-white transition group-hover:bg-orange-500"
+                : isManageCard
+                  ? "rounded-2xl bg-orange-100 p-3 text-orange-700 transition group-hover:bg-orange-500 group-hover:text-white"
+                  : "rounded-2xl bg-neutral-950 p-3 text-white transition group-hover:bg-neutral-800"
             }
           >
             <Icon className="h-5 w-5" />
@@ -237,10 +275,12 @@ function DashboardCardItem({ card }: { card: DashboardCard }) {
         className={
           card.featured
             ? "mt-6 text-sm font-bold text-orange-200"
-            : "mt-6 text-sm font-bold text-orange-600"
+            : isManageCard
+              ? "mt-6 text-sm font-bold text-orange-600"
+              : "mt-6 text-sm font-bold text-neutral-600"
         }
       >
-        Ouvrir →
+        {isManageCard ? "Gérer →" : "Ouvrir →"}
       </div>
     </Link>
   );
