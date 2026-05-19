@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
 import DeletePlayerButton from "@/components/DeletePlayerButton";
+import PlayerPhotoInput from "@/components/PlayerPhotoInput";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -278,12 +279,9 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
               </label>
             </div>
 
-            <input
-              name="photoFile"
-              type="file"
-              accept="image/*"
-              className="mt-4 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-300"
-            />
+            <div className="mt-4">
+              <PlayerPhotoInput />
+            </div>
 
             <button className="mt-5 rounded-xl bg-csv-black px-5 py-3 text-sm font-bold text-white transition hover:opacity-90">
               Ajouter le joueur
@@ -357,12 +355,9 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
                         </select>
                       </div>
 
-                      <input
-                        name="photoFile"
-                        type="file"
-                        accept="image/*"
-                        className="mt-3 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                      />
+                      <div className="mt-3">
+                        <PlayerPhotoInput label="Modifier la photo" compact />
+                      </div>
 
                       <div className="mt-3 flex flex-wrap gap-4">
                         <label className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700">
