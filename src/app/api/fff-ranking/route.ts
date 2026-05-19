@@ -85,28 +85,47 @@ function parseRowsFromTables(html: string): RankingLine[] {
 
   for (const rowMatch of rows) {
     const rowHtml = rowMatch[1];
+
     const cellMatches = Array.from(
-      rowHtml.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi),
+      rowHtml.matchAll(/<t[dh]([^>]*)>([\s\S]*?)<\/t[dh]>/gi),
     );
 
     if (cellMatches.length < 3) continue;
 
-    const cells = cellMatches.map((cell) => stripTags(cell[1])).filter(Boolean);
-    const rank = toNumber(cells[0]);
+    const cells = cellMatches
+      .map((cell) => ({
+        attrs: cell[1],
+        text: stripTags(cell[2]),
+      }))
+      .filter((cell) => cell.text);
 
+    const rankCell =
+      cells.find((cell) =>
+        /cdk-column-rank|cdk-column-position/i.test(cell.attrs),
+      ) || cells[0];
+
+    const rank = toNumber(rankCell?.text || "");
     if (!rank) continue;
 
-    const pointsCell = [...cells].reverse().find((cell) => /\d/.test(cell));
-    const points = pointsCell ? toNumber(pointsCell) : null;
+    const pointsCell = cells.find((cell) =>
+      /cdk-column-points/i.test(cell.attrs),
+    );
 
-    const teamCell = cells.find((cell, index) => {
-      if (index === 0) return false;
-      if (/^\d+$/.test(cell)) return false;
-      if (/^(pts?|points?|mj|g|n|p|bp|bc|diff)$/i.test(cell)) return false;
-      return /[a-zà-ÿ]/i.test(cell);
-    });
+    const points = pointsCell ? toNumber(pointsCell.text) : null;
 
-    const team = teamCell ? cleanTeamName(teamCell) : "";
+    const teamCell =
+      cells.find((cell) =>
+        /cdk-column-team|cdk-column-name|cdk-column-club/i.test(cell.attrs),
+      ) ||
+      cells.find((cell, index) => {
+        if (index === 0) return false;
+        if (/^\d+$/.test(cell.text)) return false;
+        if (/^(pts?|points?|mj|j|g|n|p|bp|bc|diff)$/i.test(cell.text))
+          return false;
+        return /[a-zà-ÿ]/i.test(cell.text);
+      });
+
+    const team = teamCell ? cleanTeamName(teamCell.text) : "";
 
     if (!team || team.length < 2) continue;
 

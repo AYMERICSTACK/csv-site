@@ -121,6 +121,18 @@ export default function Footer() {
               >
                 Contact
               </Link>
+              <Link
+                href="/mentions-legales"
+                className="text-sm font-medium text-white/75 transition-colors hover:text-csv-orange"
+              >
+                Mentions légales
+              </Link>
+              <Link
+                href="/politique-confidentialite"
+                className="text-sm font-medium text-white/75 transition-colors hover:text-csv-orange"
+              >
+                Politique de confidentialité
+              </Link>
             </div>
           </div>
         </div>
@@ -129,7 +141,14 @@ export default function Footer() {
           <div>
             © {new Date().getFullYear()} {site.name}. Tous droits réservés.
           </div>
-          <div>Unis par nos couleurs, montrons nos valeurs.</div>
+
+          <div className="flex flex-col gap-2 md:items-end">
+            <div>Unis par nos couleurs, montrons nos valeurs.</div>
+            <div>
+              Conception & développement :{" "}
+              <span className="text-white/60">Aymeric Djeridi EI</span>
+            </div>
+          </div>
         </div>
       </Container>
     </footer>
