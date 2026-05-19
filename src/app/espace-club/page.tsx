@@ -27,6 +27,8 @@ import {
 
 type ClubSection = "sportif" | "commissions" | "administration" | "personnel";
 
+type ClubCardTone = "manage" | "info";
+
 type ClubCard = {
   title: string;
   description: string;
@@ -35,6 +37,7 @@ type ClubCard = {
   badge: string;
   section: ClubSection;
   priority?: boolean;
+  tone?: ClubCardTone;
   icon: ComponentType<{ size?: number; className?: string }>;
 };
 
@@ -47,6 +50,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "educateurs"],
     badge: "Sportif",
     section: "sportif",
+    tone: "manage",
     priority: true,
     icon: Users,
   },
@@ -58,6 +62,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "educateurs"],
     badge: "Sportif",
     section: "sportif",
+    tone: "manage",
     priority: true,
     icon: Calendar,
   },
@@ -69,6 +74,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "educateurs"],
     badge: "Public",
     section: "sportif",
+    tone: "info",
     icon: Trophy,
   },
   {
@@ -79,6 +85,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "sponsoring"],
     badge: "Commission",
     section: "commissions",
+    tone: "manage",
     priority: true,
     icon: Handshake,
   },
@@ -90,6 +97,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "communication"],
     badge: "Commission",
     section: "commissions",
+    tone: "manage",
     icon: Megaphone,
   },
   {
@@ -100,6 +108,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "licence"],
     badge: "Commission",
     section: "commissions",
+    tone: "manage",
     icon: IdCard,
   },
   {
@@ -110,6 +119,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "bureau"],
     badge: "Commission",
     section: "commissions",
+    tone: "info",
     icon: ClipboardList,
   },
 
@@ -121,6 +131,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "bureau"],
     badge: "Organisation",
     section: "commissions",
+    tone: "manage",
     icon: Users,
   },
 
@@ -132,6 +143,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "materiel"],
     badge: "Commission",
     section: "commissions",
+    tone: "manage",
     icon: Wrench,
   },
   {
@@ -142,6 +154,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "festivite"],
     badge: "Commission",
     section: "commissions",
+    tone: "manage",
     icon: PartyPopper,
   },
   {
@@ -152,6 +165,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin", "buvette"],
     badge: "Commission",
     section: "commissions",
+    tone: "manage",
     icon: Beer,
   },
 
@@ -172,6 +186,7 @@ const CLUB_CARDS: ClubCard[] = [
     ],
     badge: "Organisation",
     section: "commissions",
+    tone: "info",
     icon: ShieldCheck,
   },
 
@@ -183,6 +198,7 @@ const CLUB_CARDS: ClubCard[] = [
     roles: ["admin"],
     badge: "Admin",
     section: "administration",
+    tone: "manage",
     priority: true,
     icon: ShieldCheck,
   },
@@ -205,6 +221,7 @@ const CLUB_CARDS: ClubCard[] = [
     ],
     badge: "Public",
     section: "personnel",
+    tone: "info",
     icon: Eye,
   },
   {
@@ -226,6 +243,7 @@ const CLUB_CARDS: ClubCard[] = [
     ],
     badge: "Profil",
     section: "personnel",
+    tone: "info",
     icon: UserCircle,
   },
 ];
@@ -397,15 +415,26 @@ export default async function EspaceClubPage() {
           <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {priorityCards.map((card) => {
               const Icon = card.icon;
+              const isManageCard = card.tone === "manage";
 
               return (
                 <Link
                   key={card.href}
                   href={card.href}
-                  className="group rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-csv-orange hover:shadow-xl"
+                  className={`group rounded-[1.5rem] border p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
+                    isManageCard
+                      ? "border-orange-200 bg-orange-50/70 hover:border-csv-orange"
+                      : "border-neutral-200 bg-white hover:border-neutral-300"
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-950 text-white transition group-hover:bg-csv-orange">
+                    <div
+                      className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl text-white transition ${
+                        isManageCard
+                          ? "bg-csv-orange group-hover:bg-neutral-950"
+                          : "bg-neutral-950 group-hover:bg-csv-orange"
+                      }`}
+                    >
                       <Icon size={20} />
                     </div>
 
@@ -445,23 +474,52 @@ export default async function EspaceClubPage() {
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {group.cards.map((card) => {
                   const Icon = card.icon;
+                  const isManageCard = card.tone === "manage";
 
                   return (
                     <Link
                       key={card.href}
                       href={card.href}
-                      className="group relative overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-xl"
+                      className={`group relative overflow-hidden rounded-[1.75rem] border p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
+                        isManageCard
+                          ? "border-orange-200 bg-orange-50/70 hover:border-csv-orange"
+                          : "border-neutral-200 bg-white hover:border-neutral-300"
+                      }`}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-orange-50/70 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                      <div className="absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-csv-orange/10 blur-2xl transition group-hover:bg-csv-orange/20" />
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-200 group-hover:opacity-100 ${
+                          isManageCard
+                            ? "from-orange-50 via-white to-orange-100/80"
+                            : "from-white via-white to-neutral-50"
+                        }`}
+                      />
+                      <div
+                        className={`absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full blur-2xl transition ${
+                          isManageCard
+                            ? "bg-csv-orange/20 group-hover:bg-csv-orange/30"
+                            : "bg-neutral-200/50 group-hover:bg-neutral-300/60"
+                        }`}
+                      />
 
                       <div className="relative">
                         <div className="flex items-start justify-between gap-4">
-                          <span className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                              isManageCard
+                                ? "border-orange-200 bg-white text-orange-700"
+                                : "border-neutral-200 bg-neutral-50 text-neutral-600"
+                            }`}
+                          >
                             {card.badge}
                           </span>
 
-                          <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50 text-neutral-700 transition-all duration-200 group-hover:border-csv-orange group-hover:bg-csv-orange group-hover:text-white group-hover:shadow-md">
+                          <div
+                            className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-all duration-200 group-hover:shadow-md ${
+                              isManageCard
+                                ? "border-orange-200 bg-csv-orange text-white group-hover:border-neutral-950 group-hover:bg-neutral-950"
+                                : "border-neutral-200 bg-neutral-50 text-neutral-700 group-hover:border-csv-orange group-hover:bg-csv-orange group-hover:text-white"
+                            }`}
+                          >
                             <Icon size={20} />
                           </div>
                         </div>
@@ -476,10 +534,16 @@ export default async function EspaceClubPage() {
 
                         <div className="mt-6 flex items-center justify-between">
                           <span className="text-sm font-semibold text-neutral-900">
-                            Ouvrir
+                            {isManageCard ? "Gérer" : "Ouvrir"}
                           </span>
 
-                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-all duration-200 group-hover:border-csv-orange group-hover:text-csv-orange">
+                          <div
+                            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-all duration-200 ${
+                              isManageCard
+                                ? "border-orange-200 text-orange-600 group-hover:border-csv-orange group-hover:bg-csv-orange group-hover:text-white"
+                                : "border-neutral-200 text-neutral-500 group-hover:border-csv-orange group-hover:text-csv-orange"
+                            }`}
+                          >
                             <ArrowRight size={16} />
                           </div>
                         </div>
