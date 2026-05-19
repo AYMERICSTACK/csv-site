@@ -93,6 +93,23 @@ function formatScore(scoreTeam: number | null, scoreOpponent: number | null) {
   return `${scoreTeam} - ${scoreOpponent}`;
 }
 
+function formatRepeatedPlayers(value: string) {
+  const names = value
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  const counts = new Map<string, number>();
+
+  for (const name of names) {
+    counts.set(name, (counts.get(name) || 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([name, count]) => (count > 1 ? `${name} X${count}` : name))
+    .join(", ");
+}
+
 function isUpcoming(match: MatchItem) {
   return match.status !== "finished" && match.status !== "cancelled";
 }
@@ -288,7 +305,7 @@ export default function AdminMatchesBoard({ matches, deleteAction }: Props) {
                         ⚽ Buteurs
                       </div>
                       <div className="mt-1 whitespace-pre-line text-sm font-extrabold text-neutral-950">
-                        {match.scorers}
+                        {formatRepeatedPlayers(match.scorers)}
                       </div>
                     </div>
                   ) : null}

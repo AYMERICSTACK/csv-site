@@ -360,7 +360,10 @@ export default async function EditMatchPage({ params }: PageProps) {
                     name="matchDate"
                     type="datetime-local"
                     defaultValue={new Date(match.matchDate)
-                      .toISOString()
+                      .toLocaleString("sv-SE", {
+                        timeZone: "Europe/Paris",
+                      })
+                      .replace(" ", "T")
                       .slice(0, 16)}
                     className="input"
                   />

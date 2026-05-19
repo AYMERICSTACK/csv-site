@@ -70,7 +70,15 @@ async function createMatch(formData: FormData) {
   const category = String(formData.get("category") || "").trim();
   const team = String(formData.get("team") || "").trim();
   const opponent = String(formData.get("opponent") || "").trim();
-  const matchDate = String(formData.get("matchDate") || "").trim();
+  const rawMatchDate = formData.get("matchDate") as string;
+
+  const [datePart, timePart] = rawMatchDate.split("T");
+
+  const [year, month, day] = datePart.split("-").map(Number);
+
+  const [hours, minutes] = timePart.split(":").map(Number);
+
+  const matchDate = new Date(year, month - 1, day, hours, minutes);
   const location = String(formData.get("location") || "").trim();
   const isHomeValue = String(formData.get("isHome") || "true").trim();
   const status = String(formData.get("status") || "scheduled").trim();
@@ -120,7 +128,7 @@ async function createMatch(formData: FormData) {
         category,
         team,
         opponent,
-        matchDate: parseLocalDateTime(matchDate),
+        matchDate,
         location,
         isHome: isHomeValue === "true",
         status: normalizedStatus,

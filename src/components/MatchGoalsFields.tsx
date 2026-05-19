@@ -12,6 +12,7 @@ type PlayerOption = {
 
 type MatchEventInput = {
   playerId: string;
+  count: number;
 };
 
 type Props = {
@@ -20,8 +21,8 @@ type Props = {
   matchTeam?: string | null;
   targetCategoryField?: string;
   targetTeamField?: string;
-  initialGoals?: MatchEventInput[];
-  initialAssists?: MatchEventInput[];
+  initialGoals?: { playerId: string }[];
+  initialAssists?: { playerId: string }[];
 };
 
 function normalize(value: string | null | undefined) {
@@ -33,19 +34,16 @@ function normalize(value: string | null | undefined) {
 }
 
 function PlayerSelect({
-  name,
   value,
   players,
   onChange,
 }: {
-  name: string;
   value: string;
   players: PlayerOption[];
   onChange: (value: string) => void;
 }) {
   return (
     <select
-      name={name}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
@@ -73,10 +71,15 @@ export default function MatchGoalsFields({
   initialAssists = [],
 }: Props) {
   const [goals, setGoals] = useState<MatchEventInput[]>(
-    initialGoals.length > 0 ? initialGoals : [{ playerId: "" }],
+    initialGoals.length > 0
+      ? initialGoals.map((goal) => ({
+          playerId: goal.playerId,
+          count: 1,
+        }))
+      : [{ playerId: "", count: 1 }],
   );
 
-  const [assists, setAssists] = useState<MatchEventInput[]>(
+  const [assists, setAssists] = useState<{ playerId: string }[]>(
     initialAssists.length > 0 ? initialAssists : [{ playerId: "" }],
   );
 
@@ -191,34 +194,97 @@ export default function MatchGoalsFields({
             {goals.map((goal, index) => (
               <div
                 key={index}
-                className="flex flex-col gap-3 rounded-2xl border border-orange-100 bg-white p-3"
+                className="rounded-2xl border border-orange-100 bg-white p-4"
               >
-                <PlayerSelect
-                  name="goalPlayerId"
-                  value={goal.playerId}
-                  players={displayedPlayers}
-                  onChange={(value) =>
-                    setGoals((current) =>
-                      current.map((item, i) =>
-                        i === index ? { playerId: value } : item,
-                      ),
-                    )
-                  }
-                />
+                <div className="flex flex-col gap-3">
+                  <PlayerSelect
+                    value={goal.playerId}
+                    players={displayedPlayers}
+                    onChange={(value) =>
+                      setGoals((current) =>
+                        current.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                playerId: value,
+                              }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setGoals((current) =>
-                      current.length > 1
-                        ? current.filter((_, i) => i !== index)
-                        : [{ playerId: "" }],
-                    )
-                  }
-                  className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                >
-                  Retirer
-                </button>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGoals((current) =>
+                            current.map((item, i) =>
+                              i === index
+                                ? {
+                                    ...item,
+                                    count: Math.max(1, item.count - 1),
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-200 bg-orange-50 text-lg font-black text-orange-700 transition hover:bg-orange-100"
+                      >
+                        -
+                      </button>
+
+                      <div className="min-w-[72px] rounded-xl bg-orange-50 px-4 py-2 text-center text-sm font-black text-orange-700">
+                        x{goal.count}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGoals((current) =>
+                            current.map((item, i) =>
+                              i === index
+                                ? {
+                                    ...item,
+                                    count: item.count + 1,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-200 bg-orange-50 text-lg font-black text-orange-700 transition hover:bg-orange-100"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setGoals((current) =>
+                          current.length > 1
+                            ? current.filter((_, i) => i !== index)
+                            : [{ playerId: "", count: 1 }],
+                        )
+                      }
+                      className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                    >
+                      Retirer
+                    </button>
+                  </div>
+
+                  {Array.from({ length: goal.count }).map(
+                    (_, duplicateIndex) => (
+                      <input
+                        key={duplicateIndex}
+                        type="hidden"
+                        name="goalPlayerId"
+                        value={goal.playerId}
+                      />
+                    ),
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -226,7 +292,13 @@ export default function MatchGoalsFields({
           <button
             type="button"
             onClick={() =>
-              setGoals((current) => [...current, { playerId: "" }])
+              setGoals((current) => [
+                ...current,
+                {
+                  playerId: "",
+                  count: 1,
+                },
+              ])
             }
             className="mt-3 rounded-xl border border-orange-200 bg-white px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
           >
@@ -246,7 +318,6 @@ export default function MatchGoalsFields({
                 className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-3"
               >
                 <PlayerSelect
-                  name="assistPlayerId"
                   value={assist.playerId}
                   players={displayedPlayers}
                   onChange={(value) =>
@@ -256,6 +327,12 @@ export default function MatchGoalsFields({
                       ),
                     )
                   }
+                />
+
+                <input
+                  type="hidden"
+                  name="assistPlayerId"
+                  value={assist.playerId}
                 />
 
                 <button
