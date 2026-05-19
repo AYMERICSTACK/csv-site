@@ -112,6 +112,18 @@ const CLUB_CARDS: ClubCard[] = [
     section: "commissions",
     icon: ClipboardList,
   },
+
+  {
+    title: "Staff & organigramme",
+    description:
+      "Gérer les membres du bureau, référents et responsables du club.",
+    href: "/admin/staff",
+    roles: ["admin", "bureau"],
+    badge: "Organisation",
+    section: "commissions",
+    icon: Users,
+  },
+
   {
     title: "Matériel",
     description:

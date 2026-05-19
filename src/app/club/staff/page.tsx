@@ -3,6 +3,18 @@ import OrgChart from "@/components/OrgChart";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
+const sectionOrder = [
+  "Bureau",
+  "Responsables par catégories",
+  "Référents",
+  "Technique / Pôle sportif",
+];
+
+const sectionWeight = (title: string) => {
+  const index = sectionOrder.indexOf(title);
+  return index === -1 ? 999 : index;
+};
+
 export default async function StaffPage() {
   const session = await auth();
 
@@ -10,12 +22,13 @@ export default async function StaffPage() {
   const isLogged = !!session;
 
   const staffMembers = await prisma.staffMember.findMany({
+    where: {
+      isPublished: true,
+    },
     include: {
       user: true,
     },
-    orderBy: {
-      sectionTitle: "asc",
-    },
+    orderBy: [{ sectionTitle: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
   });
 
   const sectionsMap = new Map();
@@ -38,11 +51,13 @@ export default async function StaffPage() {
       role: member.roleLabel,
       email: canSeeEmail ? member.email : null,
       phone: canSeePhone ? member.phone : null,
-      photo: null,
+      photo: member.photo,
     });
   }
 
-  const sections = Array.from(sectionsMap.values());
+  const sections = Array.from(sectionsMap.values()).sort(
+    (a, b) => sectionWeight(a.title) - sectionWeight(b.title),
+  );
 
   return (
     <Container>

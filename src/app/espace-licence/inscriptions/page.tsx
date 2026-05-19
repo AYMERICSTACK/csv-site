@@ -89,6 +89,9 @@ export default async function ManageInscriptionsPage() {
     const category = String(formData.get("category") || "").trim();
     const fee = String(formData.get("fee") || "").trim();
     const tombola = String(formData.get("tombola") || "").trim();
+    const birthYearsLabel = String(
+      formData.get("birthYearsLabel") || "",
+    ).trim();
     const sortOrder = Number(formData.get("sortOrder") || 0);
 
     if (!category || !fee) return;
@@ -98,6 +101,7 @@ export default async function ManageInscriptionsPage() {
         category,
         fee,
         tombola: tombola || null,
+        birthYearsLabel: birthYearsLabel || null,
         sortOrder: Number.isNaN(sortOrder) ? 0 : sortOrder,
       },
     });
@@ -115,6 +119,9 @@ export default async function ManageInscriptionsPage() {
     const category = String(formData.get("category") || "").trim();
     const fee = String(formData.get("fee") || "").trim();
     const tombola = String(formData.get("tombola") || "").trim();
+    const birthYearsLabel = String(
+      formData.get("birthYearsLabel") || "",
+    ).trim();
     const sortOrder = Number(formData.get("sortOrder") || 0);
 
     if (!id || !category || !fee) return;
@@ -125,6 +132,7 @@ export default async function ManageInscriptionsPage() {
         category,
         fee,
         tombola: tombola || null,
+        birthYearsLabel: birthYearsLabel || null,
         sortOrder: Number.isNaN(sortOrder) ? 0 : sortOrder,
       },
     });
@@ -406,31 +414,73 @@ export default async function ManageInscriptionsPage() {
                 >
                   <input type="hidden" name="id" value={fee.id} />
 
-                  <div className="grid gap-3 md:grid-cols-[1.2fr_0.7fr_0.7fr_0.4fr]">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_0.9fr_1.5fr_0.9fr]">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                        Catégorie
+                      </label>
+                      <input
+                        name="category"
+                        defaultValue={fee.category}
+                        className="input h-14"
+                        placeholder="Ex : U7"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                        Tarif
+                      </label>
+                      <input
+                        name="fee"
+                        defaultValue={fee.fee}
+                        className="input h-14"
+                        placeholder="Ex : 180 €"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                        Années de naissance
+                      </label>
+                      <input
+                        name="birthYearsLabel"
+                        defaultValue={fee.birthYearsLabel ?? ""}
+                        className="input h-14"
+                        placeholder="Ex : 2020-2021"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                        Tombola
+                      </label>
+                      <input
+                        name="tombola"
+                        defaultValue={fee.tombola || ""}
+                        className="input h-14"
+                        placeholder="Ex : incluse"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 max-w-xs">
+                    <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                      Ordre d’affichage
+                    </label>
+
                     <input
-                      name="category"
-                      defaultValue={fee.category}
-                      className="input"
-                      placeholder="Catégorie"
-                    />
-                    <input
-                      name="fee"
-                      defaultValue={fee.fee}
-                      className="input"
-                      placeholder="Cotisation"
-                    />
-                    <input
-                      name="tombola"
-                      defaultValue={fee.tombola || ""}
-                      className="input"
-                      placeholder="Tombola"
-                    />
-                    <input
-                      name="sortOrder"
                       type="number"
+                      name="sortOrder"
                       defaultValue={fee.sortOrder}
-                      className="input"
+                      placeholder="Ex : 1"
+                      className="input h-14"
                     />
+
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Plus le chiffre est petit, plus la catégorie apparaît en
+                      premier.
+                    </p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-3">
@@ -459,20 +509,68 @@ export default async function ManageInscriptionsPage() {
                 Ajouter un tarif
               </h3>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-[1.2fr_0.7fr_0.7fr_0.4fr]">
-                <input
-                  name="category"
-                  className="input"
-                  placeholder="Catégorie"
-                />
-                <input name="fee" className="input" placeholder="Cotisation" />
-                <input name="tombola" className="input" placeholder="Tombola" />
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Catégorie
+                  </label>
+                  <input
+                    name="category"
+                    className="input h-14"
+                    placeholder="Ex : U7"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Tarif
+                  </label>
+                  <input
+                    name="fee"
+                    className="input h-14"
+                    placeholder="Ex : 180 €"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Années de naissance
+                  </label>
+                  <input
+                    name="birthYearsLabel"
+                    className="input h-14"
+                    placeholder="Ex : 2020-2021"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Tombola
+                  </label>
+                  <input
+                    name="tombola"
+                    className="input h-14"
+                    placeholder="Ex : incluse"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 max-w-xs">
+                <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                  Ordre d’affichage
+                </label>
+
                 <input
                   name="sortOrder"
                   type="number"
-                  className="input"
-                  placeholder="Ordre"
+                  className="input h-14"
+                  placeholder="Ex : 1"
                 />
+
+                <p className="mt-1 text-xs text-neutral-500">
+                  Plus le chiffre est petit, plus la catégorie apparaît en
+                  premier.
+                </p>
               </div>
 
               <button className="mt-4 inline-flex items-center gap-2 rounded-xl bg-csv-orange px-4 py-2 text-sm font-semibold text-white">

@@ -92,6 +92,7 @@ model StaffMember {
   email             String?
   phone             String?
   isPublished       Boolean     @default(true)
+  sortOrder         Int         @default(0)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   userId            String?
@@ -197,13 +198,16 @@ model RegistrationSettings {
 }
 
 model RegistrationFee {
-  id        String   @id @default(cuid())
-  category  String
-  fee       String
-  tombola   String?
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  category         String
+  fee              String
+  tombola          String?
+
+  birthYearsLabel  String?
+
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([sortOrder])
 }

@@ -145,7 +145,7 @@ export default async function InscriptionsPage() {
                 chaussettes et un short sont compris dans le tarif.
               </p>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {fees.map((item) => (
                   <div
                     key={item.id}
@@ -154,6 +154,12 @@ export default async function InscriptionsPage() {
                     <div className="text-sm font-extrabold text-neutral-900">
                       {item.category}
                     </div>
+
+                    {item.birthYearsLabel ? (
+                      <p className="mt-1 text-sm text-neutral-500">
+                        {item.birthYearsLabel}
+                      </p>
+                    ) : null}
 
                     <div className="mt-4 flex items-end justify-between gap-4">
                       <div>
@@ -167,7 +173,7 @@ export default async function InscriptionsPage() {
 
                       <div className="text-right">
                         <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Info
+                          Tombola
                         </div>
                         <div className="mt-1 text-base font-bold text-csv-orange">
                           {item.tombola || "Licence"}
