@@ -8,6 +8,22 @@ type RankingLine = {
   points: number | null;
 };
 
+type RankingPreviewRow = RankingLine & {
+  isClub: boolean;
+};
+
+type CacheEntry = {
+  updatedAt: string;
+  rows: RankingPreviewRow[];
+  found: boolean;
+};
+
+const CACHE_TTL = 30 * 60 * 1000; // 30 min
+const FETCH_TIMEOUT = 5000; // 5 sec
+
+const memoryCache = new Map<string, CacheEntry>();
+const refreshInProgress = new Set<string>();
+
 const CLUB_MATCH = /(?:c\.?\s*s\.?\s*)?viriat/i;
 
 function decodeHtml(value: string) {
@@ -48,6 +64,21 @@ function cleanTeamName(value: string) {
   );
 }
 
+function dedupeRankings(rankings: RankingLine[]) {
+  const seen = new Set<string>();
+
+  return rankings.filter((line) => {
+    const key = `${line.rank}-${line.team.toLowerCase()}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 function parseRowsFromTables(html: string): RankingLine[] {
   const rows = Array.from(html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi));
   const rankings: RankingLine[] = [];
@@ -58,16 +89,12 @@ function parseRowsFromTables(html: string): RankingLine[] {
       rowHtml.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi),
     );
 
-    if (cellMatches.length < 3) {
-      continue;
-    }
+    if (cellMatches.length < 3) continue;
 
     const cells = cellMatches.map((cell) => stripTags(cell[1])).filter(Boolean);
     const rank = toNumber(cells[0]);
 
-    if (!rank) {
-      continue;
-    }
+    if (!rank) continue;
 
     const pointsCell = [...cells].reverse().find((cell) => /\d/.test(cell));
     const points = pointsCell ? toNumber(pointsCell) : null;
@@ -81,9 +108,7 @@ function parseRowsFromTables(html: string): RankingLine[] {
 
     const team = teamCell ? cleanTeamName(teamCell) : "";
 
-    if (!team || team.length < 2) {
-      continue;
-    }
+    if (!team || team.length < 2) continue;
 
     rankings.push({ rank, team, points });
   }
@@ -103,9 +128,7 @@ function parseRowsFromText(html: string): RankingLine[] {
   for (const line of lines) {
     const match = line.match(/^(\d{1,2})\s+(.+?)\s+(\d{1,3})(?:\s|$)/);
 
-    if (!match) {
-      continue;
-    }
+    if (!match) continue;
 
     const rank = Number(match[1]);
     const team = cleanTeamName(match[2]);
@@ -117,21 +140,6 @@ function parseRowsFromText(html: string): RankingLine[] {
   }
 
   return dedupeRankings(rankings);
-}
-
-function dedupeRankings(rankings: RankingLine[]) {
-  const seen = new Set<string>();
-
-  return rankings.filter((line) => {
-    const key = `${line.rank}-${line.team.toLowerCase()}`;
-
-    if (seen.has(key)) {
-      return false;
-    }
-
-    seen.add(key);
-    return true;
-  });
 }
 
 function buildPreview(rankings: RankingLine[]) {
@@ -158,6 +166,54 @@ function buildPreview(rankings: RankingLine[]) {
   };
 }
 
+async function fetchWithTimeout(url: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      next: { revalidate: 1800 },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; CS-Viriat-Rankings/1.0; +https://csviriat.fr)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function refreshRanking(url: string) {
+  if (refreshInProgress.has(url)) return;
+
+  refreshInProgress.add(url);
+
+  try {
+    const response = await fetchWithTimeout(url);
+
+    if (!response.ok) return;
+
+    const html = await response.text();
+    const rankings = parseRowsFromTables(html);
+    const fallbackRankings = rankings.length
+      ? rankings
+      : parseRowsFromText(html);
+    const preview = buildPreview(fallbackRankings);
+
+    memoryCache.set(url, {
+      updatedAt: new Date().toISOString(),
+      rows: preview.rows,
+      found: preview.found,
+    });
+  } catch {
+    // On garde le cache existant si la FFF rame ou ne répond pas.
+  } finally {
+    refreshInProgress.delete(url);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
 
@@ -180,39 +236,50 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  try {
-    const response = await fetch(parsedUrl.toString(), {
-      next: { revalidate: 1800 },
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; CS-Viriat-Rankings/1.0; +https://csviriat.fr)",
-        Accept: "text/html,application/xhtml+xml",
-      },
+  const rankingUrl = parsedUrl.toString();
+  const cached = memoryCache.get(rankingUrl);
+  const isFresh =
+    cached && Date.now() - new Date(cached.updatedAt).getTime() < CACHE_TTL;
+
+  if (isFresh) {
+    return NextResponse.json({
+      ...cached,
+      cached: true,
+      refreshing: false,
     });
+  }
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Classement FFF indisponible" },
-        { status: 502 },
-      );
-    }
-
-    const html = await response.text();
-    const rankings = parseRowsFromTables(html);
-    const fallbackRankings = rankings.length
-      ? rankings
-      : parseRowsFromText(html);
-    const preview = buildPreview(fallbackRankings);
+  if (cached) {
+    void refreshRanking(rankingUrl);
 
     return NextResponse.json({
-      updatedAt: new Date().toISOString(),
-      rows: preview.rows,
-      found: preview.found,
+      ...cached,
+      cached: true,
+      refreshing: true,
     });
+  }
+
+  try {
+    await refreshRanking(rankingUrl);
+
+    const freshCache = memoryCache.get(rankingUrl);
+
+    if (freshCache) {
+      return NextResponse.json({
+        ...freshCache,
+        cached: false,
+        refreshing: false,
+      });
+    }
+
+    return NextResponse.json(
+      { error: "Classement FFF indisponible", rows: [] },
+      { status: 504 },
+    );
   } catch {
     return NextResponse.json(
-      { error: "Impossible de récupérer le classement FFF" },
-      { status: 500 },
+      { error: "Impossible de récupérer le classement FFF", rows: [] },
+      { status: 504 },
     );
   }
 }
