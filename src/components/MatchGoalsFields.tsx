@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type PlayerOption = {
   id: string;
@@ -18,9 +18,19 @@ type Props = {
   players: PlayerOption[];
   matchCategory?: string | null;
   matchTeam?: string | null;
+  targetCategoryField?: string;
+  targetTeamField?: string;
   initialGoals?: MatchEventInput[];
   initialAssists?: MatchEventInput[];
 };
+
+function normalize(value: string | null | undefined) {
+  return String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 function PlayerSelect({
   name,
@@ -37,8 +47,8 @@ function PlayerSelect({
     <select
       name={name}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="input"
+      onChange={(event) => onChange(event.target.value)}
+      className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
     >
       <option value="">Sélectionner un joueur</option>
 
@@ -57,6 +67,8 @@ export default function MatchGoalsFields({
   players,
   matchCategory,
   matchTeam,
+  targetCategoryField,
+  targetTeamField,
   initialGoals = [],
   initialAssists = [],
 }: Props) {
@@ -69,28 +81,66 @@ export default function MatchGoalsFields({
   );
 
   const [showAllPlayers, setShowAllPlayers] = useState(false);
+  const [liveCategory, setLiveCategory] = useState(matchCategory || "");
+  const [liveTeam, setLiveTeam] = useState(matchTeam || "");
 
-  const normalizeCategory = (value: string | null | undefined) =>
-    String(value || "")
-      .trim()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+  useEffect(() => {
+    if (!targetCategoryField && !targetTeamField) return;
 
-  const normalizedMatchTeam = normalizeCategory(matchTeam);
-  const normalizedMatchCategory = normalizeCategory(matchCategory);
+    const readFormValues = () => {
+      const categoryInput = targetCategoryField
+        ? document.querySelector<HTMLSelectElement | HTMLInputElement>(
+            `[name="${targetCategoryField}"]`,
+          )
+        : null;
+
+      const teamInput = targetTeamField
+        ? document.querySelector<HTMLSelectElement | HTMLInputElement>(
+            `[name="${targetTeamField}"]`,
+          )
+        : null;
+
+      setLiveCategory(categoryInput?.value || matchCategory || "");
+      setLiveTeam(teamInput?.value || matchTeam || "");
+    };
+
+    readFormValues();
+
+    const categoryInput = targetCategoryField
+      ? document.querySelector<HTMLSelectElement | HTMLInputElement>(
+          `[name="${targetCategoryField}"]`,
+        )
+      : null;
+
+    const teamInput = targetTeamField
+      ? document.querySelector<HTMLSelectElement | HTMLInputElement>(
+          `[name="${targetTeamField}"]`,
+        )
+      : null;
+
+    categoryInput?.addEventListener("change", readFormValues);
+    teamInput?.addEventListener("change", readFormValues);
+
+    return () => {
+      categoryInput?.removeEventListener("change", readFormValues);
+      teamInput?.removeEventListener("change", readFormValues);
+    };
+  }, [matchCategory, matchTeam, targetCategoryField, targetTeamField]);
+
+  const normalizedMatchTeam = normalize(liveTeam);
+  const normalizedMatchCategory = normalize(liveCategory);
 
   const displayedPlayers = useMemo(() => {
     const sourcePlayers = showAllPlayers
       ? players
       : players.filter((player) => {
-          const playerTeam = normalizeCategory(player.team);
+          const playerTeam = normalize(player.team);
 
           if (normalizedMatchTeam) {
             return playerTeam === normalizedMatchTeam;
           }
 
-          const playerCategory = normalizeCategory(player.category);
+          const playerCategory = normalize(player.category);
           return playerCategory === normalizedMatchCategory;
         });
 
@@ -102,9 +152,12 @@ export default function MatchGoalsFields({
     );
   }, [players, showAllPlayers, normalizedMatchTeam, normalizedMatchCategory]);
 
+  const shouldSelectTeam =
+    !showAllPlayers && !normalizedMatchTeam && !normalizedMatchCategory;
+
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-3">
         <label className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
           <input
             type="checkbox"
@@ -114,15 +167,22 @@ export default function MatchGoalsFields({
           Afficher tous les joueurs
         </label>
 
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs leading-relaxed text-neutral-500">
           Par défaut, seuls les joueurs de l’équipe du match sont affichés.
           Active cette option si un joueur d’une autre équipe ou catégorie a
           participé.
         </p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
+      {shouldSelectTeam ? (
+        <div className="rounded-2xl border border-dashed border-orange-200 bg-white p-4 text-xs font-semibold text-orange-700">
+          Sélectionne une catégorie ou une équipe pour filtrer automatiquement
+          les joueurs.
+        </div>
+      ) : null}
+
+      <div className="grid gap-4">
+        <div className="min-w-0 rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
           <div className="text-sm font-extrabold text-neutral-900">
             ⚽ Buteurs
           </div>
@@ -131,7 +191,7 @@ export default function MatchGoalsFields({
             {goals.map((goal, index) => (
               <div
                 key={index}
-                className="grid gap-2 rounded-2xl border border-orange-100 bg-white p-3 md:grid-cols-[1fr_auto]"
+                className="flex flex-col gap-3 rounded-2xl border border-orange-100 bg-white p-3"
               >
                 <PlayerSelect
                   name="goalPlayerId"
@@ -149,9 +209,13 @@ export default function MatchGoalsFields({
                 <button
                   type="button"
                   onClick={() =>
-                    setGoals((current) => current.filter((_, i) => i !== index))
+                    setGoals((current) =>
+                      current.length > 1
+                        ? current.filter((_, i) => i !== index)
+                        : [{ playerId: "" }],
+                    )
                   }
-                  className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                  className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                 >
                   Retirer
                 </button>
@@ -170,7 +234,7 @@ export default function MatchGoalsFields({
           </button>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+        <div className="min-w-0 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
           <div className="text-sm font-extrabold text-neutral-900">
             🎯 Passeurs
           </div>
@@ -179,7 +243,7 @@ export default function MatchGoalsFields({
             {assists.map((assist, index) => (
               <div
                 key={index}
-                className="grid gap-2 rounded-2xl border border-neutral-200 bg-white p-3 md:grid-cols-[1fr_auto]"
+                className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-3"
               >
                 <PlayerSelect
                   name="assistPlayerId"
@@ -198,10 +262,12 @@ export default function MatchGoalsFields({
                   type="button"
                   onClick={() =>
                     setAssists((current) =>
-                      current.filter((_, i) => i !== index),
+                      current.length > 1
+                        ? current.filter((_, i) => i !== index)
+                        : [{ playerId: "" }],
                     )
                   }
-                  className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                  className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                 >
                   Retirer
                 </button>

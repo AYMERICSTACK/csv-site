@@ -6,19 +6,15 @@ import Badge from "@/components/Badge";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import MatchCardActions from "./MatchCardActions";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
+import MatchGoalsFields from "@/components/MatchGoalsFields";
+import AdminMatchesBoard from "@/components/AdminMatchesBoard";
 import {
-  CalendarDays,
-  MapPin,
-  Shield,
-  Clock3,
-  Trophy,
-  ArrowLeft,
-} from "lucide-react";
-
-const DISPLAY_TIME_ZONE = "Europe/Paris";
+  hasOnlyOneScoreFilled,
+  normalizeMatchStatus,
+} from "@/lib/match-status";
+import { ArrowLeft, CalendarDays } from "lucide-react";
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -30,6 +26,32 @@ function parseLocalDateTime(value: string) {
 
 function canManageMatches(role?: string | null) {
   return role === "admin" || role === "educateurs";
+}
+
+async function refreshPlayerStats(playerIds: string[]) {
+  const season = "2026/2027";
+  const uniquePlayerIds = Array.from(new Set(playerIds)).filter(Boolean);
+
+  for (const playerId of uniquePlayerIds) {
+    const goals = await prisma.matchEvent.count({
+      where: { playerId, type: "GOAL" },
+    });
+
+    const assists = await prisma.matchEvent.count({
+      where: { playerId, type: "ASSIST" },
+    });
+
+    await prisma.playerStat.upsert({
+      where: {
+        playerId_season: {
+          playerId,
+          season,
+        },
+      },
+      update: { goals, assists },
+      create: { playerId, season, goals, assists },
+    });
+  }
 }
 
 async function createMatch(formData: FormData) {
@@ -54,30 +76,87 @@ async function createMatch(formData: FormData) {
   const status = String(formData.get("status") || "scheduled").trim();
   const scoreTeamValue = String(formData.get("scoreTeam") || "").trim();
   const scoreOpponentValue = String(formData.get("scoreOpponent") || "").trim();
-  const scorersValue = String(formData.get("scorers") || "").trim();
+
+  const goalPlayerIds = formData
+    .getAll("goalPlayerId")
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+
+  const assistPlayerIds = formData
+    .getAll("assistPlayerId")
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
 
   if (!category || !team || !opponent || !matchDate || !location) {
     throw new Error("Tous les champs obligatoires doivent être remplis.");
   }
 
-  await prisma.match.create({
-    data: {
-      category,
-      team,
-      opponent,
-      matchDate: parseLocalDateTime(matchDate),
-      location,
-      isHome: isHomeValue === "true",
-      status,
-      scoreTeam: scoreTeamValue ? Number(scoreTeamValue) : null,
-      scoreOpponent: scoreOpponentValue ? Number(scoreOpponentValue) : null,
-      scorers: scorersValue || null,
-    },
+  if (hasOnlyOneScoreFilled(scoreTeamValue, scoreOpponentValue)) {
+    throw new Error("Les deux scores doivent être remplis.");
+  }
+
+  const normalizedStatus = normalizeMatchStatus(
+    status,
+    scoreTeamValue,
+    scoreOpponentValue,
+  );
+
+  const selectedGoalPlayers = await prisma.player.findMany({
+    where: { id: { in: goalPlayerIds } },
+    select: { id: true, firstName: true, lastName: true },
   });
+
+  const scorersText = goalPlayerIds
+    .map((playerId) => {
+      const player = selectedGoalPlayers.find((p) => p.id === playerId);
+      return player ? `${player.firstName} ${player.lastName}` : null;
+    })
+    .filter(Boolean)
+    .join(", ");
+
+  const createdMatch = await prisma.$transaction(async (tx) => {
+    const match = await tx.match.create({
+      data: {
+        category,
+        team,
+        opponent,
+        matchDate: parseLocalDateTime(matchDate),
+        location,
+        isHome: isHomeValue === "true",
+        status: normalizedStatus,
+        scoreTeam: scoreTeamValue ? Number(scoreTeamValue) : null,
+        scoreOpponent: scoreOpponentValue ? Number(scoreOpponentValue) : null,
+        scorers: scorersText || null,
+      },
+    });
+
+    const eventsData = [
+      ...goalPlayerIds.map((playerId) => ({
+        matchId: match.id,
+        playerId,
+        type: "GOAL",
+      })),
+      ...assistPlayerIds.map((playerId) => ({
+        matchId: match.id,
+        playerId,
+        type: "ASSIST",
+      })),
+    ];
+
+    if (eventsData.length > 0) {
+      await tx.matchEvent.createMany({ data: eventsData });
+    }
+
+    return match;
+  });
+
+  await refreshPlayerStats([...goalPlayerIds, ...assistPlayerIds]);
 
   revalidatePath("/");
   revalidatePath("/admin/matchs");
+  revalidatePath(`/admin/matchs/${createdMatch.id}/edit`);
   revalidatePath("/calendrier");
+  revalidatePath("/classements");
 }
 
 async function deleteMatch(formData: FormData) {
@@ -99,224 +178,18 @@ async function deleteMatch(formData: FormData) {
     throw new Error("ID du match manquant.");
   }
 
-  await prisma.match.delete({
-    where: { id },
+  const events = await prisma.matchEvent.findMany({
+    where: { matchId: id },
+    select: { playerId: true },
   });
+
+  await prisma.match.delete({ where: { id } });
+  await refreshPlayerStats(events.map((event) => event.playerId));
 
   revalidatePath("/");
   revalidatePath("/admin/matchs");
   revalidatePath("/calendrier");
-}
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: DISPLAY_TIME_ZONE,
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
-
-function formatStatus(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "Programmé";
-    case "postponed":
-      return "Reporté";
-    case "cancelled":
-      return "Annulé";
-    case "finished":
-      return "Terminé";
-    default:
-      return status;
-  }
-}
-
-function getStatusClasses(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "bg-blue-50 text-blue-700 border-blue-200";
-    case "postponed":
-      return "bg-amber-50 text-amber-700 border-amber-200";
-    case "cancelled":
-      return "bg-red-50 text-red-700 border-red-200";
-    case "finished":
-      return "bg-green-50 text-green-700 border-green-200";
-    default:
-      return "bg-neutral-100 text-neutral-700 border-neutral-200";
-  }
-}
-
-function formatScore(scoreTeam: number | null, scoreOpponent: number | null) {
-  if (scoreTeam === null || scoreOpponent === null) {
-    return null;
-  }
-
-  return `${scoreTeam} - ${scoreOpponent}`;
-}
-
-type MatchItem = {
-  id: string;
-  category: string;
-  team: string;
-  opponent: string;
-  matchDate: Date;
-  location: string;
-  isHome: boolean;
-  status: string;
-  scoreTeam: number | null;
-  scoreOpponent: number | null;
-  scorers: string | null;
-};
-
-function MatchSection({
-  title,
-  description,
-  matches,
-  emptyLabel,
-  deleteAction,
-}: {
-  title: string;
-  description: string;
-  matches: MatchItem[];
-  emptyLabel: string;
-  deleteAction: (formData: FormData) => Promise<void>;
-}) {
-  return (
-    <section className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-4 md:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-extrabold tracking-tight text-neutral-900">
-            {title}
-          </h3>
-          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-            {description}
-          </p>
-        </div>
-
-        <div className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-bold text-neutral-800">
-          {matches.length} match{matches.length > 1 ? "s" : ""}
-        </div>
-      </div>
-
-      {matches.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-neutral-300 bg-white p-5 text-sm text-neutral-600">
-          {emptyLabel}
-        </div>
-      ) : (
-        <div className="mt-5 space-y-4">
-          {matches.map((match) => {
-            const score = formatScore(match.scoreTeam, match.scoreOpponent);
-
-            return (
-              <article
-                key={match.id}
-                className="group rounded-[1.5rem] border border-neutral-200 bg-white p-5 transition hover:border-neutral-300 hover:shadow-sm"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-neutral-600">
-                        {match.category}
-                      </span>
-
-                      <span
-                        className={`rounded-full border px-3 py-1 text-[11px] font-bold ${getStatusClasses(
-                          match.status,
-                        )}`}
-                      >
-                        {formatStatus(match.status)}
-                      </span>
-
-                      <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] font-bold text-neutral-600">
-                        {match.isHome ? "Domicile" : "Extérieur"}
-                      </span>
-                    </div>
-
-                    <h3 className="mt-4 text-xl font-extrabold tracking-tight text-neutral-900">
-                      {match.team} <span className="text-neutral-400">vs</span>{" "}
-                      {match.opponent}
-                    </h3>
-
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-                        <div className="mt-0.5 text-neutral-500">
-                          <Clock3 size={16} />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                            Date
-                          </div>
-                          <div className="mt-1 text-sm font-semibold text-neutral-900">
-                            {formatDate(match.matchDate)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-                        <div className="mt-0.5 text-neutral-500">
-                          <MapPin size={16} />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                            Lieu
-                          </div>
-                          <div className="mt-1 text-sm font-semibold text-neutral-900">
-                            {match.location}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {match.scorers ? (
-                      <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-                        <div className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                          Buteurs
-                        </div>
-                        <div className="mt-1 whitespace-pre-line text-sm font-semibold text-neutral-900">
-                          {match.scorers}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="flex shrink-0 flex-col gap-3 lg:w-48">
-                    <div className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50 p-4 text-center shadow-sm">
-                      <div className="flex items-center justify-center gap-2 text-neutral-500">
-                        <Trophy size={16} />
-                        <span className="text-xs font-bold uppercase tracking-wide">
-                          Score
-                        </span>
-                      </div>
-
-                      <div className="mt-2 text-2xl font-extrabold tracking-tight text-neutral-900">
-                        {score || "—"}
-                      </div>
-                    </div>
-
-                    <MatchCardActions
-                      matchId={match.id}
-                      deleteAction={deleteAction}
-                    />
-
-                    <div className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
-                      <Shield size={15} className="text-neutral-500" />
-                      <span className="font-medium">
-                        {match.isHome ? "Réception" : "Déplacement"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
+  revalidatePath("/classements");
 }
 
 export default async function AdminMatchsPage() {
@@ -335,17 +208,30 @@ export default async function AdminMatchsPage() {
   const backLabel = role === "admin" ? "Retour admin" : "Retour espace club";
 
   const matches = await prisma.match.findMany({
-    orderBy: {
-      matchDate: "asc",
-    },
+    orderBy: { matchDate: "desc" },
+  });
+
+  const players = await prisma.player.findMany({
+    where: { isActive: true },
+    orderBy: [
+      { category: "asc" },
+      { team: "asc" },
+      { lastName: "asc" },
+      { firstName: "asc" },
+    ],
   });
 
   const upcomingMatches = matches.filter(
-    (match) => match.status !== "finished",
+    (match) => match.status !== "finished" && match.status !== "cancelled",
   );
   const finishedMatches = matches.filter(
     (match) => match.status === "finished",
   );
+
+  const serializedMatches = matches.map((match) => ({
+    ...match,
+    matchDate: match.matchDate.toISOString(),
+  }));
 
   return (
     <Container>
@@ -382,16 +268,45 @@ export default async function AdminMatchsPage() {
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
                 Ajoute, consulte, modifie et supprime les rencontres du club
-                depuis une interface claire et centralisée.
+                depuis une interface claire, rapide et centralisée.
               </p>
             </div>
 
-            <AdminLogoutButton />
+            <div className="relative flex flex-col items-start gap-4 md:items-end">
+              <AdminLogoutButton />
+
+              <div className="grid grid-cols-3 gap-2 text-white">
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center backdrop-blur">
+                  <div className="text-2xl font-black">{matches.length}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/55">
+                    Matchs
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center backdrop-blur">
+                  <div className="text-2xl font-black">
+                    {upcomingMatches.length}
+                  </div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/55">
+                    À venir
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center backdrop-blur">
+                  <div className="text-2xl font-black">
+                    {finishedMatches.length}
+                  </div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/55">
+                    Terminés
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="mt-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
             <div className="flex items-start gap-3">
               <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-700">
                 <CalendarDays size={20} />
@@ -413,9 +328,13 @@ export default async function AdminMatchsPage() {
                 <label htmlFor="category" className="label">
                   Catégorie
                 </label>
-                <select id="category" name="category" className="input" required>
+                <select
+                  id="category"
+                  name="category"
+                  className="input"
+                  required
+                >
                   <option value="">Sélectionner une catégorie</option>
-
                   {CLUB_CATEGORIES.map((category) => (
                     <option key={category} value={category}>
                       {category}
@@ -430,7 +349,6 @@ export default async function AdminMatchsPage() {
                 </label>
                 <select id="team" name="team" className="input" required>
                   <option value="">Sélectionner une équipe</option>
-
                   {CLUB_TEAMS.map((team) => (
                     <option key={team} value={team}>
                       {team}
@@ -542,21 +460,22 @@ export default async function AdminMatchsPage() {
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="scorers" className="label">
-                  Buteurs
-                </label>
-                <textarea
-                  id="scorers"
-                  name="scorers"
-                  rows={3}
-                  placeholder="Ex : Martin x2, Dupont ou Martin (12e), Dupont (57e)"
-                  className="input"
+              <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/35 p-4">
+                <div className="mb-4">
+                  <div className="text-sm font-extrabold text-neutral-900">
+                    Buteurs / passeurs
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+                    Sélectionne les joueurs de l’équipe choisie. Les stats
+                    joueurs seront mises à jour automatiquement.
+                  </p>
+                </div>
+
+                <MatchGoalsFields
+                  players={players}
+                  targetCategoryField="category"
+                  targetTeamField="team"
                 />
-                <p className="mt-2 text-xs text-neutral-500">
-                  Format libre pour cette V1 : Martin x2, Dupont / CSC / Martin
-                  (12e).
-                </p>
               </div>
 
               <button type="submit" className="btn-primary">
@@ -565,41 +484,10 @@ export default async function AdminMatchsPage() {
             </form>
           </div>
 
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-extrabold text-neutral-900">
-                  Matchs enregistrés
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                  Les rencontres ajoutées ici apparaissent automatiquement sur
-                  la page calendrier.
-                </p>
-              </div>
-
-              <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-neutral-900">
-                {matches.length} match{matches.length > 1 ? "s" : ""} au total
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-5">
-              <MatchSection
-                title="À venir / en cours"
-                description="Retrouve ici les rencontres programmées, reportées ou encore non finalisées."
-                matches={upcomingMatches}
-                emptyLabel="Aucun match à venir pour le moment."
-                deleteAction={deleteMatch}
-              />
-
-              <MatchSection
-                title="Terminés"
-                description="Les matchs finalisés restent accessibles ici avec leur score et leurs buteurs."
-                matches={finishedMatches}
-                emptyLabel="Aucun match terminé pour le moment."
-                deleteAction={deleteMatch}
-              />
-            </div>
-          </div>
+          <AdminMatchesBoard
+            matches={serializedMatches}
+            deleteAction={deleteMatch}
+          />
         </div>
       </div>
     </Container>

@@ -29,39 +29,30 @@ export default function MatchCardActions({
   deleteAction,
 }: MatchCardActionsProps) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <Link
-          href={`/admin/matchs/${matchId}/edit`}
-          title="Modifier le match"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-neutral-300 bg-white text-neutral-800 transition hover:bg-neutral-100"
-        >
-          <SquarePen size={16} />
-        </Link>
-
-        <form
-          action={deleteAction}
-          onSubmit={(e) => {
-            const confirmed = window.confirm(
-              "Voulez-vous vraiment supprimer ce match ?",
-            );
-
-            if (!confirmed) {
-              e.preventDefault();
-            }
-          }}
-        >
-          <input type="hidden" name="id" value={matchId} />
-          <DeleteButton />
-        </form>
-      </div>
-
+    <div className="flex items-center gap-2">
       <Link
         href={`/admin/matchs/${matchId}/edit`}
-        className="text-sm font-semibold text-neutral-500 transition hover:text-neutral-900"
+        title="Modifier le match"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-neutral-300 bg-white text-neutral-800 transition hover:bg-neutral-100"
       >
-        Ouvrir la fiche
+        <SquarePen size={16} />
       </Link>
+
+      <form
+        action={deleteAction}
+        onSubmit={(e) => {
+          const confirmed = window.confirm(
+            "Voulez-vous vraiment supprimer ce match ?",
+          );
+
+          if (!confirmed) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <input type="hidden" name="id" value={matchId} />
+        <DeleteButton />
+      </form>
     </div>
   );
 }
