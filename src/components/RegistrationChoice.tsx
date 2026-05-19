@@ -35,10 +35,21 @@ export default function RegistrationChoice({
         </div>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2">
+          {/* RENOUVELLEMENT */}
           <button
             type="button"
-            onClick={() => setChoice("renewal")}
-            className="group text-left rounded-[1.75rem] border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-6 transition hover:-translate-y-0.5 hover:shadow-md"
+            onClick={(event) => {
+              event.preventDefault();
+
+              setChoice((current) =>
+                current === "renewal" ? null : "renewal",
+              );
+            }}
+            className={`group text-left rounded-[1.75rem] border p-6 transition hover:-translate-y-0.5 hover:shadow-md ${
+              choice === "renewal"
+                ? "border-orange-400 bg-orange-50 shadow-md"
+                : "border-orange-200 bg-gradient-to-br from-orange-50 to-white"
+            }`}
           >
             <div className="inline-flex rounded-full bg-csv-orange px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-white">
               Déjà licencié au CSV
@@ -54,14 +65,25 @@ export default function RegistrationChoice({
             </p>
 
             <div className="mt-5 inline-flex rounded-xl bg-csv-black px-4 py-2 text-sm font-bold text-white">
-              Accéder au renouvellement
+              {choice === "renewal"
+                ? "Fermer le renouvellement"
+                : "Accéder au renouvellement"}
             </div>
           </button>
 
+          {/* NOUVELLE INSCRIPTION */}
           <button
             type="button"
-            onClick={() => setChoice("new")}
-            className="group text-left rounded-[1.75rem] border border-neutral-200 bg-white p-6 transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
+            onClick={(event) => {
+              event.preventDefault();
+
+              setChoice((current) => (current === "new" ? null : "new"));
+            }}
+            className={`group text-left rounded-[1.75rem] border p-6 transition hover:-translate-y-0.5 hover:shadow-md ${
+              choice === "new"
+                ? "border-orange-300 bg-orange-50 shadow-md"
+                : "border-neutral-200 bg-white hover:border-orange-200"
+            }`}
           >
             <div className="inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-neutral-700">
               Nouveau au club
@@ -77,12 +99,15 @@ export default function RegistrationChoice({
             </p>
 
             <div className="mt-5 inline-flex rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-bold text-neutral-900">
-              Préparer mon inscription
+              {choice === "new"
+                ? "Fermer l’inscription"
+                : "Préparer mon inscription"}
             </div>
           </button>
         </div>
       </div>
 
+      {/* RENOUVELLEMENT */}
       {choice === "renewal" && (
         <div className="border-t border-orange-100 bg-orange-50/25 p-6 md:p-8">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -152,6 +177,7 @@ export default function RegistrationChoice({
         </div>
       )}
 
+      {/* NOUVELLE INSCRIPTION */}
       {choice === "new" && (
         <div className="border-t border-orange-100 bg-orange-50/25 p-6 md:p-8">
           <h3 className="text-2xl font-extrabold text-neutral-950">
