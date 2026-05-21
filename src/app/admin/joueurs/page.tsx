@@ -34,7 +34,7 @@ async function createPlayer(formData: FormData) {
   const lastName = String(formData.get("lastName") || "").trim();
   const team = String(formData.get("team") || "").trim();
   const category = String(formData.get("category") || "").trim();
-  const season = String(formData.get("season") || "2026/2027").trim();
+  const season = String(formData.get("season") || "2025/2026").trim();
   const photoFile = formData.get("photoFile") as File | null;
   const photoConsent = formData.get("photoConsent") === "on";
 
@@ -78,7 +78,7 @@ async function updatePlayer(formData: FormData) {
   const lastName = String(formData.get("lastName") || "").trim();
   const team = String(formData.get("team") || "").trim();
   const category = String(formData.get("category") || "").trim();
-  const season = String(formData.get("season") || "2026/2027").trim();
+  const season = String(formData.get("season") || "2025/2026").trim();
 
   const currentPhotoUrl = String(formData.get("currentPhotoUrl") || "").trim();
   const photoFile = formData.get("photoFile") as File | null;
@@ -151,7 +151,7 @@ async function deletePlayer(formData: FormData) {
 export default async function AdminJoueursPage() {
   await requireRole(["admin", "educateurs"]);
 
-  const season = "2026/2027";
+  const season = "2025/2026";
 
   const players = await prisma.player.findMany({
     include: {

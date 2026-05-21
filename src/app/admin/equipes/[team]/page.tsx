@@ -43,7 +43,7 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
   await requireRole(["admin", "educateurs"]);
 
   const { team: teamSlug } = await params;
-  const season = "2026/2027";
+  const season = "2025/2026";
 
   const teamName = CLUB_TEAMS.find((team) => slugifyTeam(team) === teamSlug);
 

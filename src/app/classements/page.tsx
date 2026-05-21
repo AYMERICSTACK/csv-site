@@ -23,7 +23,7 @@ const defaultOfficialTeamRankings = [
 ];
 
 export default async function ClassementsPage() {
-  const season = "2026/2027";
+  const season = "2025/2026";
 
   const players = await prisma.player.findMany({
     where: {

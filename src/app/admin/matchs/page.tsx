@@ -24,7 +24,7 @@ function parseLocalDateTime(value: string) {
 }
 
 async function refreshPlayerStats(playerIds: string[]) {
-  const season = "2026/2027";
+  const season = "2025/2026";
   const uniquePlayerIds = Array.from(new Set(playerIds)).filter(Boolean);
 
   for (const playerId of uniquePlayerIds) {

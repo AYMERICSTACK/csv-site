@@ -176,7 +176,7 @@ export default async function EditMatchPage({ params }: PageProps) {
         });
       }
 
-      const season = "2026/2027";
+      const season = "2025/2026";
 
       const allPlayers = await tx.player.findMany({
         where: { isActive: true },
