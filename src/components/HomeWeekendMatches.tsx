@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarDays, Clock3, MapPin, Trophy } from "lucide-react";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import { prisma } from "@/lib/prisma";
@@ -8,39 +9,46 @@ type WeekendWindow = {
   end: Date;
 };
 
+type HomeMatch = {
+  id: string;
+  category: string;
+  team: string;
+  opponent: string;
+  matchDate: Date;
+  location: string;
+  isHome: boolean;
+  status: string;
+  scoreTeam: number | null;
+  scoreOpponent: number | null;
+  scorers: string | null;
+};
+
 function getHomeWeekendWindow(): WeekendWindow {
   const now = new Date();
-  const day = now.getDay(); // 0=dimanche, 1=lundi, 2=mardi, 3=mercredi, 4=jeudi, 5=vendredi, 6=samedi
+  const day = now.getDay();
 
   let fridayStart: Date;
 
-  // Lundi, mardi, mercredi => on montre encore le week-end passé
   if ([1, 2, 3].includes(day)) {
     fridayStart = new Date(now);
-    fridayStart.setDate(now.getDate() - (day + 2)); // lundi->vendredi précédent, mardi->vendredi précédent, mercredi->vendredi précédent
+    fridayStart.setDate(now.getDate() - (day + 2));
   } else if (day === 0) {
-    // Dimanche => vendredi de la même semaine
     fridayStart = new Date(now);
     fridayStart.setDate(now.getDate() - 2);
   } else if (day === 4) {
-    // Jeudi => vendredi à venir
     fridayStart = new Date(now);
     fridayStart.setDate(now.getDate() + 1);
   } else if (day === 5) {
-    // Vendredi => aujourd’hui
     fridayStart = new Date(now);
   } else {
-    // Samedi => vendredi de la veille
     fridayStart = new Date(now);
     fridayStart.setDate(now.getDate() - 1);
   }
 
-  // Important : comme les matchs sont saisis dès le jeudi,
-  // on démarre la fenêtre au vendredi à 00:00
   fridayStart.setHours(0, 0, 0, 0);
 
   const end = new Date(fridayStart);
-  end.setDate(fridayStart.getDate() + 5); // jusqu’au mercredi suivant
+  end.setDate(fridayStart.getDate() + 5);
   end.setHours(23, 59, 59, 999);
 
   return {
@@ -51,28 +59,25 @@ function getHomeWeekendWindow(): WeekendWindow {
 
 function getWeekendContent() {
   const now = new Date();
-  const day = now.getDay(); // 0=dimanche, 1=lundi, ..., 6=samedi
+  const day = now.getDay();
 
   if ([4, 5].includes(day)) {
     return {
       title: "Matchs du week-end",
-      subtitle:
-        "Retrouvez les rencontres à venir du CS Viriat. Dès qu’un score est saisi, il s’affiche automatiquement sur la carte du match.",
+      subtitle: "Retrouvez les rencontres à venir du CS Viriat.",
     };
   }
 
   if ([6, 0].includes(day)) {
     return {
       title: "Matchs en cours",
-      subtitle:
-        "Suivez les rencontres du week-end du CS Viriat. Les matchs à venir et les premiers résultats s’affichent automatiquement.",
+      subtitle: "Suivez les rencontres du week-end du CS Viriat.",
     };
   }
 
   return {
     title: "Résultats du week-end",
-    subtitle:
-      "Retrouvez les résultats du week-end du CS Viriat. Les scores renseignés remplacent automatiquement les affiches des matchs.",
+    subtitle: "Retrouvez les résultats du week-end du CS Viriat.",
   };
 }
 
@@ -93,13 +98,14 @@ async function getHomeWeekendMatches() {
   });
 }
 
-function formatDate(date: Date) {
+function formatDate(date: Date | string) {
   return new Date(date).toLocaleString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Paris",
   });
 }
 
@@ -110,52 +116,275 @@ function hasScore(match: {
   return match.scoreTeam !== null && match.scoreOpponent !== null;
 }
 
-function getMatchStateLabel(match: {
-  status: string;
-  scoreTeam: number | null;
-  scoreOpponent: number | null;
-}) {
-  if (hasScore(match)) {
-    if ((match.scoreTeam ?? 0) > (match.scoreOpponent ?? 0)) return "Victoire";
-    if ((match.scoreTeam ?? 0) < (match.scoreOpponent ?? 0)) return "Défaite";
-    return "Nul";
-  }
-
-  switch (match.status) {
+function formatStatus(status: string) {
+  switch (status) {
+    case "scheduled":
+      return "Programmé";
     case "postponed":
       return "Reporté";
     case "cancelled":
       return "Annulé";
+    case "finished":
+      return "Terminé";
     default:
-      return "À venir";
+      return status;
   }
 }
 
-function getMatchStateClasses(match: {
-  status: string;
-  scoreTeam: number | null;
-  scoreOpponent: number | null;
-}) {
-  if (hasScore(match)) {
-    if ((match.scoreTeam ?? 0) > (match.scoreOpponent ?? 0)) {
-      return "border border-green-200 bg-green-100 text-green-800";
-    }
+function getResultLabel(scoreTeam: number, scoreOpponent: number) {
+  if (scoreTeam > scoreOpponent) return "Victoire";
+  if (scoreTeam < scoreOpponent) return "Défaite";
+  return "Nul";
+}
 
-    if ((match.scoreTeam ?? 0) < (match.scoreOpponent ?? 0)) {
-      return "border border-red-200 bg-red-100 text-red-800";
-    }
-
-    return "border border-amber-200 bg-amber-100 text-amber-800";
+function getResultBadgeClasses(scoreTeam: number, scoreOpponent: number) {
+  if (scoreTeam > scoreOpponent) {
+    return "border border-green-300 bg-green-100 text-green-800";
   }
 
-  switch (match.status) {
+  if (scoreTeam < scoreOpponent) {
+    return "border border-red-300 bg-red-100 text-red-800";
+  }
+
+  return "border border-orange-300 bg-orange-100 text-orange-800";
+}
+
+function getUpcomingStatusClasses(status: string) {
+  switch (status) {
+    case "scheduled":
+      return "border border-blue-300 bg-blue-100 text-blue-800";
     case "postponed":
-      return "border border-amber-200 bg-amber-100 text-amber-800";
+      return "border border-orange-300 bg-orange-100 text-orange-800";
     case "cancelled":
-      return "border border-red-200 bg-red-100 text-red-800";
+      return "border border-red-300 bg-red-100 text-red-800";
     default:
-      return "border border-blue-200 bg-blue-100 text-blue-800";
+      return "border border-neutral-300 bg-neutral-100 text-neutral-700";
   }
+}
+
+function getVenueBadge(match: HomeMatch) {
+  if (match.isHome) {
+    return {
+      label: "Domicile",
+      className:
+        "border border-orange-500 bg-orange-500 text-white shadow-[0_10px_25px_-10px_rgba(255,122,0,0.9)]",
+    };
+  }
+
+  return {
+    label: "Extérieur",
+    className: "border border-orange-300 bg-white text-orange-600",
+  };
+}
+
+function formatRepeatedPlayers(value: string) {
+  const names = value
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+  const counts = new Map<string, number>();
+
+  for (const name of names) {
+    counts.set(name, (counts.get(name) || 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([name, count]) => (count > 1 ? `${name} x${count}` : name))
+    .join(", ");
+}
+
+function ResultCard({ match }: { match: HomeMatch }) {
+  if (match.scoreTeam === null || match.scoreOpponent === null) {
+    return null;
+  }
+
+  const venueBadge = getVenueBadge(match);
+  const leftTeam = match.isHome ? match.team : match.opponent;
+  const rightTeam = match.isHome ? match.opponent : match.team;
+  const leftScore = match.isHome ? match.scoreTeam : match.scoreOpponent;
+  const rightScore = match.isHome ? match.scoreOpponent : match.scoreTeam;
+  const leftLabel = match.isHome ? "CSV" : "ADV";
+  const rightLabel = match.isHome ? "ADV" : "CSV";
+
+  return (
+    <article className="group relative overflow-hidden rounded-[1.4rem] border border-neutral-800 bg-neutral-950 p-4 text-white shadow-[0_18px_45px_-28px_rgba(0,0,0,0.72)] transition duration-300 hover:-translate-y-0.5 hover:border-orange-500/60 hover:shadow-[0_24px_55px_-28px_rgba(255,122,0,0.24)]">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500" />
+      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-orange-500/10 blur-2xl transition duration-300 group-hover:bg-orange-500/20" />
+
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-full border border-orange-500/25 bg-orange-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-300">
+                {match.category}
+              </div>
+
+              <div
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
+              >
+                {venueBadge.label}
+              </div>
+            </div>
+
+            <h3 className="mt-2 text-base font-extrabold leading-tight text-white sm:text-lg">
+              {leftTeam} <span className="text-white/30">vs</span> {rightTeam}
+            </h3>
+          </div>
+
+          <div
+            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getResultBadgeClasses(
+              match.scoreTeam,
+              match.scoreOpponent,
+            )}`}
+          >
+            {getResultLabel(match.scoreTeam, match.scoreOpponent)}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[1.15rem] border border-orange-500/15 bg-white/[0.03] px-3 py-3">
+          <div className="min-w-0 text-right">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
+              {leftLabel}
+            </div>
+            <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+              {leftTeam}
+            </div>
+          </div>
+
+          <div className="inline-flex min-w-[84px] items-center justify-center rounded-2xl border border-orange-500 bg-orange-500 px-3 py-2 text-lg font-extrabold tracking-tight text-white shadow-[0_12px_24px_-14px_rgba(255,122,0,0.9)]">
+            {leftScore} - {rightScore}
+          </div>
+
+          <div className="min-w-0 text-left">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
+              {rightLabel}
+            </div>
+            <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+              {rightTeam}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80">
+            <Clock3 size={14} className="text-orange-400" />
+            <span className="font-medium">{formatDate(match.matchDate)}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80">
+            <MapPin size={14} className="text-orange-400" />
+            <span className="font-medium">{match.location}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80">
+            <Trophy size={14} className="text-orange-400" />
+            <span className="font-medium">
+              {match.isHome ? "Domicile" : "Extérieur"}
+            </span>
+          </div>
+        </div>
+
+        {match.scorers ? (
+          <div className="mt-3 rounded-[1rem] border border-orange-500/15 bg-orange-500/8 px-3 py-2 text-sm text-white/80">
+            <span className="font-bold text-white">Buteurs :</span>{" "}
+            <span className="whitespace-pre-line">
+              {formatRepeatedPlayers(match.scorers)}
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function UpcomingCard({ match }: { match: HomeMatch }) {
+  const venueBadge = getVenueBadge(match);
+  const leftTeam = match.isHome ? match.team : match.opponent;
+  const rightTeam = match.isHome ? match.opponent : match.team;
+
+  return (
+    <article className="group relative overflow-hidden rounded-[1.4rem] border border-neutral-200 bg-white p-4 text-neutral-900 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-0.5 hover:border-orange-400 hover:shadow-[0_20px_48px_-28px_rgba(255,122,0,0.24)]">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500" />
+      <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-orange-500/8 blur-2xl transition duration-300 group-hover:bg-orange-500/16" />
+
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-700">
+                {match.category}
+              </div>
+
+              <div
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
+              >
+                {venueBadge.label}
+              </div>
+            </div>
+
+            <h3 className="mt-2 text-base font-extrabold leading-tight text-neutral-900 sm:text-lg">
+              {leftTeam} <span className="text-neutral-400">vs</span>{" "}
+              {rightTeam}
+            </h3>
+          </div>
+
+          <div
+            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getUpcomingStatusClasses(
+              match.status,
+            )}`}
+          >
+            {formatStatus(match.status)}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-neutral-700">
+            <CalendarDays size={14} className="text-orange-500" />
+            <span className="font-medium">{formatDate(match.matchDate)}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-neutral-700">
+            <MapPin size={14} className="text-orange-500" />
+            <span className="font-medium">{match.location}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-neutral-700">
+            <Trophy size={14} className="text-orange-500" />
+            <span className="font-medium">
+              {match.isHome ? "Domicile" : "Extérieur"}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[1.05rem] border border-orange-200 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black px-4 py-3 text-white">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="min-w-0 text-right">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
+                {match.isHome ? "CSV" : "ADV"}
+              </div>
+              <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+                {leftTeam}
+              </div>
+            </div>
+
+            <div className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-orange-300">
+              Match
+            </div>
+
+            <div className="min-w-0 text-left">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">
+                {match.isHome ? "ADV" : "CSV"}
+              </div>
+              <div className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-white">
+                {rightTeam}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default async function HomeWeekendMatches() {
@@ -192,111 +421,14 @@ export default async function HomeWeekendMatches() {
           </Link>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {matches.map((match: any) => {
-            const isResult = hasScore(match);
-
-            return (
-              <article
-                key={match.id}
-                className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    {match.category}
-                  </div>
-
-                  <div
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${getMatchStateClasses(
-                      match,
-                    )}`}
-                  >
-                    {getMatchStateLabel(match)}
-                  </div>
-                </div>
-
-                {isResult ? (
-                  <>
-                    <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-neutral-500">
-                          CSV
-                        </div>
-                        <div className="text-base font-extrabold text-neutral-900">
-                          {match.team}
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl bg-csv-orange/10 px-4 py-3 text-center">
-                        <div className="text-2xl font-extrabold tracking-tight text-csv-black">
-                          {match.scoreTeam} - {match.scoreOpponent}
-                        </div>
-                        <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
-                          Score final
-                        </div>
-                      </div>
-
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-neutral-500">
-                          Adversaire
-                        </div>
-                        <div className="text-base font-extrabold text-neutral-900">
-                          {match.opponent}
-                        </div>
-                      </div>
-                    </div>
-
-                    {match.scorers ? (
-                      <div className="mt-4 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
-                        <span className="font-semibold text-neutral-900">
-                          Buteurs :
-                        </span>{" "}
-                        {match.scorers}
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    <div className="mt-4">
-                      <h3 className="text-lg font-extrabold text-neutral-900">
-                        {match.team}
-                      </h3>
-                      <p className="mt-1 text-sm text-neutral-600">
-                        vs {match.opponent}
-                      </p>
-                    </div>
-
-                    <div className="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-                      <div className="space-y-2 text-sm text-neutral-700">
-                        <div>
-                          <span className="font-semibold text-neutral-900">
-                            Date :
-                          </span>{" "}
-                          {formatDate(match.matchDate)}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-neutral-900">
-                            Lieu :
-                          </span>{" "}
-                          {match.location}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-neutral-900">
-                            Type :
-                          </span>{" "}
-                          {match.isHome ? "Domicile" : "Extérieur"}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div className="mt-4 text-sm text-neutral-600">
-                  {formatDate(match.matchDate)}
-                </div>
-              </article>
-            );
-          })}
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {matches.map((match) =>
+            hasScore(match) ? (
+              <ResultCard key={match.id} match={match} />
+            ) : (
+              <UpcomingCard key={match.id} match={match} />
+            ),
+          )}
         </div>
       </Container>
     </section>
