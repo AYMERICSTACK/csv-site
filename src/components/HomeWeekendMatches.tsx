@@ -98,14 +98,18 @@ async function getHomeWeekendMatches() {
   });
 }
 
-function formatDate(date: Date | string) {
-  return new Date(date).toLocaleString("fr-FR", {
+function formatDate(dateValue: Date | string) {
+  const date =
+    dateValue instanceof Date
+      ? dateValue
+      : new Date(dateValue);
+
+  return date.toLocaleString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Paris",
   });
 }
 

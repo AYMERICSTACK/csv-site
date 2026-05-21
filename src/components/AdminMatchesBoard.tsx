@@ -38,7 +38,7 @@ type Props = {
 
 function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: DISPLAY_TIME_ZONE,
+    
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -50,7 +50,7 @@ function formatDate(date: Date | string) {
 
 function formatShortDate(date: Date | string) {
   return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: DISPLAY_TIME_ZONE,
+    
     day: "2-digit",
     month: "short",
     hour: "2-digit",

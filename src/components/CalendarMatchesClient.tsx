@@ -146,7 +146,9 @@ function groupMatchesByCategory(matches: MatchItem[]) {
 }
 
 function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleString("fr-FR", {
+  const date = new Date(dateString);
+
+  return date.toLocaleString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
