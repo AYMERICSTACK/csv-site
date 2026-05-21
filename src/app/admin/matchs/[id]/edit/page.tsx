@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
@@ -10,16 +9,13 @@ import {
   hasOnlyOneScoreFilled,
   normalizeMatchStatus,
 } from "@/lib/match-status";
+import { requireRole } from "@/lib/auth-guard";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
 /* ================= HELPERS ================= */
-
-function canManageMatches(role?: string | null) {
-  return role === "admin" || role === "educateurs";
-}
 
 function parseLocalDateTime(value: string) {
   const [datePart, timePart] = value.split("T");
@@ -32,10 +28,7 @@ function parseLocalDateTime(value: string) {
 /* ================= PAGE ================= */
 
 export default async function EditMatchPage({ params }: PageProps) {
-  const session = await auth();
-
-  if (!session) redirect("/admin/login");
-  if (!canManageMatches(session.user?.role)) redirect("/espace-club");
+  await requireRole(["admin", "educateurs"]);
 
   const { id } = await params;
 
@@ -83,10 +76,7 @@ export default async function EditMatchPage({ params }: PageProps) {
   async function updateMatch(formData: FormData) {
     "use server";
 
-    const session = await auth();
-
-    if (!session) redirect("/admin/login");
-    if (!canManageMatches(session.user?.role)) redirect("/espace-club");
+    await requireRole(["admin", "educateurs"]);
 
     const id = String(formData.get("id") || "").trim();
     const category = String(formData.get("category") || "").trim();

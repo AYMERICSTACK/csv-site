@@ -1,13 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import AdminPlayersBoard from "@/components/AdminPlayersBoard";
-
-function canManagePlayers(role?: string | null) {
-  return role === "admin";
-}
 
 async function uploadPlayerPhoto(file: File, playerName: string) {
   if (!file || file.size === 0) return null;
@@ -32,6 +27,8 @@ async function uploadPlayerPhoto(file: File, playerName: string) {
 
 async function createPlayer(formData: FormData) {
   "use server";
+
+  await requireRole(["admin", "educateurs"]);
 
   const firstName = String(formData.get("firstName") || "").trim();
   const lastName = String(formData.get("lastName") || "").trim();
@@ -72,6 +69,8 @@ async function createPlayer(formData: FormData) {
 
 async function updatePlayer(formData: FormData) {
   "use server";
+
+  await requireRole(["admin", "educateurs"]);
 
   const id = String(formData.get("id") || "");
   const statId = String(formData.get("statId") || "");
@@ -138,6 +137,8 @@ async function updatePlayer(formData: FormData) {
 async function deletePlayer(formData: FormData) {
   "use server";
 
+  await requireRole(["admin", "educateurs"]);
+
   const id = String(formData.get("id") || "");
   if (!id) return;
 
@@ -148,10 +149,7 @@ async function deletePlayer(formData: FormData) {
 }
 
 export default async function AdminJoueursPage() {
-  const session = await auth();
-
-  if (!session) redirect("/admin/login");
-  if (!canManagePlayers(session.user?.role)) redirect("/espace-club");
+  await requireRole(["admin", "educateurs"]);
 
   const season = "2026/2027";
 

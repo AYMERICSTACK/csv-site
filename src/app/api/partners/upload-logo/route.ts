@@ -1,6 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { hasRoleAccess } from "@/lib/auth-guard";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
@@ -22,9 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
     }
 
-    const role = session.user?.role;
-
-    if (role !== "admin" && role !== "sponsoring") {
+    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "sponsoring"]))) {
       return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
     }
 

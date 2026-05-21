@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { hasRoleAccess } from "@/lib/auth-guard";
 import {
   hasOnlyOneScoreFilled,
   normalizeMatchStatus,
@@ -23,10 +24,6 @@ function forbiddenResponse() {
   return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
 }
 
-function canManageMatches(role?: string | null) {
-  return role === "admin" || role === "educateurs";
-}
-
 function normalizeScore(value: unknown) {
   if (value === "" || value === null || typeof value === "undefined") {
     return null;
@@ -43,7 +40,7 @@ export async function POST(request: Request) {
       return unauthorizedResponse();
     }
 
-    if (!canManageMatches(session.user?.role)) {
+    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "educateurs"]))) {
       return forbiddenResponse();
     }
 

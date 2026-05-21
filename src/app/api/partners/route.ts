@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { hasRoleAccess } from "@/lib/auth-guard";
 
 function unauthorized() {
   return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
@@ -15,9 +16,7 @@ async function requireSponsoringAccess() {
 
   if (!session) return { ok: false, response: unauthorized() };
 
-  const role = session.user?.role;
-
-  if (role !== "admin" && role !== "sponsoring") {
+  if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "sponsoring"]))) {
     return { ok: false, response: forbidden() };
   }
 

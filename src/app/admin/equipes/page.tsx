@@ -1,13 +1,8 @@
 import Link from "next/link";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import { prisma } from "@/lib/prisma";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
-
-function canManageTeams(role?: string | null) {
-  return role === "admin" || role === "educateurs";
-}
+import { requireRole } from "@/lib/auth-guard";
 
 function getTeamSection(team: string) {
   if (
@@ -37,10 +32,7 @@ const sectionDescriptions: Record<string, string> = {
 };
 
 export default async function AdminEquipesPage() {
-  const session = await auth();
-
-  if (!session) redirect("/admin/login");
-  if (!canManageTeams(session.user?.role)) redirect("/espace-club");
+  await requireRole(["admin", "educateurs"]);
 
   const players = await prisma.player.findMany({
     where: { isActive: true },

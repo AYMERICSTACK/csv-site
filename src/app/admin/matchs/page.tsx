@@ -1,5 +1,4 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/auth-guard";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
@@ -22,10 +21,6 @@ function parseLocalDateTime(value: string) {
   const [hours, minutes] = timePart.split(":").map(Number);
 
   return new Date(year, month - 1, day, hours, minutes);
-}
-
-function canManageMatches(role?: string | null) {
-  return role === "admin" || role === "educateurs";
 }
 
 async function refreshPlayerStats(playerIds: string[]) {
@@ -57,15 +52,7 @@ async function refreshPlayerStats(playerIds: string[]) {
 async function createMatch(formData: FormData) {
   "use server";
 
-  const session = await auth();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  if (!canManageMatches(session.user?.role)) {
-    redirect("/espace-club");
-  }
+  await requireRole(["admin", "educateurs"]);
 
   const category = String(formData.get("category") || "").trim();
   const team = String(formData.get("team") || "").trim();
@@ -170,15 +157,7 @@ async function createMatch(formData: FormData) {
 async function deleteMatch(formData: FormData) {
   "use server";
 
-  const session = await auth();
-
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  if (!canManageMatches(session.user?.role)) {
-    redirect("/espace-club");
-  }
+  await requireRole(["admin", "educateurs"]);
 
   const id = String(formData.get("id") || "").trim();
 
@@ -201,17 +180,9 @@ async function deleteMatch(formData: FormData) {
 }
 
 export default async function AdminMatchsPage() {
-  const session = await auth();
+  const { availableRoles, user } = await requireRole(["admin", "educateurs"]);
 
-  if (!session) {
-    redirect("/admin/login");
-  }
-
-  if (!canManageMatches(session.user?.role)) {
-    redirect("/espace-club");
-  }
-
-  const role = session.user?.role;
+  const role = availableRoles.includes("admin") ? "admin" : user.role;
   const backHref = role === "admin" ? "/admin" : "/espace-club";
   const backLabel = role === "admin" ? "Retour admin" : "Retour espace club";
 

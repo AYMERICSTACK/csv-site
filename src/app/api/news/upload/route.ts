@@ -1,6 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { hasRoleAccess } from "@/lib/auth-guard";
 
 function sanitizeFileName(name: string) {
   return name
@@ -19,8 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
     }
 
-    const role = session.user?.role;
-    if (role !== "admin" && role !== "communication") {
+    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "communication"]))) {
       return NextResponse.json(
         { error: "Accès non autorisé." },
         { status: 403 },

@@ -1,18 +1,14 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
 import { prisma } from "@/lib/prisma";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
+import { requireRole } from "@/lib/auth-guard";
 
 type PageProps = {
   params: Promise<{ team: string }>;
 };
-
-function canManageTeams(role?: string | null) {
-  return role === "admin" || role === "educateurs";
-}
 
 function initials(firstName: string, lastName: string) {
   return `${firstName[0] || ""}${lastName[0] || ""}`;
@@ -21,10 +17,7 @@ function initials(firstName: string, lastName: string) {
 async function updateTeamFffUrl(formData: FormData) {
   "use server";
 
-  const session = await auth();
-
-  if (!session) redirect("/admin/login");
-  if (!canManageTeams(session.user?.role)) redirect("/espace-club");
+  await requireRole(["admin", "educateurs"]);
 
   const team = String(formData.get("team") || "").trim();
   const fffUrl = String(formData.get("fffUrl") || "").trim();
@@ -47,10 +40,7 @@ async function updateTeamFffUrl(formData: FormData) {
 }
 
 export default async function AdminEquipeDetailPage({ params }: PageProps) {
-  const session = await auth();
-
-  if (!session) redirect("/admin/login");
-  if (!canManageTeams(session.user?.role)) redirect("/espace-club");
+  await requireRole(["admin", "educateurs"]);
 
   const { team: teamSlug } = await params;
   const season = "2026/2027";

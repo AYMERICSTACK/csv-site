@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
@@ -9,14 +8,11 @@ import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
 import DeletePlayerButton from "@/components/DeletePlayerButton";
 import PlayerPhotoInput from "@/components/PlayerPhotoInput";
+import { requireRole } from "@/lib/auth-guard";
 
 type PageProps = {
   params: Promise<{ team: string }>;
 };
-
-function canManageTeamPlayers(role?: string | null) {
-  return role === "admin" || role === "educateurs";
-}
 
 async function uploadPlayerPhoto(file: File, playerName: string) {
   if (!file || file.size === 0) return null;
@@ -50,10 +46,7 @@ function getCategoryFromTeam(team: string) {
 }
 
 export default async function AdminEquipeJoueursPage({ params }: PageProps) {
-  const session = await auth();
-
-  if (!session) redirect("/admin/login");
-  if (!canManageTeamPlayers(session.user?.role)) redirect("/espace-club");
+  await requireRole(["admin", "educateurs"]);
 
   const { team: teamSlug } = await params;
   const season = "2026/2027";
@@ -69,10 +62,7 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
   async function createPlayer(formData: FormData) {
     "use server";
 
-    const session = await auth();
-
-    if (!session) redirect("/admin/login");
-    if (!canManageTeamPlayers(session.user?.role)) redirect("/espace-club");
+    await requireRole(["admin", "educateurs"]);
 
     const firstName = String(formData.get("firstName") || "").trim();
     const lastName = String(formData.get("lastName") || "").trim();
@@ -115,10 +105,7 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
   async function updatePlayer(formData: FormData) {
     "use server";
 
-    const session = await auth();
-
-    if (!session) redirect("/admin/login");
-    if (!canManageTeamPlayers(session.user?.role)) redirect("/espace-club");
+    await requireRole(["admin", "educateurs"]);
 
     const id = String(formData.get("id") || "").trim();
     const firstName = String(formData.get("firstName") || "").trim();
@@ -167,10 +154,7 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
   async function deletePlayer(formData: FormData) {
     "use server";
 
-    const session = await auth();
-
-    if (!session) redirect("/admin/login");
-    if (!canManageTeamPlayers(session.user?.role)) redirect("/espace-club");
+    await requireRole(["admin", "educateurs"]);
 
     const id = String(formData.get("id") || "").trim();
     if (!id) return;

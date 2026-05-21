@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { hasRoleAccess } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -11,10 +12,6 @@ function forbiddenResponse() {
   return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
 }
 
-function canManageTeams(role?: string | null) {
-  return role === "admin" || role === "educateurs";
-}
-
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -23,7 +20,7 @@ export async function POST(request: Request) {
       return unauthorizedResponse();
     }
 
-    if (!canManageTeams(session.user?.role)) {
+    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "educateurs"]))) {
       return forbiddenResponse();
     }
 

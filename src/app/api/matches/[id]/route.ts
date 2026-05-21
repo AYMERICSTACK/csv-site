@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { hasRoleAccess } from "@/lib/auth-guard";
 import {
   hasOnlyOneScoreFilled,
   normalizeMatchStatus,
@@ -42,7 +43,7 @@ async function requireMatchManager() {
     return { ok: false as const, response: unauthorizedResponse() };
   }
 
-  if (session.user?.role !== "admin" && session.user?.role !== "educateurs") {
+  if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "educateurs"]))) {
     return { ok: false as const, response: forbiddenResponse() };
   }
 
