@@ -55,16 +55,15 @@ export default function DeletePlayerButton({
                 Annuler
               </button>
 
-              <form action={deletePlayer}>
-                <input type="hidden" name="id" value={playerId} />
+              <input type="hidden" name="id" value={playerId} />
 
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 sm:w-auto"
-                >
-                  Oui, supprimer
-                </button>
-              </form>
+              <button
+                type="submit"
+                formAction={deletePlayer}
+                className="w-full rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 sm:w-auto"
+              >
+                Oui, supprimer
+              </button>
             </div>
           </div>
         </div>
