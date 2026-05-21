@@ -49,6 +49,7 @@ function formatEventTime(date: Date | string | null) {
   return parsedDate.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
+  timeZone: "Europe/Paris",
   });
 }
 

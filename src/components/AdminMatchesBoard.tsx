@@ -45,6 +45,7 @@ function formatDate(date: Date | string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+  timeZone: "Europe/Paris",
   }).format(new Date(date));
 }
 
@@ -55,6 +56,7 @@ function formatShortDate(date: Date | string) {
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+  timeZone: "Europe/Paris",
   }).format(new Date(date));
 }
 
