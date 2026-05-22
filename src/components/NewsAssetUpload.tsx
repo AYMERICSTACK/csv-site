@@ -1,13 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  FileUp,
-  Loader2,
-  Link as LinkIcon,
-  CheckCircle2,
-  X,
-} from "lucide-react";
+import { Loader2, Link as LinkIcon, CheckCircle2, X } from "lucide-react";
 
 type NewsAssetUploadProps = {
   label: string;

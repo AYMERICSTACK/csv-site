@@ -1,24 +1,26 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 type InstaPost = {
   url: string;
-  label?: string; // ex: "Affiche du week-end"
+  label?: string;
 };
 
-export default function InstagramEmbeds({ posts }: { posts: InstaPost[] }) {
-  const [ready, setReady] = useState(false);
+declare global {
+  interface Window {
+    instgrm?: {
+      Embeds?: {
+        process?: () => void;
+      };
+    };
+  }
+}
 
-  // Au cas où le script a déjà été chargé (navigation)
+export default function InstagramEmbeds({ posts }: { posts: InstaPost[] }) {
   useEffect(() => {
-    // @ts-expect-error - injected by instagram
-    if (window?.instgrm?.Embeds?.process) {
-      // @ts-expect-error
-      window.instgrm.Embeds.process();
-      setReady(true);
-    }
+    window.instgrm?.Embeds?.process?.();
   }, []);
 
   return (
@@ -27,9 +29,7 @@ export default function InstagramEmbeds({ posts }: { posts: InstaPost[] }) {
         src="https://www.instagram.com/embed.js"
         strategy="afterInteractive"
         onLoad={() => {
-          // @ts-expect-error - injected by instagram
-          window?.instgrm?.Embeds?.process?.();
-          setReady(true);
+          window.instgrm?.Embeds?.process?.();
         }}
       />
 
@@ -60,7 +60,6 @@ export default function InstagramEmbeds({ posts }: { posts: InstaPost[] }) {
             </div>
 
             <div className="mt-4">
-              {/* Embed */}
               <blockquote
                 className="instagram-media w-full"
                 data-instgrm-permalink={p.url}
@@ -73,23 +72,19 @@ export default function InstagramEmbeds({ posts }: { posts: InstaPost[] }) {
                 }}
               />
 
-              {/* Fallback si l’embed est lent / bloqué */}
-              {!ready && (
-                <div className="mt-4 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-700">
-                  Chargement de l’aperçu… si rien ne s’affiche, ouvre la
-                  publication directement :
-                  <div className="mt-2">
-                    <a
-                      href={p.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-xl bg-csv-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
-                    >
-                      Voir sur Instagram
-                    </a>
-                  </div>
+              <div className="mt-4 rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-700">
+                Si l’aperçu ne s’affiche pas, ouvre la publication directement :
+                <div className="mt-2">
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-xl bg-csv-black px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                  >
+                    Voir sur Instagram
+                  </a>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         ))}

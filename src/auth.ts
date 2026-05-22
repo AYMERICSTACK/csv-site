@@ -47,17 +47,19 @@ const nextAuth = NextAuth({
 
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role || "bureau";
+      if (user && "role" in user) {
+        token.role = user.role || "bureau";
       }
+
       return token;
     },
 
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub as string;
-        session.user.role = token.role as string;
+        session.user.role = String(token.role || "bureau");
       }
+
       return session;
     },
   },

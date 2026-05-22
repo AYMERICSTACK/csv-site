@@ -71,10 +71,6 @@ export default async function StaffPage() {
     (a, b) => sectionWeight(a.title) - sectionWeight(b.title),
   );
 
-  const membersCount = staffMembers.length;
-  const bureauCount =
-    sections.find((section) => section.title === "Bureau")?.people.length ?? 0;
-
   return (
     <Container>
       <main className="py-8 md:py-12">

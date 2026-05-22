@@ -9,9 +9,6 @@ const helloAssoLicencesUrl =
 
 const helloAssoWidgetUrl = `${helloAssoLicencesUrl}/widget`;
 
-const renewalAnchor = "#renouvellement-licence";
-const newPlayerAnchor = "#nouvelle-inscription";
-
 const steps = [
   {
     title: "Vérifier la catégorie",

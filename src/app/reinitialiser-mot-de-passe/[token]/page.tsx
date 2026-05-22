@@ -11,8 +11,22 @@ type PageProps = {
   }>;
 };
 
-export default async function ResetPasswordPage({ params }: PageProps) {
-  const { token } = await params;
+export default function ResetPasswordPage({ params }: PageProps) {
+  return <ResetPasswordFormWrapper params={params} />;
+}
+
+function ResetPasswordFormWrapper({ params }: PageProps) {
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    params.then((resolved) => {
+      setToken(resolved.token);
+    });
+  }, [params]);
+
+  if (!token) {
+    return null;
+  }
 
   return <ResetPasswordForm token={token} />;
 }
@@ -101,6 +115,7 @@ function ResetPasswordForm({ token }: { token: string }) {
               <label className="mb-2 block text-sm font-semibold text-neutral-800">
                 Nouveau mot de passe
               </label>
+
               <input
                 type="password"
                 required
@@ -115,6 +130,7 @@ function ResetPasswordForm({ token }: { token: string }) {
               <label className="mb-2 block text-sm font-semibold text-neutral-800">
                 Confirmer le mot de passe
               </label>
+
               <input
                 type="password"
                 required

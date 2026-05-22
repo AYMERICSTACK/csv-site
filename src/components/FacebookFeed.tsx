@@ -4,24 +4,13 @@ import { useEffect, useState } from "react";
 import Script from "next/script";
 
 export default function FacebookFeed({ pageUrl }: { pageUrl: string }) {
-  const [mounted, setMounted] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
     // Si Facebook ne rend rien rapidement, on bascule sur fallback
     const t = window.setTimeout(() => setShowFallback(true), 7000);
     return () => window.clearTimeout(t);
   }, []);
-
-  if (!mounted) {
-    return (
-      <div className="rounded-2xl bg-neutral-50 p-4 text-sm text-neutral-700">
-        Chargement du flux Facebook…
-      </div>
-    );
-  }
 
   if (showFallback) {
     return (

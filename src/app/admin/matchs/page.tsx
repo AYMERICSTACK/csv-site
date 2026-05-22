@@ -6,7 +6,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import AdminMatchesBoard from "@/components/AdminMatchesBoard";
-import { ArrowLeft, CalendarDays, Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 
 async function refreshPlayerStats(playerIds: string[]) {
   const season = "2025/2026";

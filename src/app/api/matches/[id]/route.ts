@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { hasCurrentUserRole } from "@/lib/auth-guard";
 import {
   hasOnlyOneScoreFilled,
