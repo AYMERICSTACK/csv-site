@@ -1,12 +1,12 @@
 import { requireRole } from "@/lib/auth-guard";
+import { auth } from "@/auth";
 import Container from "@/components/Container";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { CLUB_CATEGORIES } from "@/lib/categories";
-import { CLUB_TEAMS } from "@/lib/teams";
 import MatchGoalsFields from "@/components/MatchGoalsFields";
+import NewMatchSmartForm from "@/components/NewMatchSmartForm";
 import {
   hasOnlyOneScoreFilled,
   normalizeMatchStatus,
@@ -143,8 +143,35 @@ async function createMatch(formData: FormData) {
   redirect("/admin/matchs");
 }
 
-export default async function NewMatchPage() {
+export default async function NewMatchPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ noFavorite?: string }>;
+}) {
   await requireRole(["admin", "educateurs"]);
+
+  const resolvedSearchParams = await searchParams;
+
+  const shouldUseFavorite = resolvedSearchParams?.noFavorite !== "1";
+
+  const session = await auth();
+
+  const currentUser = session?.user?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          favoriteTeam: {
+            select: {
+              category: true,
+            },
+          },
+        },
+      })
+    : null;
+
+  const favoriteTeam = shouldUseFavorite
+    ? (currentUser?.favoriteTeam?.category ?? "")
+    : "";
 
   const players = await prisma.player.findMany({
     where: { isActive: true },
@@ -182,9 +209,11 @@ export default async function NewMatchPage() {
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-300">
                   Nouveau match
                 </p>
+
                 <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
                   Ajouter une rencontre
                 </h1>
+
                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70 md:text-base">
                   Une page dédiée, plus lisible sur téléphone, pour créer un
                   match sans perdre la liste des rencontres existantes.
@@ -194,112 +223,31 @@ export default async function NewMatchPage() {
           </div>
         </section>
 
+        {favoriteTeam && (
+          <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-800">
+            ⭐ Équipe favorite préselectionnée : {favoriteTeam}
+          </div>
+        )}
+
         <form action={createMatch} className="mt-6 space-y-5">
           <section className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
             <div className="mb-5 flex items-start gap-3">
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-800">
                 1
               </div>
+
               <div>
                 <h2 className="text-lg font-black text-neutral-950">
                   Informations principales
                 </h2>
+
                 <p className="mt-1 text-sm text-neutral-500">
                   Choisis l’équipe, l’adversaire, la date et le lieu.
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label htmlFor="category" className="label">
-                  Catégorie
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  className="input"
-                  required
-                >
-                  <option value="">Sélectionner une catégorie</option>
-                  {CLUB_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="team" className="label">
-                  Équipe
-                </label>
-                <select id="team" name="team" className="input" required>
-                  <option value="">Sélectionner une équipe</option>
-                  {CLUB_TEAMS.map((team) => (
-                    <option key={team} value={team}>
-                      {team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="opponent" className="label">
-                  Adversaire
-                </label>
-                <input
-                  id="opponent"
-                  name="opponent"
-                  type="text"
-                  placeholder="Ex : FC Bourg"
-                  className="input"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="matchDate" className="label">
-                  Date et heure
-                </label>
-                <input
-                  id="matchDate"
-                  name="matchDate"
-                  type="datetime-local"
-                  className="input"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="location" className="label">
-                  Lieu
-                </label>
-                <input
-                  id="location"
-                  name="location"
-                  type="text"
-                  placeholder="Ex : Stade Pierre Brichon"
-                  className="input"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="isHome" className="label">
-                  Type de rencontre
-                </label>
-                <select
-                  id="isHome"
-                  name="isHome"
-                  defaultValue="true"
-                  className="input"
-                >
-                  <option value="true">Domicile</option>
-                  <option value="false">Extérieur</option>
-                </select>
-              </div>
-            </div>
+            <NewMatchSmartForm favoriteTeam={favoriteTeam} />
           </section>
 
           <section className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
@@ -307,12 +255,15 @@ export default async function NewMatchPage() {
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-800">
                 2
               </div>
+
               <div>
                 <h2 className="text-lg font-black text-neutral-950">
                   Résultat et statut
                 </h2>
+
                 <p className="mt-1 text-sm text-neutral-500">
-                  Tu peux laisser le score vide si le match n’a pas encore été joué.
+                  Tu peux laisser le score vide si le match n’a pas encore été
+                  joué.
                 </p>
               </div>
             </div>
@@ -322,6 +273,7 @@ export default async function NewMatchPage() {
                 <label htmlFor="status" className="label">
                   Statut
                 </label>
+
                 <select
                   id="status"
                   name="status"
@@ -339,6 +291,7 @@ export default async function NewMatchPage() {
                 <label htmlFor="scoreTeam" className="label">
                   Score CS Viriat
                 </label>
+
                 <input
                   id="scoreTeam"
                   name="scoreTeam"
@@ -354,6 +307,7 @@ export default async function NewMatchPage() {
                 <label htmlFor="scoreOpponent" className="label">
                   Score adversaire
                 </label>
+
                 <input
                   id="scoreOpponent"
                   name="scoreOpponent"
@@ -372,10 +326,12 @@ export default async function NewMatchPage() {
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500 text-white">
                 3
               </div>
+
               <div>
                 <h2 className="text-lg font-black text-neutral-950">
                   Buteurs / passeurs
                 </h2>
+
                 <p className="mt-1 text-sm text-neutral-600">
                   Sélectionne les joueurs de l’équipe choisie. Les statistiques
                   seront mises à jour automatiquement.

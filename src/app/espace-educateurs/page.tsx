@@ -3,12 +3,16 @@ import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { requireRole } from "@/lib/auth-guard";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { slugifyTeam } from "@/lib/teams";
 import {
   ArrowLeft,
   CalendarDays,
   ClipboardList,
   FolderOpen,
   ShieldCheck,
+  Star,
   Trophy,
   Users,
 } from "lucide-react";
@@ -60,6 +64,25 @@ const EDUCATOR_CARDS: EducatorCard[] = [
 export default async function EspaceEducateursPage() {
   const { user } = await requireRole(["admin", "educateurs"]);
 
+  const session = await auth();
+
+  const currentUser = session?.user?.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          favoriteTeam: {
+            select: {
+              id: true,
+              category: true,
+              coach: true,
+            },
+          },
+        },
+      })
+    : null;
+
+  const favoriteTeam = currentUser?.favoriteTeam ?? null;
+
   const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
@@ -110,6 +133,67 @@ export default async function EspaceEducateursPage() {
           </div>
         </section>
 
+        {favoriteTeam && (
+          <section className="mt-6 rounded-[1.75rem] border border-orange-200 bg-orange-50 p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-orange-700">
+                  <Star className="h-4 w-4 fill-orange-500 text-orange-500" />
+                  Mon équipe favorite
+                </div>
+
+                <h2 className="mt-3 text-2xl font-black text-neutral-950">
+                  {favoriteTeam.category}
+                </h2>
+
+                <p className="mt-1 text-sm font-medium text-neutral-600">
+                  Coach : {favoriteTeam.coach || "À renseigner"}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Link
+                  href={`/admin/equipes/${slugifyTeam(favoriteTeam.category)}`}
+                  className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                >
+                  Gérer l’équipe
+                </Link>
+
+                <Link
+                  href="/admin/matchs"
+                  className="inline-flex items-center justify-center rounded-xl border border-orange-300 bg-white px-4 py-3 text-sm font-bold text-orange-700 transition hover:bg-orange-100"
+                >
+                  Voir les matchs
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!favoriteTeam && (
+          <section className="mt-6 rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-black text-neutral-950">
+                  Aucune équipe favorite définie
+                </div>
+
+                <p className="mt-1 text-sm text-neutral-500">
+                  Choisissez une équipe favorite pour accéder plus vite à sa
+                  gestion.
+                </p>
+              </div>
+
+              <Link
+                href="/admin/equipes"
+                className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+              >
+                Choisir mon équipe
+              </Link>
+            </div>
+          </section>
+        )}
+
         <div className="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
             <section className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
@@ -141,6 +225,7 @@ export default async function EspaceEducateursPage() {
                       <h3 className="text-sm font-bold text-neutral-900">
                         {card.title}
                       </h3>
+
                       <p className="mt-2 text-sm text-neutral-600">
                         {card.description}
                       </p>
@@ -154,10 +239,12 @@ export default async function EspaceEducateursPage() {
                         <h3 className="text-sm font-bold text-neutral-900">
                           {card.title}
                         </h3>
+
                         <span className="rounded-full bg-neutral-200 px-2.5 py-1 text-[11px] font-bold text-neutral-600">
                           À venir
                         </span>
                       </div>
+
                       <p className="mt-2 text-sm text-neutral-600">
                         {card.description}
                       </p>
@@ -242,6 +329,7 @@ export default async function EspaceEducateursPage() {
                     <ClipboardList size={16} className="text-csv-orange" />
                     Matchs & suivi
                   </div>
+
                   <p className="mt-2 text-sm text-neutral-600">
                     Faciliter le suivi des rencontres et la mise à jour des
                     informations utiles.
@@ -253,6 +341,7 @@ export default async function EspaceEducateursPage() {
                     <Users size={16} className="text-csv-orange" />
                     Organisation des équipes
                   </div>
+
                   <p className="mt-2 text-sm text-neutral-600">
                     Structurer les catégories, responsables et informations
                     d’encadrement.
@@ -264,6 +353,7 @@ export default async function EspaceEducateursPage() {
                     <FolderOpen size={16} className="text-csv-orange" />
                     Ressources à venir
                   </div>
+
                   <p className="mt-2 text-sm text-neutral-600">
                     Préparer un futur espace central pour les documents,
                     plannings et consignes.

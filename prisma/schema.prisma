@@ -40,14 +40,17 @@ model User {
   commissionId        String?
   phone               String?
   signupNote          String?
+  favoriteTeamId      String?
+
   memberships         CommissionMembership[]
   passwordResetTokens PasswordResetToken[]
   staffMembers        StaffMember[]
   commission          Commission?            @relation("LegacyUserCommission", fields: [commissionId], references: [id])
+  favoriteTeam        Team?                  @relation("UserFavoriteTeam", fields: [favoriteTeamId], references: [id], onDelete: SetNull)
 
   @@index([commissionId])
+  @@index([favoriteTeamId])
 }
-
 model Commission {
   id          String                 @id @default(cuid())
   name        String
@@ -139,16 +142,19 @@ model TeamGroup {
 }
 
 model Team {
-  id          String         @id @default(cuid())
-  category    String
-  coach       String
-  sortOrder   Int            @default(0)
-  isPublished Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  groupId     String
-  group       TeamGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  schedules   TeamSchedule[]
+  id                String         @id @default(cuid())
+  category          String
+  coach             String
+  sortOrder         Int            @default(0)
+  isPublished       Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  groupId           String
+
+  group             TeamGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  schedules         TeamSchedule[]
+
+  favoritedByUsers  User[]         @relation("UserFavoriteTeam")
 }
 
 model TeamSchedule {

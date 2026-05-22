@@ -7,6 +7,7 @@ import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { prisma } from "@/lib/prisma";
 import { isUserRole, type UserRole } from "@/lib/roles";
+import { slugifyTeam } from "@/lib/teams";
 import {
   ArrowRight,
   Beer,
@@ -19,6 +20,7 @@ import {
   Megaphone,
   PartyPopper,
   ShieldCheck,
+  Star,
   Trophy,
   UserCircle,
   Users,
@@ -122,7 +124,6 @@ const CLUB_CARDS: ClubCard[] = [
     tone: "info",
     icon: ClipboardList,
   },
-
   {
     title: "Staff & organigramme",
     description:
@@ -134,7 +135,6 @@ const CLUB_CARDS: ClubCard[] = [
     tone: "manage",
     icon: Users,
   },
-
   {
     title: "Matériel",
     description:
@@ -168,7 +168,6 @@ const CLUB_CARDS: ClubCard[] = [
     tone: "manage",
     icon: Beer,
   },
-
   {
     title: "Commissions",
     description: "Voir les commissions, les membres affichés et les accès.",
@@ -189,7 +188,6 @@ const CLUB_CARDS: ClubCard[] = [
     tone: "info",
     icon: ShieldCheck,
   },
-
   {
     title: "Administration générale",
     description:
@@ -317,6 +315,13 @@ export default async function EspaceClubPage() {
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: {
+      favoriteTeam: {
+        select: {
+          id: true,
+          category: true,
+          coach: true,
+        },
+      },
       memberships: {
         include: {
           commission: {
@@ -337,6 +342,8 @@ export default async function EspaceClubPage() {
   if (!isUserRole(user.role)) {
     redirect("/admin/login");
   }
+
+  const favoriteTeam = user.favoriteTeam ?? null;
 
   const membershipRoles = user.memberships
     .map((membership) => membership.commission.slug)
@@ -411,6 +418,67 @@ export default async function EspaceClubPage() {
           </div>
         </section>
 
+        {favoriteTeam && (
+          <section className="mt-6 rounded-[1.75rem] border border-orange-200 bg-orange-50 p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-orange-700">
+                  <Star className="h-4 w-4 fill-orange-500 text-orange-500" />
+                  Mon équipe favorite
+                </div>
+
+                <h2 className="mt-3 text-2xl font-black text-neutral-950">
+                  {favoriteTeam.category}
+                </h2>
+
+                <p className="mt-1 text-sm font-medium text-neutral-600">
+                  Coach : {favoriteTeam.coach || "À renseigner"}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Link
+                  href={`/admin/equipes/${slugifyTeam(favoriteTeam.category)}`}
+                  className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                >
+                  Gérer l’équipe
+                </Link>
+
+                <Link
+                  href="/admin/matchs"
+                  className="inline-flex items-center justify-center rounded-xl border border-orange-300 bg-white px-4 py-3 text-sm font-bold text-orange-700 transition hover:bg-orange-100"
+                >
+                  Voir les matchs
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!favoriteTeam && availableRoles.includes("educateurs") && (
+          <section className="mt-6 rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-black text-neutral-950">
+                  Aucune équipe favorite définie
+                </div>
+
+                <p className="mt-1 text-sm text-neutral-500">
+                  Choisissez une équipe favorite pour accéder plus vite à sa
+                  gestion.
+                </p>
+              </div>
+
+              <Link
+                href="/admin/equipes"
+                className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+              >
+                Choisir mon équipe
+              </Link>
+            </div>
+          </section>
+        )}
+
         {priorityCards.length > 0 ? (
           <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {priorityCards.map((card) => {
@@ -465,6 +533,7 @@ export default async function EspaceClubPage() {
                   <h2 className="text-2xl font-extrabold tracking-tight text-neutral-950">
                     {group.title}
                   </h2>
+
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                     {group.description}
                   </p>
@@ -493,6 +562,7 @@ export default async function EspaceClubPage() {
                             : "from-white via-white to-neutral-50"
                         }`}
                       />
+
                       <div
                         className={`absolute right-0 top-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full blur-2xl transition ${
                           isManageCard
