@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { hasRoleAccess } from "@/lib/auth-guard";
+import { hasCurrentUserRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -14,18 +13,18 @@ function forbiddenResponse() {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
+    const access = await hasCurrentUserRole(["admin", "educateurs"]);
 
-    if (!session) {
-      return unauthorizedResponse();
-    }
-
-    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "educateurs"]))) {
-      return forbiddenResponse();
+    if (!access.ok) {
+      return access.reason === "unauthorized"
+        ? unauthorizedResponse()
+        : forbiddenResponse();
     }
 
     const body = await request.json();
+
     const teamIds = Array.isArray(body?.teamIds) ? body.teamIds : [];
+
     const groupId = String(body?.groupId || "").trim();
 
     if (!groupId || teamIds.length === 0) {
@@ -66,6 +65,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erreur reorder teams :", error);
+
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

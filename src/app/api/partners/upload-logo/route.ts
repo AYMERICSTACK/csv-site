@@ -1,7 +1,6 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { hasRoleAccess } from "@/lib/auth-guard";
+import { hasCurrentUserRole } from "@/lib/auth-guard";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
@@ -15,16 +14,22 @@ function slugifyFileName(value: string) {
     .toLowerCase();
 }
 
+function unauthorizedResponse() {
+  return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+}
+
+function forbiddenResponse() {
+  return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+}
+
 export async function POST(request: Request) {
   try {
-    const session = await auth();
+    const access = await hasCurrentUserRole(["admin", "sponsoring"]);
 
-    if (!session) {
-      return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-    }
-
-    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "sponsoring"]))) {
-      return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
+    if (!access.ok) {
+      return access.reason === "unauthorized"
+        ? unauthorizedResponse()
+        : forbiddenResponse();
     }
 
     const formData = await request.formData();
@@ -65,6 +70,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Erreur upload logo partner:", error);
+
     return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
   }
 }

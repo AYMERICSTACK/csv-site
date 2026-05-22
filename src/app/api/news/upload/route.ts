@@ -1,7 +1,6 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { hasRoleAccess } from "@/lib/auth-guard";
+import { hasCurrentUserRole } from "@/lib/auth-guard";
 
 function sanitizeFileName(name: string) {
   return name
@@ -12,19 +11,22 @@ function sanitizeFileName(name: string) {
     .replace(/^-|-$/g, "");
 }
 
+function unauthorizedResponse() {
+  return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+}
+
+function forbiddenResponse() {
+  return NextResponse.json({ error: "Accès non autorisé." }, { status: 403 });
+}
+
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const access = await hasCurrentUserRole(["admin", "communication"]);
 
-    if (!session) {
-      return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-    }
-
-    if (!session.user?.email || !(await hasRoleAccess(session.user.email, ["admin", "communication"]))) {
-      return NextResponse.json(
-        { error: "Accès non autorisé." },
-        { status: 403 },
-      );
+    if (!access.ok) {
+      return access.reason === "unauthorized"
+        ? unauthorizedResponse()
+        : forbiddenResponse();
     }
 
     const formData = await req.formData();
@@ -45,6 +47,7 @@ export async function POST(req: Request) {
     }
 
     const maxSize = 15 * 1024 * 1024; // 15 MB
+
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: "Le fichier dépasse 15 Mo." },
@@ -53,6 +56,7 @@ export async function POST(req: Request) {
     }
 
     const originalName = sanitizeFileName(file.name || "fichier");
+
     const pathname = `news/${Date.now()}-${originalName}`;
 
     const blob = await put(pathname, file, {
