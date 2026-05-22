@@ -2,13 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
+import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
-import { requireRole } from "@/lib/auth-guard";
 
 type PageProps = {
   params: Promise<{ team: string }>;
 };
+
 
 function initials(firstName: string, lastName: string) {
   return `${firstName[0] || ""}${lastName[0] || ""}`;
@@ -96,7 +97,7 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
 
   return (
     <Container>
-      <div className="py-14">
+      <div className="pb-24 pt-6 sm:py-14">
         <Link
           href="/admin/equipes"
           className="inline-flex rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50"
@@ -104,14 +105,14 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
           ← Retour aux équipes
         </Link>
 
-        <section className="mt-6 rounded-[2rem] border border-neutral-200 bg-white p-8 shadow-sm">
+        <section className="mt-5 rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm sm:mt-6 sm:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
                 Équipe
               </div>
 
-              <h1 className="mt-2 text-4xl font-black text-neutral-950">
+              <h1 className="mt-2 text-3xl font-black text-neutral-950 sm:text-4xl">
                 {teamName}
               </h1>
 
@@ -121,24 +122,24 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <Link
                 href={`/admin/equipes/${teamSlug}/joueurs`}
-                className="rounded-xl bg-csv-black px-4 py-2 text-sm font-bold text-white"
+                className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white sm:py-2"
               >
                 Gérer les joueurs
               </Link>
 
               <Link
                 href="/admin/matchs"
-                className="rounded-xl bg-csv-orange px-4 py-2 text-sm font-bold text-white"
+                className="inline-flex items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-bold text-white sm:py-2"
               >
                 Gérer les matchs
               </Link>
             </div>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 md:grid-cols-4">
             <div className="rounded-2xl bg-orange-50 p-5">
               <div className="text-xs font-bold uppercase text-orange-700">
                 Joueurs
@@ -169,15 +170,15 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_340px]">
-          <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="mt-6 grid gap-5 sm:mt-8 xl:grid-cols-[1fr_340px]">
+          <section className="rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 className="text-2xl font-black text-neutral-950">Effectif</h2>
 
             <div className="mt-5 grid gap-3">
               {players.map((player) => (
                 <div
                   key={player.id}
-                  className="grid grid-cols-[56px_1fr_auto] items-center gap-4 rounded-2xl border border-neutral-200 p-4"
+                  className="grid grid-cols-[52px_1fr] gap-3 rounded-2xl border border-neutral-200 p-3 sm:grid-cols-[56px_1fr_auto] sm:items-center sm:gap-4 sm:p-4"
                 >
                   {player.photoConsent && player.photoUrl ? (
                     <img
@@ -200,7 +201,7 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="col-span-2 flex gap-2 sm:col-span-1">
                     <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">
                       {player.stats[0]?.goals || 0} B
                     </span>
@@ -219,7 +220,7 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
             </div>
           </section>
 
-          <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+          <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
             <section className="overflow-hidden rounded-[2rem] border border-neutral-200 bg-white shadow-sm">
               <div className="bg-neutral-950 p-5 text-white">
                 <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-300">
@@ -340,7 +341,7 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
                   <Link
                     key={match.id}
                     href={`/admin/matchs/${match.id}/edit`}
-                    className="block rounded-2xl border border-neutral-200 p-4 transition hover:border-orange-200 hover:bg-orange-50/30"
+                    className="block rounded-2xl border border-neutral-200 p-3 transition hover:border-orange-200 hover:bg-orange-50/30 sm:p-4"
                   >
                     <div className="text-sm font-black text-neutral-950">
                       {normalizeTeamName(match.team)} vs {match.opponent}
@@ -362,6 +363,24 @@ export default async function AdminEquipeDetailPage({ params }: PageProps) {
               </div>
             </section>
           </aside>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_-20px_rgba(0,0,0,0.35)] backdrop-blur md:hidden">
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href={`/admin/equipes/${teamSlug}/joueurs`}
+              className="inline-flex items-center justify-center rounded-2xl bg-csv-black px-4 py-3 text-sm font-black text-white"
+            >
+              Joueurs
+            </Link>
+
+            <Link
+              href="/admin/matchs"
+              className="inline-flex items-center justify-center rounded-2xl bg-csv-orange px-4 py-3 text-sm font-black text-white"
+            >
+              Matchs
+            </Link>
+          </div>
         </div>
       </div>
     </Container>

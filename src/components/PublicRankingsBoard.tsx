@@ -114,7 +114,8 @@ export default function PublicRankingsBoard({
   fffClubUrl,
   officialTeamRankings,
 }: Props) {
-  const [selectedRankingCategory, setSelectedRankingCategory] = useState("Toutes");
+  const [selectedRankingCategory, setSelectedRankingCategory] =
+    useState("Toutes");
   const [selectedStatsCategory, setSelectedStatsCategory] = useState("Toutes");
   const [rankingPreviews, setRankingPreviews] = useState<
     Record<string, RankingPreviewState>
@@ -201,12 +202,14 @@ export default function PublicRankingsBoard({
         );
 
   const topScorers = [...filteredPlayers]
+    .filter((player) => player.goals > 0)
     .sort((a, b) => b.goals - a.goals)
-    .slice(0, 10);
+    .slice(0, 5);
 
   const topAssists = [...filteredPlayers]
+    .filter((player) => player.assists > 0)
     .sort((a, b) => b.assists - a.assists)
-    .slice(0, 10);
+    .slice(0, 5);
 
   const filteredOfficialTeamRankings =
     selectedRankingCategory === "Toutes"
@@ -395,6 +398,12 @@ export default function PublicRankingsBoard({
                 </div>
               </div>
             ))}
+            <Link
+              href="/classements/buteurs"
+              className="inline-flex w-full items-center justify-center rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 transition hover:bg-orange-100"
+            >
+              Voir tous les buteurs
+            </Link>
           </div>
         </section>
 
@@ -446,6 +455,12 @@ export default function PublicRankingsBoard({
                 </div>
               </div>
             ))}
+            <Link
+              href="/classements/passeurs"
+              className="inline-flex w-full items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
+            >
+              Voir tous les passeurs
+            </Link>
           </div>
         </section>
       </div>
