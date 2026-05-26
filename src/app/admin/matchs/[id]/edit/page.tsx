@@ -229,7 +229,10 @@ export default async function EditMatchPage({ params }: PageProps) {
       }),
     );
 
+    revalidatePath("/");
+    revalidatePath("/calendrier");
     revalidatePath("/admin/matchs");
+    revalidatePath(`/admin/matchs/${id}/edit`);
     revalidatePath("/admin/equipes");
     revalidatePath(
       `/admin/equipes/${team
