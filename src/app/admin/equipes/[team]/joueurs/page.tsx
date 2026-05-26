@@ -15,6 +15,33 @@ type PageProps = {
   params: Promise<{ team: string }>;
 };
 
+const PLAYER_POSITIONS = [
+  { value: "GK", label: "Gardien" },
+  { value: "DEF", label: "Défenseur" },
+  { value: "MID", label: "Milieu" },
+  { value: "ATT", label: "Attaquant" },
+];
+
+const PLAYER_POSITION_SIDES = [
+  { value: "", label: "Rôle précis" },
+  { value: "G", label: "Gauche" },
+  { value: "C", label: "Centre" },
+  { value: "D", label: "Droite" },
+  { value: "DG", label: "Latéral gauche" },
+  { value: "DC", label: "Défenseur central" },
+  { value: "DD", label: "Latéral droit" },
+  { value: "MDC", label: "Milieu défensif" },
+  { value: "MC", label: "Milieu relayeur" },
+  { value: "MOC", label: "Milieu offensif" },
+  { value: "AG", label: "Ailier gauche" },
+  { value: "AD", label: "Ailier droit" },
+  { value: "BU", label: "Avant-centre" },
+];
+
+function parseSortOrder(value: FormDataEntryValue | null) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 async function uploadPlayerPhoto(file: File, playerName: string) {
   if (!file || file.size === 0) return null;
@@ -69,6 +96,9 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
     const firstName = String(formData.get("firstName") || "").trim();
     const lastName = String(formData.get("lastName") || "").trim();
     const category = String(formData.get("category") || "").trim();
+    const position = String(formData.get("position") || "").trim();
+    const positionSide = String(formData.get("positionSide") || "").trim();
+    const sortOrder = parseSortOrder(formData.get("sortOrder"));
     const photoFile = formData.get("photoFile") as File | null;
     const photoConsent = formData.get("photoConsent") === "on";
 
@@ -85,6 +115,9 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
         lastName,
         team: teamName,
         category: category || getCategoryFromTeam(teamName),
+        position: position || null,
+        positionSide: positionSide || null,
+        sortOrder,
         photoUrl,
         photoConsent,
         isActive: true,
@@ -113,6 +146,9 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
     const firstName = String(formData.get("firstName") || "").trim();
     const lastName = String(formData.get("lastName") || "").trim();
     const category = String(formData.get("category") || "").trim();
+    const position = String(formData.get("position") || "").trim();
+    const positionSide = String(formData.get("positionSide") || "").trim();
+    const sortOrder = parseSortOrder(formData.get("sortOrder"));
     const currentPhotoUrl = String(
       formData.get("currentPhotoUrl") || "",
     ).trim();
@@ -141,6 +177,9 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
         lastName,
         team: teamName,
         category: category || getCategoryFromTeam(teamName),
+        position: position || null,
+        positionSide: positionSide || null,
+        sortOrder,
         photoUrl: uploadedPhotoUrl || currentPhotoUrl || null,
         photoConsent,
         isActive,
@@ -188,7 +227,12 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
         take: 1,
       },
     },
-    orderBy: [{ isActive: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
+    orderBy: [
+      { isActive: "desc" },
+      { sortOrder: "asc" },
+      { lastName: "asc" },
+      { firstName: "asc" },
+    ],
   });
 
   return (
@@ -228,46 +272,83 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
             description="Le formulaire reste replié sur mobile pour accéder plus vite à l’effectif."
             buttonLabel="+ Ajouter un joueur"
           >
-            <form action={createPlayer} className="space-y-5 bg-orange-50/30 p-5">
+            <form
+              action={createPlayer}
+              className="space-y-5 bg-orange-50/30 p-5"
+            >
               <h2 className="sr-only">Ajouter un joueur</h2>
 
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <input
-                name="firstName"
-                placeholder="Prénom"
-                required
-                className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
-              />
+                <input
+                  name="firstName"
+                  placeholder="Prénom"
+                  required
+                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
+                />
 
-              <input
-                name="lastName"
-                placeholder="Nom"
-                required
-                className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
-              />
+                <input
+                  name="lastName"
+                  placeholder="Nom"
+                  required
+                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
+                />
 
-              <select
-                name="category"
-                defaultValue={getCategoryFromTeam(teamName)}
-                className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
-              >
-                <option value="">Sélectionner une catégorie</option>
-                {CLUB_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+                <select
+                  name="category"
+                  defaultValue={getCategoryFromTeam(teamName)}
+                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
+                >
+                  <option value="">Sélectionner une catégorie</option>
+                  {CLUB_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
 
-              <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
-                <input type="checkbox" name="photoConsent" />
-                Photo autorisée
-              </label>
-            </div>
+                <select
+                  name="position"
+                  defaultValue=""
+                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
+                >
+                  <option value="">Poste principal</option>
+                  {PLAYER_POSITIONS.map((position) => (
+                    <option key={position.value} value={position.value}>
+                      {position.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  name="positionSide"
+                  defaultValue=""
+                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
+                >
+                  {PLAYER_POSITION_SIDES.map((side) => (
+                    <option key={side.value || "empty"} value={side.value}>
+                      {side.label}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  name="sortOrder"
+                  type="number"
+                  min="0"
+                  defaultValue="0"
+                  placeholder="Ordre"
+                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
+                />
+
+                <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
+                  <input type="checkbox" name="photoConsent" />
+                  Photo autorisée
+                </label>
+              </div>
 
               <div className="mt-4">
-              <PlayerPhotoInput />
-            </div>
+                <PlayerPhotoInput />
+              </div>
 
               <button className="w-full rounded-xl bg-csv-black px-5 py-3 text-sm font-bold text-white transition hover:opacity-90 sm:w-auto">
                 Ajouter le joueur
@@ -283,7 +364,8 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
                 Effectif actuel
               </h2>
               <p className="mt-1 text-sm text-neutral-500">
-                Les joueurs sont visibles directement sur mobile. Modifiez puis enregistrez.
+                Les joueurs sont visibles directement sur mobile. Modifiez puis
+                enregistrez.
               </p>
             </div>
 
@@ -351,6 +433,43 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
                             </option>
                           ))}
                         </select>
+
+                        <select
+                          name="position"
+                          defaultValue={player.position || ""}
+                          className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+                        >
+                          <option value="">Poste principal</option>
+                          {PLAYER_POSITIONS.map((position) => (
+                            <option key={position.value} value={position.value}>
+                              {position.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        <select
+                          name="positionSide"
+                          defaultValue={player.positionSide || ""}
+                          className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+                        >
+                          {PLAYER_POSITION_SIDES.map((side) => (
+                            <option
+                              key={side.value || "empty"}
+                              value={side.value}
+                            >
+                              {side.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        <input
+                          name="sortOrder"
+                          type="number"
+                          min="0"
+                          defaultValue={player.sortOrder}
+                          placeholder="Ordre"
+                          className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+                        />
                       </div>
 
                       <div className="mt-3">

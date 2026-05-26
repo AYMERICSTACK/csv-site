@@ -136,6 +136,24 @@ export default async function EditMatchPage({ params }: PageProps) {
       .filter(Boolean)
       .join(", ");
 
+    const previousEvents = await prisma.matchEvent.findMany({
+      where: { matchId: id },
+      select: { playerId: true },
+    });
+
+    const eventsData = [
+      ...goalPlayerIds.map((playerId) => ({
+        matchId: id,
+        playerId,
+        type: "GOAL",
+      })),
+      ...assistPlayerIds.map((playerId) => ({
+        matchId: id,
+        playerId,
+        type: "ASSIST",
+      })),
+    ];
+
     await prisma.$transaction(async (tx) => {
       await tx.match.update({
         where: { id },
@@ -157,51 +175,43 @@ export default async function EditMatchPage({ params }: PageProps) {
         where: { matchId: id },
       });
 
-      const eventsData = [
-        ...goalPlayerIds.map((playerId) => ({
-          matchId: id,
-          playerId,
-          type: "GOAL",
-        })),
-        ...assistPlayerIds.map((playerId) => ({
-          matchId: id,
-          playerId,
-          type: "ASSIST",
-        })),
-      ];
-
       if (eventsData.length > 0) {
         await tx.matchEvent.createMany({
           data: eventsData,
         });
       }
+    });
 
-      const season = "2025/2026";
+    const season = "2025/2026";
+    const affectedPlayerIds = Array.from(
+      new Set([
+        ...previousEvents.map((event) => event.playerId),
+        ...goalPlayerIds,
+        ...assistPlayerIds,
+      ]),
+    );
 
-      const allPlayers = await tx.player.findMany({
-        where: { isActive: true },
-        select: { id: true },
-      });
+    await Promise.all(
+      affectedPlayerIds.map(async (playerId) => {
+        const [goals, assists] = await Promise.all([
+          prisma.matchEvent.count({
+            where: {
+              playerId,
+              type: "GOAL",
+            },
+          }),
+          prisma.matchEvent.count({
+            where: {
+              playerId,
+              type: "ASSIST",
+            },
+          }),
+        ]);
 
-      for (const player of allPlayers) {
-        const goals = await tx.matchEvent.count({
-          where: {
-            playerId: player.id,
-            type: "GOAL",
-          },
-        });
-
-        const assists = await tx.matchEvent.count({
-          where: {
-            playerId: player.id,
-            type: "ASSIST",
-          },
-        });
-
-        await tx.playerStat.upsert({
+        await prisma.playerStat.upsert({
           where: {
             playerId_season: {
-              playerId: player.id,
+              playerId,
               season,
             },
           },
@@ -210,14 +220,14 @@ export default async function EditMatchPage({ params }: PageProps) {
             assists,
           },
           create: {
-            playerId: player.id,
+            playerId,
             season,
             goals,
             assists,
           },
         });
-      }
-    });
+      }),
+    );
 
     revalidatePath("/admin/matchs");
     revalidatePath("/admin/equipes");
