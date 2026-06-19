@@ -56,6 +56,13 @@ export default async function InscriptionsPage() {
         ...settings,
         seasonLabel: settings.seasonLabel || "Saison 2026/2027",
         helloAssoUrl: settings.helloAssoUrl || helloAssoLicencesUrl,
+        u7OfferTitle: settings.u7OfferTitle || "Offre spéciale U7",
+        u7OfferTextViriat:
+          settings.u7OfferTextViriat ||
+          "* Viriat : licence offerte par le club. Seule la participation à la tombola de 30 € reste due.",
+        u7OfferTextOutside:
+          settings.u7OfferTextOutside ||
+          "* Hors Viriat : cotisation de 150 € + tombola de 30 €.",
       }
     : {
         seasonLabel: "Saison 2026/2027",
@@ -66,6 +73,11 @@ export default async function InscriptionsPage() {
         contactEmail: "csviriat-football@orange.fr",
         helloAssoUrl: helloAssoLicencesUrl,
         cardPaymentUrl: null,
+        u7OfferTitle: "Offre spéciale U7",
+        u7OfferTextViriat:
+          "* Viriat : licence offerte par le club. Seule la participation à la tombola de 30 € reste due.",
+        u7OfferTextOutside:
+          "* Hors Viriat : cotisation de 150 € + tombola de 30 €.",
       };
 
   return (
@@ -143,42 +155,69 @@ export default async function InscriptionsPage() {
               </p>
 
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {fees.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-[1.35rem] border border-orange-100 bg-gradient-to-br from-white to-orange-50/35 p-5 transition hover:border-orange-200 hover:shadow-sm"
-                  >
-                    <div className="text-sm font-extrabold text-neutral-900">
-                      {item.category}
-                    </div>
+                {fees.map((item) => {
+                  const isU7 = item.category.trim().toUpperCase() === "U7";
+                  const displayedFee = isU7 ? "Offerte* / 150 €" : item.fee;
 
-                    {item.birthYearsLabel ? (
-                      <p className="mt-1 text-sm text-neutral-500">
-                        {item.birthYearsLabel}
-                      </p>
-                    ) : null}
-
-                    <div className="mt-4 flex items-end justify-between gap-4">
-                      <div>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Cotisation
-                        </div>
-                        <div className="mt-1 text-2xl font-extrabold text-neutral-900">
-                          {item.fee}
-                        </div>
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-[1.35rem] border border-orange-100 bg-gradient-to-br from-white to-orange-50/35 p-5 transition hover:border-orange-200 hover:shadow-sm"
+                    >
+                      <div className="text-sm font-extrabold text-neutral-900">
+                        {item.category}
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Tombola
+                      {item.birthYearsLabel ? (
+                        <p className="mt-1 text-sm text-neutral-500">
+                          {item.birthYearsLabel}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-4 flex items-end justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                            Cotisation
+                          </div>
+
+                          <div
+                            className={`mt-1 font-extrabold text-neutral-900 ${
+                              isU7
+                                ? "text-lg leading-tight sm:text-xl"
+                                : "whitespace-nowrap text-xl sm:text-2xl"
+                            }`}
+                          >
+                            {displayedFee}
+                          </div>
                         </div>
-                        <div className="mt-1 text-base font-bold text-csv-orange">
-                          {item.tombola || "Licence"}
+
+                        <div className="shrink-0 text-right">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                            Tombola
+                          </div>
+
+                          <div className="mt-1 whitespace-nowrap text-base font-bold text-csv-orange">
+                            {item.tombola || "Licence"}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+                <h4 className="font-bold text-green-800">
+                  {registrationSettings.u7OfferTitle}
+                </h4>
+
+                <p className="mt-2 text-sm text-neutral-700">
+                  {registrationSettings.u7OfferTextViriat}
+                </p>
+
+                <p className="mt-2 text-sm text-neutral-700">
+                  {registrationSettings.u7OfferTextOutside}
+                </p>
               </div>
             </div>
           </div>

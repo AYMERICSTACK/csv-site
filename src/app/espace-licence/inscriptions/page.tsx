@@ -38,6 +38,11 @@ export default async function ManageInscriptionsPage() {
           "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
         periodText: "juin → septembre",
         contactEmail: "csviriat-football@orange.fr",
+        u7OfferTitle: "Offre spéciale U7",
+        u7OfferTextViriat:
+          "* Viriat : licence offerte par le club. Seule la participation à la tombola de 30 € reste due.",
+        u7OfferTextOutside:
+          "* Hors Viriat : cotisation de 150 € + tombola de 30 €.",
       },
     }));
 
@@ -61,6 +66,13 @@ export default async function ManageInscriptionsPage() {
     const contactEmail = String(formData.get("contactEmail") || "").trim();
     const helloAssoUrl = String(formData.get("helloAssoUrl") || "").trim();
     const cardPaymentUrl = String(formData.get("cardPaymentUrl") || "").trim();
+    const u7OfferTitle = String(formData.get("u7OfferTitle") || "").trim();
+    const u7OfferTextViriat = String(
+      formData.get("u7OfferTextViriat") || "",
+    ).trim();
+    const u7OfferTextOutside = String(
+      formData.get("u7OfferTextOutside") || "",
+    ).trim();
 
     await prisma.registrationSettings.update({
       where: { id: settings.id },
@@ -74,6 +86,13 @@ export default async function ManageInscriptionsPage() {
         contactEmail: contactEmail || "csviriat-football@orange.fr",
         helloAssoUrl: helloAssoUrl || null,
         cardPaymentUrl: cardPaymentUrl || null,
+        u7OfferTitle: u7OfferTitle || "Offre spéciale U7",
+        u7OfferTextViriat:
+          u7OfferTextViriat ||
+          "* Viriat : licence offerte par le club. Seule la participation à la tombola de 30 € reste due.",
+        u7OfferTextOutside:
+          u7OfferTextOutside ||
+          "* Hors Viriat : cotisation de 150 € + tombola de 30 €.",
       },
     });
 
@@ -354,6 +373,52 @@ export default async function ManageInscriptionsPage() {
               />
             </div>
 
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <h3 className="text-sm font-bold text-green-800">
+                Encart offre spéciale U7
+              </h3>
+              <p className="mt-1 text-xs text-neutral-600">
+                Ce texte apparaît sous les cartes de tarifs sur la page publique.
+              </p>
+
+              <div className="mt-4 grid gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Titre de l’encart
+                  </label>
+                  <input
+                    name="u7OfferTitle"
+                    defaultValue={settings.u7OfferTitle}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Texte habitants de Viriat
+                  </label>
+                  <textarea
+                    name="u7OfferTextViriat"
+                    defaultValue={settings.u7OfferTextViriat}
+                    rows={3}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-neutral-900">
+                    Texte hors Viriat
+                  </label>
+                  <textarea
+                    name="u7OfferTextOutside"
+                    defaultValue={settings.u7OfferTextOutside}
+                    rows={3}
+                    className="input"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="grid gap-5 md:grid-cols-3">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-neutral-900">
@@ -403,6 +468,11 @@ export default async function ManageInscriptionsPage() {
             <h2 className="text-xl font-extrabold text-neutral-900">Tarifs</h2>
             <p className="mt-2 text-sm text-neutral-600">
               Ces tarifs sont affichés sur la page publique inscriptions.
+            </p>
+            <p className="mt-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800">
+              Pour la catégorie U7, la carte publique affiche automatiquement
+              “Offerte* / 150 €” afin d’être claire pour les habitants de Viriat
+              et les familles hors Viriat. Garder “30 €” dans le champ Tombola.
             </p>
 
             <div className="mt-6 space-y-4">

@@ -196,10 +196,13 @@ model RegistrationSettings {
   introTitle     String   @default("S’inscrire au CS Viriat (CSV)")
   introText      String
   periodText     String   @default("juin → septembre")
-  contactEmail   String   @default("csviriat-football@orange.fr")
-  helloAssoUrl   String?
-  cardPaymentUrl String?
-  createdAt      DateTime @default(now())
+  contactEmail        String   @default("csviriat-football@orange.fr")
+  helloAssoUrl        String?
+  cardPaymentUrl      String?
+  u7OfferTitle        String   @default("Offre spéciale U7")
+  u7OfferTextViriat   String   @default("* Viriat : licence offerte par le club. Seule la participation à la tombola de 30 € reste due.")
+  u7OfferTextOutside  String   @default("* Hors Viriat : cotisation de 150 € + tombola de 30 €.")
+  createdAt           DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
 
