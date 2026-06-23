@@ -50,8 +50,7 @@ export default function FacebookFeed({ pageUrl }: { pageUrl: string }) {
         strategy="afterInteractive"
         src="https://connect.facebook.net/fr_FR/sdk.js#xfbml=1&version=v19.0"
         onLoad={() => {
-          // @ts-expect-error injected by FB SDK
-          window.FB?.XFBML?.parse?.();
+          (window as any).FB?.XFBML?.parse?.();
         }}
       />
 
