@@ -18,7 +18,6 @@ const sectionWeight = (title: string) => {
 export default async function StaffPage() {
   const session = await auth();
 
-  const isAdmin = session?.user?.role === "admin";
   const isLogged = !!session;
 
   const staffMembers = await prisma.staffMember.findMany({
@@ -55,8 +54,8 @@ export default async function StaffPage() {
 
     const user = member.user;
 
-    const canSeeEmail = isAdmin || (isLogged && user?.showEmailToMembers);
-    const canSeePhone = isAdmin || (isLogged && user?.showPhoneToMembers);
+    const canSeeEmail = isLogged && Boolean(user?.showEmailToMembers);
+    const canSeePhone = isLogged && Boolean(user?.showPhoneToMembers);
 
     sectionsMap.get(member.sectionTitle)?.people.push({
       name: member.name,

@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  CalendarDays,
   ChevronRight,
   ExternalLink,
   Goal,
   Loader2,
+  MapPin,
   Trophy,
 } from "lucide-react";
 
@@ -41,11 +43,46 @@ type OfficialTeamRanking = {
   url?: string | null;
 };
 
+type SeasonSummary = {
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+};
+
+type SeasonResult = {
+  id: string;
+  category: string;
+  team: string;
+  opponent: string;
+  matchDate: string;
+  location: string;
+  isHome: boolean;
+  scoreTeam: number | null;
+  scoreOpponent: number | null;
+};
+
+type UpcomingSeasonMatch = {
+  id: string;
+  category: string;
+  team: string;
+  opponent: string;
+  matchDate: string;
+  location: string;
+  isHome: boolean;
+  status: string;
+};
+
 type Props = {
   season: string;
   players: Player[];
   fffClubUrl: string;
   officialTeamRankings: OfficialTeamRanking[];
+  seasonSummary: SeasonSummary;
+  recentResults: SeasonResult[];
+  upcomingMatches: UpcomingSeasonMatch[];
 };
 
 function RankingPreview({
@@ -108,11 +145,43 @@ function RankingPreview({
   );
 }
 
+function formatSeasonMatchDate(value: string) {
+  return new Date(value).toLocaleString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  });
+}
+
+function SeasonMatchTeams({
+  team,
+  opponent,
+  isHome,
+}: {
+  team: string;
+  opponent: string;
+  isHome: boolean;
+}) {
+  return (
+    <div className="font-black text-neutral-950">
+      {isHome ? team : opponent}
+      <span className="mx-2 font-medium text-neutral-300">—</span>
+      {isHome ? opponent : team}
+    </div>
+  );
+}
+
 export default function PublicRankingsBoard({
   season,
   players,
   fffClubUrl,
   officialTeamRankings,
+  seasonSummary,
+  recentResults,
+  upcomingMatches,
 }: Props) {
   const [selectedRankingCategory, setSelectedRankingCategory] =
     useState("Toutes");
@@ -228,12 +297,12 @@ export default function PublicRankingsBoard({
             </span>
 
             <h1 className="mt-5 text-4xl font-black tracking-tight md:text-5xl">
-              Classements du club
+              Saison {season}
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-300">
-              Retrouvez les meilleurs buteurs, passeurs et les accès rapides
-              vers les classements officiels FFF des équipes du CS Viriat.
+              Résultats, prochains matchs, chiffres clés, buteurs, passeurs et
+              classements officiels : toute la saison du CS Viriat au même endroit.
             </p>
           </div>
 
@@ -248,6 +317,221 @@ export default function PublicRankingsBoard({
           </Link>
         </div>
       </section>
+
+      <section className="space-y-6">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">
+            Le club en chiffres
+          </div>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-neutral-950">
+            Saison {season}
+          </h2>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
+              Matchs joués
+            </div>
+            <div className="mt-3 text-4xl font-black text-neutral-950">
+              {seasonSummary.played}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
+              <span className="rounded-full bg-green-50 px-2.5 py-1 text-green-700">
+                {seasonSummary.wins} V
+              </span>
+              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-neutral-600">
+                {seasonSummary.draws} N
+              </span>
+              <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">
+                {seasonSummary.losses} D
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
+              Buts marqués
+            </div>
+            <div className="mt-3 text-4xl font-black text-orange-600">
+              {seasonSummary.goalsFor}
+            </div>
+            <div className="mt-3 text-sm font-semibold text-neutral-500">
+              {seasonSummary.played
+                ? `${(seasonSummary.goalsFor / seasonSummary.played).toFixed(1)} par match`
+                : "La saison démarre"}
+            </div>
+          </div>
+
+          <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
+              Buts encaissés
+            </div>
+            <div className="mt-3 text-4xl font-black text-neutral-950">
+              {seasonSummary.goalsAgainst}
+            </div>
+            <div className="mt-3 text-sm font-semibold text-neutral-500">
+              Différence {seasonSummary.goalsFor - seasonSummary.goalsAgainst >= 0 ? "+" : ""}
+              {seasonSummary.goalsFor - seasonSummary.goalsAgainst}
+            </div>
+          </div>
+
+          <div className="rounded-[1.6rem] border border-orange-200 bg-orange-50 p-5">
+            <div className="text-xs font-black uppercase tracking-wide text-orange-600">
+              À suivre
+            </div>
+            <div className="mt-3 text-4xl font-black text-neutral-950">
+              {upcomingMatches.length}
+            </div>
+            <div className="mt-3 text-sm font-semibold text-neutral-600">
+              prochain{upcomingMatches.length > 1 ? "s" : ""} match
+              {upcomingMatches.length > 1 ? "s" : ""} affiché
+              {upcomingMatches.length > 1 ? "s" : ""}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+                Dernières rencontres
+              </div>
+              <h2 className="mt-2 text-2xl font-black text-neutral-950">
+                Résultats récents
+              </h2>
+            </div>
+            <Link
+              href="/calendrier"
+              className="text-sm font-black text-orange-600 transition hover:text-orange-700"
+            >
+              Tout voir →
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {recentResults.length ? (
+              recentResults.map((match) => {
+                const leftScore = match.isHome
+                  ? match.scoreTeam
+                  : match.scoreOpponent;
+                const rightScore = match.isHome
+                  ? match.scoreOpponent
+                  : match.scoreTeam;
+
+                return (
+                  <article
+                    key={match.id}
+                    className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700">
+                            {match.team}
+                          </span>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-neutral-500 ring-1 ring-neutral-200">
+                            {match.isHome ? "Domicile" : "Extérieur"}
+                          </span>
+                        </div>
+                        <SeasonMatchTeams
+                          team={match.team}
+                          opponent={match.opponent}
+                          isHome={match.isHome}
+                        />
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-neutral-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
+                            {formatSeasonMatchDate(match.matchDate)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-orange-500" />
+                            {match.location}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 rounded-2xl bg-neutral-950 px-4 py-2 text-xl font-black text-white">
+                        {leftScore} - {rightScore}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="rounded-2xl border border-dashed border-neutral-200 p-7 text-center text-sm font-semibold text-neutral-500">
+                Aucun résultat enregistré pour le moment.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+                À venir
+              </div>
+              <h2 className="mt-2 text-2xl font-black text-neutral-950">
+                Prochains matchs
+              </h2>
+            </div>
+            <Link
+              href="/calendrier"
+              className="text-sm font-black text-orange-600 transition hover:text-orange-700"
+            >
+              Calendrier →
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {upcomingMatches.length ? (
+              upcomingMatches.map((match) => (
+                <article
+                  key={match.id}
+                  className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+                          {match.team}
+                        </span>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-neutral-500 ring-1 ring-orange-100">
+                          {match.isHome ? "Domicile" : "Extérieur"}
+                        </span>
+                      </div>
+                      <SeasonMatchTeams
+                        team={match.team}
+                        opponent={match.opponent}
+                        isHome={match.isHome}
+                      />
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-neutral-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
+                          {formatSeasonMatchDate(match.matchDate)}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-orange-500" />
+                          {match.location}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-orange-700 ring-1 ring-orange-200">
+                      {match.status === "postponed" ? "Reporté" : "Programmé"}
+                    </span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-7 text-center text-sm font-semibold text-neutral-500">
+                Aucun match programmé pour le moment.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
 
       <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
