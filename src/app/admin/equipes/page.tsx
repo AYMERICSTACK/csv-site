@@ -230,10 +230,10 @@ export default async function AdminEquipesPage() {
                 </div>
 
                 <Link
-                  href="/espace-club"
+                  href="/espace-educateurs"
                   className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
                 >
-                  ← Retour espace club
+                  ← Tableau de bord sportif
                 </Link>
 
                 <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl">

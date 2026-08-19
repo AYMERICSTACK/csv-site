@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import Container from "@/components/Container";
 
 type PageProps = {
@@ -14,8 +15,11 @@ export default async function ClassementPasseursPage({
   const { categorie } = await searchParams;
 
   const players = await prisma.player.findMany({
+    where: { isActive: true },
     include: {
-      stats: true,
+      stats: {
+        where: { season: CURRENT_FOOTBALL_SEASON },
+      },
     },
     orderBy: [{ category: "asc" }, { team: "asc" }, { lastName: "asc" }],
   });

@@ -3,6 +3,7 @@ export const revalidate = 300;
 import Container from "@/components/Container";
 import PublicRankingsBoard from "@/components/PublicRankingsBoard";
 import { prisma } from "@/lib/prisma";
+import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 
 const FFF_CLUB_URL =
   "https://epreuves.fff.fr/competition/club/504312-c-s-viriat/club";
@@ -23,7 +24,7 @@ const defaultOfficialTeamRankings = [
 ];
 
 export default async function ClassementsPage() {
-  const season = "2025/2026";
+  const season = CURRENT_FOOTBALL_SEASON;
 
   const players = await prisma.player.findMany({
     where: {

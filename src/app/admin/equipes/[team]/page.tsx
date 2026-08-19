@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
 
 type PageProps = {
@@ -231,7 +232,7 @@ export default async function AdminEquipeDetailPage({
   const { team: teamSlug } = await params;
   const resolvedSearchParams = await searchParams;
   const activeView = resolvedSearchParams?.view === "compo" ? "compo" : "liste";
-  const season = "2025/2026";
+  const season = CURRENT_FOOTBALL_SEASON;
 
   const teamName = CLUB_TEAMS.find((team) => slugifyTeam(team) === teamSlug);
 
@@ -309,12 +310,20 @@ export default async function AdminEquipeDetailPage({
   return (
     <Container>
       <div className="pb-24 pt-6 sm:py-14">
-        <Link
-          href="/admin/equipes"
-          className="inline-flex rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50"
-        >
-          ← Retour aux équipes
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/equipes"
+            className="inline-flex rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50"
+          >
+            ← Retour aux équipes
+          </Link>
+          <Link
+            href="/espace-educateurs"
+            className="inline-flex rounded-xl border border-neutral-200 bg-neutral-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-neutral-800"
+          >
+            Tableau de bord sportif
+          </Link>
+        </div>
 
         <section className="mt-5 rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm sm:mt-6 sm:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

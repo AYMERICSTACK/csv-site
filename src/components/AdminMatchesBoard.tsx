@@ -11,6 +11,7 @@ import {
   Shield,
   Trophy,
   Plus,
+  Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -328,6 +329,14 @@ export default function AdminMatchesBoard({
                 </div>
 
                 <div className="grid min-w-0 grid-cols-2 gap-3 lg:flex lg:w-52 lg:flex-col">
+                  <Link
+                    href={`/admin/matchs/${match.id}/resultat`}
+                    className="col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-orange-400 lg:col-span-1"
+                  >
+                    <Zap size={16} />
+                    {match.status === "finished" ? "Modifier résultat" : "Saisir le résultat"}
+                  </Link>
+
                   <MatchCardActions
                     matchId={match.id}
                     deleteAction={deleteAction}
@@ -338,7 +347,7 @@ export default function AdminMatchesBoard({
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-extrabold text-neutral-800 transition hover:bg-neutral-100"
                   >
                     <Shield size={15} />
-                    Ouvrir la fiche
+                    Fiche complète
                   </Link>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import AdminPlayersBoard from "@/components/AdminPlayersBoard";
 
 async function uploadPlayerPhoto(file: File, playerName: string) {
@@ -34,7 +35,7 @@ async function createPlayer(formData: FormData) {
   const lastName = String(formData.get("lastName") || "").trim();
   const team = String(formData.get("team") || "").trim();
   const category = String(formData.get("category") || "").trim();
-  const season = String(formData.get("season") || "2025/2026").trim();
+  const season = String(formData.get("season") || CURRENT_FOOTBALL_SEASON).trim();
   const photoFile = formData.get("photoFile") as File | null;
   const photoConsent = formData.get("photoConsent") === "on";
 
@@ -78,7 +79,7 @@ async function updatePlayer(formData: FormData) {
   const lastName = String(formData.get("lastName") || "").trim();
   const team = String(formData.get("team") || "").trim();
   const category = String(formData.get("category") || "").trim();
-  const season = String(formData.get("season") || "2025/2026").trim();
+  const season = String(formData.get("season") || CURRENT_FOOTBALL_SEASON).trim();
 
   const currentPhotoUrl = String(formData.get("currentPhotoUrl") || "").trim();
   const photoFile = formData.get("photoFile") as File | null;
@@ -151,7 +152,7 @@ async function deletePlayer(formData: FormData) {
 export default async function AdminJoueursPage() {
   await requireRole(["admin", "educateurs"]);
 
-  const season = "2025/2026";
+  const season = CURRENT_FOOTBALL_SEASON;
 
   const players = await prisma.player.findMany({
     include: {

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
 import { prisma } from "@/lib/prisma";
+import { refreshPlayerStats } from "@/lib/player-stats";
 import MatchGoalsFields from "@/components/MatchGoalsFields";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
@@ -182,7 +183,6 @@ export default async function EditMatchPage({ params }: PageProps) {
       }
     });
 
-    const season = "2025/2026";
     const affectedPlayerIds = Array.from(
       new Set([
         ...previousEvents.map((event) => event.playerId),
@@ -191,43 +191,7 @@ export default async function EditMatchPage({ params }: PageProps) {
       ]),
     );
 
-    await Promise.all(
-      affectedPlayerIds.map(async (playerId) => {
-        const [goals, assists] = await Promise.all([
-          prisma.matchEvent.count({
-            where: {
-              playerId,
-              type: "GOAL",
-            },
-          }),
-          prisma.matchEvent.count({
-            where: {
-              playerId,
-              type: "ASSIST",
-            },
-          }),
-        ]);
-
-        await prisma.playerStat.upsert({
-          where: {
-            playerId_season: {
-              playerId,
-              season,
-            },
-          },
-          update: {
-            goals,
-            assists,
-          },
-          create: {
-            playerId,
-            season,
-            goals,
-            assists,
-          },
-        });
-      }),
-    );
+    await refreshPlayerStats(affectedPlayerIds);
 
     revalidatePath("/");
     revalidatePath("/calendrier");
@@ -296,6 +260,13 @@ export default async function EditMatchPage({ params }: PageProps) {
                     className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15"
                   >
                     Tous les matchs
+                  </a>
+
+                  <a
+                    href="/espace-educateurs"
+                    className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15"
+                  >
+                    Tableau de bord sportif
                   </a>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
 
@@ -21,17 +21,11 @@ function getNextMatchDateForTeam(team: string) {
 
   const rule = rules.find((rule) => team.includes(rule.includes));
 
-  if (
-    !rule ||
-    rule.day === null ||
-    rule.hour === null ||
-    rule.minute === null
-  ) {
+  if (!rule || rule.day === null || rule.hour === null || rule.minute === null) {
     return "";
   }
 
   const date = new Date();
-
   const diff = (rule.day - date.getDay() + 7) % 7 || 7;
 
   date.setDate(date.getDate() + diff);
@@ -45,6 +39,10 @@ function getNextMatchDateForTeam(team: string) {
 }
 
 function getCategoryFromTeam(team: string) {
+  if (team.startsWith("Seniors")) return "Seniors";
+  if (team.startsWith("U15")) return "U15";
+  if (team.startsWith("U13")) return "U13";
+
   return (
     CLUB_CATEGORIES.find((category) =>
       team.toLowerCase().includes(category.toLowerCase()),
@@ -54,17 +52,34 @@ function getCategoryFromTeam(team: string) {
 
 export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
   const [team, setTeam] = useState(favoriteTeam);
-
   const [category, setCategory] = useState(getCategoryFromTeam(favoriteTeam));
-
   const [matchDate, setMatchDate] = useState(
     getNextMatchDateForTeam(favoriteTeam),
   );
 
+  const availableTeams = useMemo(
+    () =>
+      category
+        ? CLUB_TEAMS.filter((clubTeam) => getCategoryFromTeam(clubTeam) === category)
+        : CLUB_TEAMS,
+    [category],
+  );
+
   useEffect(() => {
-    setCategory(getCategoryFromTeam(team));
-    setMatchDate(getNextMatchDateForTeam(team));
-  }, [team]);
+    if (team && getCategoryFromTeam(team) !== category) {
+      setTeam("");
+      setMatchDate("");
+    }
+  }, [category, team]);
+
+  function handleTeamChange(nextTeam: string) {
+    setTeam(nextTeam);
+
+    if (nextTeam) {
+      setCategory(getCategoryFromTeam(nextTeam));
+      setMatchDate(getNextMatchDateForTeam(nextTeam));
+    }
+  }
 
   return (
     <div className="grid gap-5 md:grid-cols-2">
@@ -72,20 +87,18 @@ export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
         <label htmlFor="category" className="label">
           Catégorie
         </label>
-
         <select
           id="category"
           name="category"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(event) => setCategory(event.target.value)}
           className="input"
           required
         >
           <option value="">Sélectionner une catégorie</option>
-
-          {CLUB_CATEGORIES.map((category) => (
-            <option key={category} value={category}>
-              {category}
+          {CLUB_CATEGORIES.map((clubCategory) => (
+            <option key={clubCategory} value={clubCategory}>
+              {clubCategory}
             </option>
           ))}
         </select>
@@ -93,24 +106,47 @@ export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
 
       <div>
         <label htmlFor="team" className="label">
-          Équipe
+          Équipe CS Viriat
         </label>
-
         <select
           id="team"
           name="team"
           value={team}
-          onChange={(e) => setTeam(e.target.value)}
+          onChange={(event) => handleTeamChange(event.target.value)}
           className="input"
           required
         >
           <option value="">Sélectionner une équipe</option>
-
-          {CLUB_TEAMS.map((team) => (
-            <option key={team} value={team}>
-              {team}
+          {availableTeams.map((clubTeam) => (
+            <option key={clubTeam} value={clubTeam}>
+              {clubTeam}
             </option>
           ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="opponent" className="label">
+          Adversaire
+        </label>
+        <input
+          id="opponent"
+          name="opponent"
+          type="text"
+          className="input"
+          placeholder="Ex : ESR"
+          autoComplete="off"
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="isHome" className="label">
+          Rencontre
+        </label>
+        <select id="isHome" name="isHome" defaultValue="true" className="input">
+          <option value="true">À domicile</option>
+          <option value="false">À l’extérieur</option>
         </select>
       </div>
 
@@ -118,14 +154,28 @@ export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
         <label htmlFor="matchDate" className="label">
           Date et heure
         </label>
-
         <input
           id="matchDate"
           name="matchDate"
           type="datetime-local"
           value={matchDate}
-          onChange={(e) => setMatchDate(e.target.value)}
+          onChange={(event) => setMatchDate(event.target.value)}
           className="input"
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="location" className="label">
+          Lieu
+        </label>
+        <input
+          id="location"
+          name="location"
+          type="text"
+          className="input"
+          placeholder="Ex : Stade de Viriat"
+          autoComplete="off"
           required
         />
       </div>

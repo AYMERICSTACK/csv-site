@@ -89,7 +89,7 @@ export default function HomeHero() {
                 </div>
               </div>
 
-              <div className={styles.season}>Saison 2026</div>
+              <div className={styles.season}>Saison 2026/2027</div>
             </div>
 
             <div className={styles.quickList}>

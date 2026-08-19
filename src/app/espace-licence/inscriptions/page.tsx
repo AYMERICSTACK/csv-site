@@ -32,7 +32,7 @@ export default async function ManageInscriptionsPage() {
     (await prisma.registrationSettings.create({
       data: {
         id: "default-registration-settings",
-        seasonLabel: "Saison 2026",
+        seasonLabel: "Saison 2026/2027",
         introTitle: "S’inscrire au CS Viriat (CSV)",
         introText:
           "Retrouvez ici les informations officielles pour l’inscription : étapes, documents, contacts et informations pratiques.",
@@ -77,7 +77,7 @@ export default async function ManageInscriptionsPage() {
     await prisma.registrationSettings.update({
       where: { id: settings.id },
       data: {
-        seasonLabel: seasonLabel || "Saison 2026",
+        seasonLabel: seasonLabel || "Saison 2026/2027",
         introTitle: introTitle || "S’inscrire au CS Viriat (CSV)",
         introText:
           introText ||

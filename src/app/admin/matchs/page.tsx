@@ -5,35 +5,10 @@ import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { refreshPlayerStats } from "@/lib/player-stats";
 import { revalidatePath } from "next/cache";
 import AdminMatchesBoard from "@/components/AdminMatchesBoard";
 import { ArrowLeft, Plus } from "lucide-react";
-
-async function refreshPlayerStats(playerIds: string[]) {
-  const season = "2025/2026";
-  const uniquePlayerIds = Array.from(new Set(playerIds)).filter(Boolean);
-
-  for (const playerId of uniquePlayerIds) {
-    const goals = await prisma.matchEvent.count({
-      where: { playerId, type: "GOAL" },
-    });
-
-    const assists = await prisma.matchEvent.count({
-      where: { playerId, type: "ASSIST" },
-    });
-
-    await prisma.playerStat.upsert({
-      where: {
-        playerId_season: {
-          playerId,
-          season,
-        },
-      },
-      update: { goals, assists },
-      create: { playerId, season, goals, assists },
-    });
-  }
-}
 
 async function deleteMatch(formData: FormData) {
   "use server";
@@ -82,8 +57,8 @@ export default async function AdminMatchsPage() {
   const favoriteTeam = currentUser?.favoriteTeam ?? null;
 
   const role = availableRoles.includes("admin") ? "admin" : user.role;
-  const backHref = role === "admin" ? "/admin" : "/espace-club";
-  const backLabel = role === "admin" ? "Retour admin" : "Retour espace club";
+  const backHref = "/espace-educateurs";
+  const backLabel = "Tableau de bord sportif";
 
   const matches = await prisma.match.findMany({
     orderBy: { matchDate: "desc" },
