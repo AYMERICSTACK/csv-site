@@ -59,6 +59,9 @@ export default async function CommissionDetailPage({ params }: PageProps) {
           },
         },
       },
+      members: {
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      },
     },
   });
 
@@ -95,9 +98,7 @@ export default async function CommissionDetailPage({ params }: PageProps) {
     : [];
 
   const commissionMemberships = commission.memberships;
-  const visibleMemberships = commissionMemberships.filter(
-    (membership) => membership.isVisibleInCommission,
-  );
+  const commissionMembers = commission.members;
 
   return (
     <Container>
@@ -156,8 +157,8 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                 ) : null}
 
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
-                  {visibleMemberships.length} membre
-                  {visibleMemberships.length > 1 ? "s" : ""}
+                  {commissionMembers.length} membre
+                  {commissionMembers.length > 1 ? "s" : ""}
                 </span>
 
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
@@ -210,7 +211,7 @@ export default async function CommissionDetailPage({ params }: PageProps) {
               )}
 
               <p>
-                <strong>Membres affichés :</strong> {visibleMemberships.length}
+                <strong>Membres affichés :</strong> {commissionMembers.length}
               </p>
 
               <p>
@@ -375,76 +376,52 @@ export default async function CommissionDetailPage({ params }: PageProps) {
                 Membres de la commission
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                Les membres affichés ici proviennent directement des
-                utilisateurs ayant accès à cette commission, selon leurs
-                préférences de visibilité.
+                Les membres affichés ici correspondent à la composition
+                officielle de la commission. Les accès utilisateurs sont gérés
+                séparément ci-dessus.
               </p>
             </div>
           </div>
 
           {commission.showMembers ? (
-            visibleMemberships.length > 0 ? (
+            commissionMembers.length > 0 ? (
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {visibleMemberships.map((membership) => {
-                  const canShowEmail =
-                    commission.showEmail && membership.user.showEmailToMembers;
-
-                  const canShowPhone =
-                    commission.showPhone && membership.user.showPhoneToMembers;
-
-                  return (
-                    <div
-                      key={membership.user.id}
-                      className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-base font-semibold text-neutral-900">
-                            {membership.user.name || membership.user.email}
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {membership.user.role === "admin" ? (
-                              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-bold text-violet-700">
-                                Admin global
-                              </span>
-                            ) : null}
-
-                            {membership.isAdmin ? (
-                              <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700">
-                                Admin commission
-                              </span>
-                            ) : null}
-
-                            {membership.roleLabel ? (
-                              <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-600">
-                                {membership.roleLabel}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 space-y-2 text-sm text-neutral-700">
-                        <p>
-                          <strong>Email :</strong>{" "}
-                          {canShowEmail ? membership.user.email : "Masqué"}
-                        </p>
-
-                        <p>
-                          <strong>Téléphone :</strong>{" "}
-                          {canShowPhone
-                            ? membership.user.phone || "—"
-                            : "Masqué"}
-                        </p>
-                      </div>
+                {commissionMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
+                  >
+                    <div className="text-base font-semibold text-neutral-900">
+                      {member.name}
                     </div>
-                  );
-                })}
+
+                    {member.roleLabel ? (
+                      <div className="mt-2">
+                        <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-bold text-neutral-600">
+                          {member.roleLabel}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 space-y-2 text-sm text-neutral-700">
+                      {commission.showEmail && member.email ? (
+                        <p>
+                          <strong>Email :</strong> {member.email}
+                        </p>
+                      ) : null}
+
+                      {commission.showPhone && member.phone ? (
+                        <p>
+                          <strong>Téléphone :</strong> {member.phone}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="mt-6 text-sm text-neutral-500">
-                Aucun membre visible dans cette commission.
+                Aucun membre renseigné dans cette commission.
               </p>
             )
           ) : (

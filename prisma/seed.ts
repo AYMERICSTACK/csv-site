@@ -35,7 +35,7 @@ async function main() {
       showPhone: false,
     },
     {
-      name: "Sponsoring",
+      name: "Sponsors / Pub",
       slug: "sponsoring",
       description:
         "Recherche de partenaires, suivi des sponsors et mise en valeur des soutiens du club.",
@@ -75,7 +75,17 @@ async function main() {
       showPhone: false,
     },
     {
-      name: "Licence",
+      name: "Sportive",
+      slug: "sportive",
+      description:
+        "Pilotage de la politique sportive du club et coordination générale du projet sportif.",
+      isPublished: true,
+      showMembers: true,
+      showEmail: false,
+      showPhone: false,
+    },
+    {
+      name: "Licences",
       slug: "licence",
       description:
         "Gestion des licences, dossiers joueurs et démarches administratives liées aux inscriptions.",
