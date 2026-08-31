@@ -186,6 +186,7 @@ export default function PublicRankingsBoard({
   const [selectedRankingCategory, setSelectedRankingCategory] =
     useState("Toutes");
   const [selectedStatsCategory, setSelectedStatsCategory] = useState("Toutes");
+  const [showAllRankings, setShowAllRankings] = useState(false);
   const [rankingPreviews, setRankingPreviews] = useState<
     Record<string, RankingPreviewState>
   >({});
@@ -286,6 +287,11 @@ export default function PublicRankingsBoard({
       : officialTeamRankings.filter(
           (team) => team.category === selectedRankingCategory,
         );
+
+  const visibleOfficialTeamRankings =
+    selectedRankingCategory === "Toutes" && !showAllRankings
+      ? filteredOfficialTeamRankings.slice(0, 6)
+      : filteredOfficialTeamRankings;
 
   return (
     <div className="space-y-10">
@@ -536,86 +542,15 @@ export default function PublicRankingsBoard({
       <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-2xl font-black text-neutral-950">
-              Classements FFF
-            </h2>
-
-            <p className="mt-1 text-sm text-neutral-500">
-              Accès rapide aux classements officiels des équipes du club.
-            </p>
-          </div>
-
-          <select
-            value={selectedRankingCategory}
-            onChange={(event) => setSelectedRankingCategory(event.target.value)}
-            className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-700 outline-none transition focus:border-orange-400"
-          >
-            {rankingCategories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {filteredOfficialTeamRankings.map((team) => (
-            <article
-              key={team.label}
-              className="group rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5 transition hover:-translate-y-1 hover:border-orange-200 hover:bg-white hover:shadow-xl"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700">
-                    {team.category}
-                  </span>
-
-                  <h3 className="mt-4 text-2xl font-black text-neutral-950">
-                    {team.label}
-                  </h3>
-
-                  <p className="mt-2 text-sm text-neutral-500">{team.level}</p>
-                </div>
-
-                <a
-                  href={team.url || fffClubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Voir le classement FFF ${team.label}`}
-                  className="rounded-2xl bg-white p-3 text-neutral-950 shadow-sm ring-1 ring-neutral-200 transition hover:bg-neutral-950 hover:text-white"
-                >
-                  <ExternalLink className="h-5 w-5" />
-                </a>
-              </div>
-
-              <RankingPreview
-                state={rankingPreviews[team.label]}
-                hasUrl={Boolean(team.url)}
-              />
-
-              <a
-                href={team.url || fffClubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 inline-flex items-center gap-2 text-sm font-black text-orange-600 transition hover:text-orange-700"
-              >
-                Voir le classement FFF
-                <ChevronRight className="h-4 w-4" />
-              </a>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-black text-neutral-950">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+              Leaders de la saison
+            </div>
+            <h2 className="mt-2 text-2xl font-black text-neutral-950">
               Buteurs / passeurs
             </h2>
 
             <p className="mt-1 text-sm text-neutral-500">
-              Filtrer les statistiques joueurs par catégorie ou par équipe.
+              Les joueurs les plus décisifs, avec un filtre par catégorie ou par équipe.
             </p>
           </div>
 
@@ -650,6 +585,14 @@ export default function PublicRankingsBoard({
           </div>
 
           <div className="mt-6 space-y-3">
+            {topScorers.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 px-5 py-8 text-center">
+                <div className="text-sm font-black text-neutral-900">La saison démarre</div>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Le premier buteur apparaîtra ici dès qu’un résultat sera renseigné.
+                </p>
+              </div>
+            )}
             {topScorers.map((player, index) => (
               <div
                 key={player.id}
@@ -707,6 +650,14 @@ export default function PublicRankingsBoard({
           </div>
 
           <div className="mt-6 space-y-3">
+            {topAssists.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 px-5 py-8 text-center">
+                <div className="text-sm font-black text-neutral-900">Aucune passe décisive pour l’instant</div>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Le classement se remplira automatiquement au fil des matchs.
+                </p>
+              </div>
+            )}
             {topAssists.map((player, index) => (
               <div
                 key={player.id}
@@ -748,6 +699,96 @@ export default function PublicRankingsBoard({
           </div>
         </section>
       </div>
+
+      <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-neutral-950">
+              Classements FFF
+            </h2>
+
+            <p className="mt-1 text-sm text-neutral-500">
+              Les classements officiels restent accessibles sans prendre toute la place sur la page.
+            </p>
+          </div>
+
+          <select
+            value={selectedRankingCategory}
+            onChange={(event) => setSelectedRankingCategory(event.target.value)}
+            className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-700 outline-none transition focus:border-orange-400"
+          >
+            {rankingCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {visibleOfficialTeamRankings.map((team) => (
+            <article
+              key={team.label}
+              className="group rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5 transition hover:-translate-y-1 hover:border-orange-200 hover:bg-white hover:shadow-xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700">
+                    {team.category}
+                  </span>
+
+                  <h3 className="mt-4 text-2xl font-black text-neutral-950">
+                    {team.label}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-neutral-500">{team.level}</p>
+                </div>
+
+                <a
+                  href={team.url || fffClubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Voir le classement FFF ${team.label}`}
+                  className="rounded-2xl bg-white p-3 text-neutral-950 shadow-sm ring-1 ring-neutral-200 transition hover:bg-neutral-950 hover:text-white"
+                >
+                  <ExternalLink className="h-5 w-5" />
+                </a>
+              </div>
+
+              <RankingPreview
+                state={rankingPreviews[team.label]}
+                hasUrl={Boolean(team.url)}
+              />
+
+              <a
+                href={team.url || fffClubUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-5 inline-flex items-center gap-2 text-sm font-black text-orange-600 transition hover:text-orange-700"
+              >
+                Voir le classement FFF
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            </article>
+          ))}
+        </div>
+
+        {selectedRankingCategory === "Toutes" &&
+          filteredOfficialTeamRankings.length > 6 && (
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowAllRankings((current) => !current)}
+                className="rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-3 text-sm font-black text-neutral-800 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+              >
+                {showAllRankings
+                  ? "Réduire les classements"
+                  : `Voir toutes les équipes (${filteredOfficialTeamRankings.length})`}
+              </button>
+            </div>
+          )}
+      </section>
+
     </div>
   );
 }
