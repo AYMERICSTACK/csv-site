@@ -203,7 +203,7 @@ export default async function QuickResultPage({ params }: PageProps) {
                   min="0"
                   inputMode="numeric"
                   required
-                  defaultValue={match.scoreTeam ?? ""}
+                  defaultValue={match.scoreTeam ?? 0}
                   className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-4 text-center text-4xl font-black outline-none transition focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100"
                   placeholder="0"
                 />
@@ -219,7 +219,7 @@ export default async function QuickResultPage({ params }: PageProps) {
                   min="0"
                   inputMode="numeric"
                   required
-                  defaultValue={match.scoreOpponent ?? ""}
+                  defaultValue={match.scoreOpponent ?? 0}
                   className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-4 text-center text-4xl font-black outline-none transition focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100"
                   placeholder="0"
                 />

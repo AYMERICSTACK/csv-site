@@ -193,12 +193,21 @@ export default async function AdminMatchsPage() {
                   </p>
                 </div>
 
-                <Link
-                  href="/admin/matchs/new"
-                  className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
-                >
-                  Ajouter un match
-                </Link>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Link
+                    href="/admin/equipes"
+                    className="inline-flex items-center justify-center rounded-xl border border-orange-200 bg-white px-4 py-3 text-sm font-bold text-orange-700 transition hover:bg-orange-100"
+                  >
+                    Changer d’équipe favorite
+                  </Link>
+
+                  <Link
+                    href="/admin/matchs/new"
+                    className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                  >
+                    Ajouter un match
+                  </Link>
+                </div>
               </div>
             </section>
           )}

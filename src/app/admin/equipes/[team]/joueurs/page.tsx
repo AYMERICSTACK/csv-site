@@ -11,9 +11,11 @@ import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
 import DeletePlayerButton from "@/components/DeletePlayerButton";
 import PlayerPhotoInput from "@/components/PlayerPhotoInput";
 import MobileCreatePanel from "@/components/MobileCreatePanel";
+import PlayerSaveState from "@/components/PlayerSaveState";
 
 type PageProps = {
   params: Promise<{ team: string }>;
+  searchParams: Promise<{ success?: string; player?: string }>;
 };
 
 const PLAYER_POSITIONS = [
@@ -75,10 +77,11 @@ function getCategoryFromTeam(team: string) {
   return team;
 }
 
-export default async function AdminEquipeJoueursPage({ params }: PageProps) {
+export default async function AdminEquipeJoueursPage({ params, searchParams }: PageProps) {
   await requireRole(["admin", "educateurs"]);
 
   const { team: teamSlug } = await params;
+  const query = await searchParams;
   const season = CURRENT_FOOTBALL_SEASON;
 
   const foundTeamName = CLUB_TEAMS.find(
@@ -136,6 +139,10 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
     revalidatePath(`/admin/equipes/${teamSlug}/joueurs`);
     revalidatePath("/admin/equipes");
     revalidatePath("/classements");
+
+    redirect(
+      `/admin/equipes/${teamSlug}/joueurs?success=added&player=${encodeURIComponent(`${firstName} ${lastName}`)}`,
+    );
   }
 
   async function updatePlayer(formData: FormData) {
@@ -191,6 +198,10 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
     revalidatePath(`/admin/equipes/${teamSlug}/joueurs`);
     revalidatePath("/admin/equipes");
     revalidatePath("/classements");
+
+    redirect(
+      `/admin/equipes/${teamSlug}/joueurs?success=updated&player=${encodeURIComponent(`${firstName} ${lastName}`)}`,
+    );
   }
 
   async function deletePlayer(formData: FormData) {
@@ -253,6 +264,15 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
             Tableau de bord sportif
           </Link>
         </div>
+
+        {query.success && query.player ? (
+          <div
+            role="status"
+            className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-800 shadow-sm"
+          >
+            ✓ {query.player} {query.success === "added" ? "a bien été ajouté à l’effectif." : "a bien été enregistré."}
+          </div>
+        ) : null}
 
         <section className="mt-5 rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm sm:mt-6 sm:p-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -340,14 +360,18 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
                   ))}
                 </select>
 
-                <input
-                  name="sortOrder"
-                  type="number"
-                  min="0"
-                  defaultValue="0"
-                  placeholder="Ordre"
-                  className="rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-orange-300"
-                />
+                <label className="rounded-xl border border-neutral-200 bg-white px-4 py-2">
+                  <span className="block text-[11px] font-black uppercase tracking-wide text-neutral-400">Ordre dans la liste</span>
+                  <input
+                    name="sortOrder"
+                    type="number"
+                    min="0"
+                    defaultValue="0"
+                    aria-label="Ordre dans la liste"
+                    title="0 = premier affiché, puis 1, 2, 3…"
+                    className="mt-1 w-full bg-transparent text-sm outline-none"
+                  />
+                </label>
 
                 <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
                   <input type="checkbox" name="photoConsent" />
@@ -471,14 +495,18 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
                           ))}
                         </select>
 
-                        <input
-                          name="sortOrder"
-                          type="number"
-                          min="0"
-                          defaultValue={player.sortOrder}
-                          placeholder="Ordre"
-                          className="rounded-xl border border-neutral-200 px-3 py-2 text-sm"
-                        />
+                        <label className="rounded-xl border border-neutral-200 bg-white px-3 py-1.5">
+                          <span className="block text-[10px] font-black uppercase tracking-wide text-neutral-400">Ordre dans la liste</span>
+                          <input
+                            name="sortOrder"
+                            type="number"
+                            min="0"
+                            defaultValue={player.sortOrder}
+                            aria-label="Ordre dans la liste"
+                            title="0 = premier affiché, puis 1, 2, 3…"
+                            className="mt-0.5 w-full bg-transparent text-sm outline-none"
+                          />
+                        </label>
                       </div>
 
                       <div className="mt-3">
@@ -527,7 +555,13 @@ export default async function AdminEquipeJoueursPage({ params }: PageProps) {
                         </div>
                       </div>
 
-                      <button className="min-h-11 flex-1 rounded-xl bg-csv-orange px-4 py-2 text-sm font-bold text-white lg:flex-none">
+                      <PlayerSaveState />
+
+                      <button
+                        type="submit"
+                        data-player-save="true"
+                        className="min-h-11 flex-1 rounded-xl bg-csv-orange px-4 py-2 text-sm font-bold text-white transition lg:flex-none"
+                      >
                         Enregistrer
                       </button>
 

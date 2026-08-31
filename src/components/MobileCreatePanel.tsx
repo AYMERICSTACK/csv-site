@@ -37,7 +37,7 @@ export default function MobileCreatePanel({
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="inline-flex w-full items-center justify-center rounded-2xl bg-csv-orange px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 sm:w-auto"
+          className={`inline-flex w-full items-center justify-center rounded-2xl bg-csv-orange px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 sm:w-auto ${defaultOpenOnDesktop ? "lg:hidden" : ""}`}
         >
           {isOpen ? "Fermer" : buttonLabel}
         </button>

@@ -42,3 +42,6 @@ next-env.d.ts
 
 /src/generated/prisma
 *.zip
+
+# Scripts SQL locaux / ponctuels
+scripts/*.sql

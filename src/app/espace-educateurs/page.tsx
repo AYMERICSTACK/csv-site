@@ -116,7 +116,6 @@ export default async function EspaceEducateursPage() {
     ) ?? null;
 
   const lastMatch = [...finishedMatches]
-    .filter((match) => match.matchDate <= now)
     .sort((a, b) => b.matchDate.getTime() - a.matchDate.getTime())[0] ?? null;
 
   const record = finishedMatches.reduce(
@@ -202,6 +201,12 @@ export default async function EspaceEducateursPage() {
                   <p className="mt-1 text-sm font-medium text-neutral-600">
                     Coach : {favoriteTeam.coach || "À renseigner"}
                   </p>
+                  <Link
+                    href="/admin/equipes"
+                    className="mt-3 inline-flex items-center gap-2 text-sm font-black text-orange-700 transition hover:text-orange-600"
+                  >
+                    <Star className="h-4 w-4" /> Changer mon équipe favorite
+                  </Link>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
