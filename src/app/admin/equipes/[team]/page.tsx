@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
+import CompositionPlayerEditor from "@/components/CompositionPlayerEditor";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
@@ -112,65 +113,15 @@ function PlayerAvatar({ player }: { player: TeamPlayer }) {
   );
 }
 
-function formatCompositionName(player: TeamPlayer) {
-  const firstName = player.firstName.trim();
-  const lastInitial = player.lastName.trim()[0];
-
-  if (!lastInitial) return firstName;
-
-  return `${firstName}.${lastInitial.toUpperCase()}`;
-}
-
-function CompositionPlayerCard({ player }: { player: TeamPlayer }) {
-  const sideLabel = getPositionSideLabel(player.positionSide);
-  const displayName = formatCompositionName(player);
-  const fullName = `${player.firstName} ${player.lastName}`;
-
-  return (
-    <div className="mx-auto grid h-[92px] w-full min-w-0 grid-cols-[34px_minmax(0,1fr)] items-center gap-2 rounded-2xl border border-white/20 bg-white/95 p-2 text-neutral-950 shadow-sm">
-      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-neutral-100 text-xs font-black text-neutral-500">
-        {player.photoConsent && player.photoUrl ? (
-          <img
-            src={player.photoUrl}
-            alt={fullName}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          initials(player.firstName, player.lastName)
-        )}
-      </div>
-
-      <div className="min-w-0 overflow-hidden">
-        <div
-          title={fullName}
-          className="truncate text-[11px] font-black leading-tight tracking-tight text-neutral-950 sm:text-xs"
-        >
-          {displayName}
-        </div>
-
-        <div className="mt-1 space-y-0.5">
-          <div className="truncate text-[9px] font-black leading-tight text-orange-700">
-            {getPositionLabel(player.position)}
-          </div>
-
-          {sideLabel ? (
-            <div className="truncate text-[9px] font-black leading-tight text-neutral-700">
-              {sideLabel}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function PitchSlot({
   title,
   players,
+  updatePositionAction,
   compact = false,
 }: {
   title: string;
   players: TeamPlayer[];
+  updatePositionAction: (formData: FormData) => Promise<void>;
   compact?: boolean;
 }) {
   return (
@@ -186,7 +137,11 @@ function PitchSlot({
       {players.length ? (
         <div className="space-y-2">
           {players.map((player) => (
-            <CompositionPlayerCard key={player.id} player={player} />
+            <CompositionPlayerEditor
+              key={player.id}
+              player={player}
+              action={updatePositionAction}
+            />
           ))}
         </div>
       ) : (
@@ -239,6 +194,49 @@ export default async function AdminEquipeDetailPage({
   if (!teamName) redirect("/admin/equipes");
 
   const normalizedCurrentTeam = normalizeTeamName(teamName);
+
+  async function updatePlayerPosition(formData: FormData) {
+    "use server";
+
+    await requireRole(["admin", "educateurs"]);
+
+    const playerId = String(formData.get("playerId") || "").trim();
+    const position = String(formData.get("position") || "").trim();
+    const positionSide = String(formData.get("positionSide") || "").trim();
+
+    if (!playerId || !position) return;
+
+    const allowedPositions = new Set(["GK", "DEF", "MID", "ATT"]);
+    const allowedSidesByPosition: Record<string, Set<string>> = {
+      GK: new Set([""]),
+      DEF: new Set(["DG", "DC", "DD"]),
+      MID: new Set(["MDC", "MC", "MOC"]),
+      ATT: new Set(["AG", "AD", "BU"]),
+    };
+
+    if (!allowedPositions.has(position)) return;
+
+    const normalizedSide = position === "GK" ? "" : positionSide;
+    if (!allowedSidesByPosition[position]?.has(normalizedSide)) return;
+
+    const player = await prisma.player.findUnique({
+      where: { id: playerId },
+      select: { team: true },
+    });
+
+    if (!player || normalizeTeamName(player.team || "") !== teamName) return;
+
+    await prisma.player.update({
+      where: { id: playerId },
+      data: {
+        position,
+        positionSide: normalizedSide || null,
+      },
+    });
+
+    revalidatePath(`/admin/equipes/${teamSlug}`);
+    revalidatePath(`/admin/equipes/${teamSlug}/joueurs`);
+  }
 
   const allPlayers = await prisma.player.findMany({
     where: { isActive: true },
@@ -492,12 +490,9 @@ export default async function AdminEquipeDetailPage({
                     <h3 className="mt-1 text-2xl font-black">{teamName}</h3>
                   </div>
 
-                  <Link
-                    href={`/admin/equipes/${teamSlug}/joueurs`}
-                    className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-black text-emerald-950 transition hover:bg-emerald-50"
-                  >
-                    Gérer les postes des joueurs
-                  </Link>
+                  <div className="inline-flex items-center justify-center rounded-xl bg-white/15 px-4 py-2 text-sm font-black text-white">
+                    Cliquez sur un joueur pour le déplacer
+                  </div>
                 </div>
 
                 <div className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-emerald-800/70 p-3 shadow-inner sm:p-5">
@@ -512,6 +507,7 @@ export default async function AdminEquipeDetailPage({
                       <PitchSlot
                         title="Avant-centre"
                         players={getPitchPlayers("BU")}
+                        updatePositionAction={updatePlayerPosition}
                       />
                       <div className="hidden sm:block" />
                     </div>
@@ -520,12 +516,14 @@ export default async function AdminEquipeDetailPage({
                       <PitchSlot
                         title="Ailier gauche"
                         players={getPitchPlayers("AG")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
                       <div className="hidden sm:block" />
                       <PitchSlot
                         title="Ailier droit"
                         players={getPitchPlayers("AD")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
                     </div>
@@ -534,16 +532,19 @@ export default async function AdminEquipeDetailPage({
                       <PitchSlot
                         title="Milieu défensif"
                         players={getPitchPlayers("MDC")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
                       <PitchSlot
                         title="Milieu relayeur"
                         players={getPitchPlayers("MC")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
                       <PitchSlot
                         title="Milieu offensif"
                         players={getPitchPlayers("MOC")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
                     </div>
@@ -552,6 +553,7 @@ export default async function AdminEquipeDetailPage({
                       <PitchSlot
                         title="Latéral gauche"
                         players={getPitchPlayers("DG")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
 
@@ -559,6 +561,7 @@ export default async function AdminEquipeDetailPage({
                         <PitchSlot
                           title="Défenseurs centraux"
                           players={getPitchPlayers("DC")}
+                          updatePositionAction={updatePlayerPosition}
                           compact
                         />
                       </div>
@@ -566,13 +569,18 @@ export default async function AdminEquipeDetailPage({
                       <PitchSlot
                         title="Latéral droit"
                         players={getPitchPlayers("DD")}
+                        updatePositionAction={updatePlayerPosition}
                         compact
                       />
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-start">
                       <div className="hidden sm:block" />
-                      <PitchSlot title="Gardien" players={goalkeeperPlayers} />
+                      <PitchSlot
+                        title="Gardien"
+                        players={goalkeeperPlayers}
+                        updatePositionAction={updatePlayerPosition}
+                      />
                       <div className="hidden sm:block" />
                     </div>
                   </div>
@@ -598,9 +606,10 @@ export default async function AdminEquipeDetailPage({
 
                     <div className="grid gap-3 md:grid-cols-2">
                       {unassignedPlayers.map((player) => (
-                        <CompositionPlayerCard
+                        <CompositionPlayerEditor
                           key={player.id}
                           player={player}
+                          action={updatePlayerPosition}
                         />
                       ))}
                     </div>
