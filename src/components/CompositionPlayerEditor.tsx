@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import type { FormEvent } from "react";
+import { createPortal } from "react-dom";
 
 type Player = {
   id: string;
@@ -66,6 +67,8 @@ function formatCompositionName(player: Player) {
 
 export default function CompositionPlayerEditor({ player, action }: Props) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [position, setPosition] = useState(player.position || "");
   const [positionSide, setPositionSide] = useState(player.positionSide || "");
   const [isPending, startTransition] = useTransition();
@@ -79,6 +82,16 @@ export default function CompositionPlayerEditor({ player, action }: Props) {
   const roleLabel = player.positionSide
     ? ROLE_LABELS[player.positionSide] || player.positionSide
     : null;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!savedMessage) return;
+    const timeout = window.setTimeout(() => setSavedMessage(null), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [savedMessage]);
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +120,7 @@ export default function CompositionPlayerEditor({ player, action }: Props) {
     startTransition(async () => {
       await action(formData);
       setOpen(false);
+      setSavedMessage(`${fullName} a été repositionné.`);
     });
   }
 
@@ -160,108 +174,130 @@ export default function CompositionPlayerEditor({ player, action }: Props) {
         </div>
       </button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/65 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setOpen(false);
-          }}
-        >
-          <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white text-neutral-950 shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 p-5 sm:p-6">
-              <div>
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
-                  Vue compo
-                </div>
-                <h3 className="mt-1 text-xl font-black">{fullName}</h3>
-                <p className="mt-1 text-sm font-semibold text-neutral-500">
-                  Modifiez son placement sans quitter le terrain.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl font-black text-neutral-600 transition hover:bg-neutral-200"
-                aria-label="Fermer"
+      {mounted && open
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-neutral-950/70 p-4 backdrop-blur-sm sm:p-6"
+              onMouseDown={(event) => {
+                if (event.currentTarget === event.target) setOpen(false);
+              }}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={`composition-editor-${player.id}`}
+                className="my-auto w-full max-w-[480px] overflow-hidden rounded-[1.75rem] bg-white text-neutral-950 shadow-2xl ring-1 ring-black/10"
               >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
-              <input type="hidden" name="playerId" value={player.id} />
-
-              <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-neutral-500">
-                  Poste principal
-                </label>
-                <select
-                  name="position"
-                  value={position}
-                  onChange={(event) => handlePositionChange(event.target.value)}
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
-                  required
-                >
-                  <option value="">Choisir un poste</option>
-                  {POSITIONS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-neutral-500">
-                  Rôle précis
-                </label>
-                {position === "GK" ? (
-                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-bold text-neutral-500">
-                    Gardien
+                <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-5 py-5 sm:px-6">
+                  <div className="min-w-0">
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
+                      Vue compo
+                    </div>
+                    <h3
+                      id={`composition-editor-${player.id}`}
+                      className="mt-1 truncate text-2xl font-black"
+                    >
+                      {fullName}
+                    </h3>
+                    <p className="mt-1 text-sm font-semibold leading-relaxed text-neutral-500">
+                      Modifiez son poste sans quitter la vue terrain.
+                    </p>
                   </div>
-                ) : (
-                  <select
-                    name="positionSide"
-                    value={positionSide}
-                    onChange={(event) => setPositionSide(event.target.value)}
-                    className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!position}
-                    required={Boolean(position)}
-                  >
-                    <option value="">Choisir un rôle</option>
-                    {roles.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {position === "GK" ? (
-                  <input type="hidden" name="positionSide" value="" />
-                ) : null}
-              </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex flex-1 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-black text-neutral-700 transition hover:bg-neutral-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="inline-flex flex-1 items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {isPending ? "Enregistrement…" : "Enregistrer"}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl font-black text-neutral-600 transition hover:bg-neutral-200 focus:outline-none focus:ring-4 focus:ring-orange-100"
+                    aria-label="Fermer"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+                  <input type="hidden" name="playerId" value={player.id} />
+
+                  <div>
+                    <label className="mb-2 block text-xs font-black uppercase tracking-wide text-neutral-500">
+                      Poste principal
+                    </label>
+                    <select
+                      name="position"
+                      value={position}
+                      onChange={(event) => handlePositionChange(event.target.value)}
+                      className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-sm font-bold outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
+                      required
+                    >
+                      <option value="">Choisir un poste</option>
+                      {POSITIONS.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-black uppercase tracking-wide text-neutral-500">
+                      Rôle précis
+                    </label>
+                    {position === "GK" ? (
+                      <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-sm font-bold text-neutral-500">
+                        Gardien
+                      </div>
+                    ) : (
+                      <select
+                        name="positionSide"
+                        value={positionSide}
+                        onChange={(event) => setPositionSide(event.target.value)}
+                        className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 text-sm font-bold outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={!position}
+                        required={Boolean(position)}
+                      >
+                        <option value="">Choisir un rôle</option>
+                        {roles.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {position === "GK" ? (
+                      <input type="hidden" name="positionSide" value="" />
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 border-t border-neutral-100 pt-5">
+                    <button
+                      type="button"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex min-h-12 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-black text-neutral-700 transition hover:bg-neutral-50"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isPending}
+                      className="inline-flex min-h-12 items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {isPending ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {mounted && savedMessage
+        ? createPortal(
+            <div className="fixed bottom-5 left-1/2 z-[10000] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-center text-sm font-black text-emerald-700 shadow-xl sm:bottom-7">
+              ✓ {savedMessage}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
