@@ -8,6 +8,12 @@ import { redirect } from "next/navigation";
 import NewMatchSmartForm from "@/components/NewMatchSmartForm";
 import { ArrowLeft, CalendarDays, CheckCircle2 } from "lucide-react";
 import { parseParisDateTime } from "@/lib/paris-datetime";
+import { CLUB_TEAMS } from "@/lib/teams";
+import {
+  getCompetitionDefinition,
+  getCompetitionLabel,
+  getEliminatedCompetitionKeys,
+} from "@/lib/competitions";
 
 async function createMatch(formData: FormData) {
   "use server";
@@ -20,9 +26,42 @@ async function createMatch(formData: FormData) {
   const rawMatchDate = String(formData.get("matchDate") || "").trim();
   const location = String(formData.get("location") || "").trim();
   const isHomeValue = String(formData.get("isHome") || "true").trim();
+  const competitionKey = String(formData.get("competitionKey") || "championship").trim();
+  const competitionCustomLabel = String(formData.get("competitionCustomLabel") || "").trim();
+  const roundLabel = String(formData.get("roundLabel") || "").trim();
 
   if (!category || !team || !opponent || !rawMatchDate || !location) {
     throw new Error("Tous les champs obligatoires doivent être remplis.");
+  }
+
+  const competition = getCompetitionDefinition(competitionKey);
+
+  if (!competition) {
+    throw new Error("Compétition invalide.");
+  }
+
+  const eligible = competition.teams === "all" || competition.teams.includes(team);
+  if (!eligible) {
+    throw new Error("Cette compétition n’est pas disponible pour cette équipe.");
+  }
+
+  if (competition.knockout) {
+    const previousMatches = await prisma.match.findMany({
+      where: { team, competitionKey },
+      select: {
+        team: true,
+        competitionKey: true,
+        status: true,
+        scoreTeam: true,
+        scoreOpponent: true,
+        penaltyScoreTeam: true,
+        penaltyScoreOpponent: true,
+      },
+    });
+
+    if (getEliminatedCompetitionKeys(team, previousMatches).includes(competitionKey)) {
+      throw new Error("Cette équipe est déjà éliminée de cette coupe.");
+    }
   }
 
   const matchDate = parseParisDateTime(rawMatchDate);
@@ -36,6 +75,10 @@ async function createMatch(formData: FormData) {
       location,
       isHome: isHomeValue === "true",
       status: "scheduled",
+      competitionKey,
+      competitionLabel: getCompetitionLabel(competitionKey, competitionCustomLabel),
+      competitionType: competition.type,
+      roundLabel: roundLabel || null,
       scoreTeam: null,
       scoreOpponent: null,
       scorers: null,
@@ -81,6 +124,23 @@ export default async function NewMatchPage({
   const favoriteTeam = shouldUseFavorite
     ? (currentUser?.favoriteTeam?.category ?? "")
     : "";
+
+  const cupMatches = await prisma.match.findMany({
+    where: { competitionType: "cup" },
+    select: {
+      team: true,
+      competitionKey: true,
+      status: true,
+      scoreTeam: true,
+      scoreOpponent: true,
+      penaltyScoreTeam: true,
+      penaltyScoreOpponent: true,
+    },
+  });
+
+  const eliminatedCompetitionKeysByTeam = Object.fromEntries(
+    CLUB_TEAMS.map((team) => [team, getEliminatedCompetitionKeys(team, cupMatches)]),
+  );
 
   return (
     <Container>
@@ -152,7 +212,10 @@ export default async function NewMatchPage({
               </div>
             </div>
 
-            <NewMatchSmartForm favoriteTeam={favoriteTeam} />
+            <NewMatchSmartForm
+              favoriteTeam={favoriteTeam}
+              eliminatedCompetitionKeysByTeam={eliminatedCompetitionKeysByTeam}
+            />
           </section>
 
           <section className="rounded-[1.75rem] border border-orange-100 bg-orange-50/50 p-5 shadow-sm md:p-6">

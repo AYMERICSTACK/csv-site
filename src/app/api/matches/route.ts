@@ -7,6 +7,7 @@ import {
   normalizeMatchStatus,
 } from "@/lib/match-status";
 import { parseParisDateTime } from "@/lib/paris-datetime";
+import { getCompetitionDefinition, getCompetitionLabel } from "@/lib/competitions";
 
 function unauthorizedResponse() {
   return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
@@ -47,6 +48,9 @@ export async function POST(request: Request) {
       scoreTeam,
       scoreOpponent,
       scorers,
+      competitionKey = "championship",
+      competitionCustomLabel,
+      roundLabel,
     } = body;
 
     if (
@@ -74,6 +78,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const competition = getCompetitionDefinition(competitionKey);
+    if (!competition || (competition.teams !== "all" && !competition.teams.includes(team))) {
+      return NextResponse.json({ error: "Compétition invalide pour cette équipe." }, { status: 400 });
+    }
+
     const normalizedScoreTeam = normalizeScore(scoreTeam);
     const normalizedScoreOpponent = normalizeScore(scoreOpponent);
     const normalizedStatus = normalizeMatchStatus(
@@ -91,6 +100,10 @@ export async function POST(request: Request) {
         location,
         isHome,
         status: normalizedStatus,
+        competitionKey,
+        competitionLabel: getCompetitionLabel(competitionKey, competitionCustomLabel),
+        competitionType: competition.type,
+        roundLabel: typeof roundLabel === "string" && roundLabel.trim() ? roundLabel.trim() : null,
         scoreTeam: normalizedScoreTeam,
         scoreOpponent: normalizedScoreOpponent,
         scorers:

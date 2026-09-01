@@ -27,9 +27,16 @@ type MatchItem = {
   scoreTeam: number | null;
   scoreOpponent: number | null;
   scorers: string | null;
+  competitionKey: string;
+  competitionLabel: string;
+  competitionType: string;
+  roundLabel: string | null;
+  penaltyScoreTeam: number | null;
+  penaltyScoreOpponent: number | null;
 };
 
 type TabKey = "all" | "upcoming" | "finished" | "cancelled";
+type CompetitionTab = "all" | "league" | "cup" | "friendly";
 
 type Props = {
   matches: MatchItem[];
@@ -122,6 +129,7 @@ export default function AdminMatchesBoard({
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [query, setQuery] = useState("");
+  const [competitionTab, setCompetitionTab] = useState<CompetitionTab>("all");
 
   const counts = useMemo(
     () => ({
@@ -144,14 +152,21 @@ export default function AdminMatchesBoard({
         (activeTab === "cancelled" && match.status === "cancelled");
 
       if (!matchesTab) return false;
+
+      const matchesCompetition =
+        competitionTab === "all" ||
+        match.competitionType === competitionTab ||
+        (competitionTab === "friendly" && match.competitionType === "other");
+
+      if (!matchesCompetition) return false;
       if (!normalizedQuery) return true;
 
-      return [match.category, match.team, match.opponent, match.location]
+      return [match.category, match.team, match.opponent, match.location, match.competitionLabel]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery);
     });
-  }, [activeTab, matches, query]);
+  }, [activeTab, competitionTab, matches, query]);
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
     { key: "all", label: "Tous", count: counts.all },
@@ -225,6 +240,28 @@ export default function AdminMatchesBoard({
         </div>
       </div>
 
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]">
+        {([
+          ["all", "Toutes compétitions"],
+          ["league", "Championnat"],
+          ["cup", "Coupes"],
+          ["friendly", "Amicaux / autres"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setCompetitionTab(key)}
+            className={`shrink-0 rounded-full border px-3 py-2 text-xs font-black transition ${
+              competitionTab === key
+                ? "border-orange-500 bg-orange-500 text-white"
+                : "border-neutral-200 bg-white text-neutral-600 hover:border-orange-200"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {filteredMatches.length === 0 ? (
         <div className="mt-6 rounded-3xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm font-semibold text-neutral-600">
           Aucun match ne correspond à ce filtre.
@@ -249,6 +286,9 @@ export default function AdminMatchesBoard({
                     </span>
                     <span className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-orange-700">
                       {match.isHome ? "Domicile" : "Extérieur"}
+                    </span>
+                    <span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-violet-700">
+                      {match.competitionLabel}{match.roundLabel ? ` · ${match.roundLabel}` : ""}
                     </span>
                   </div>
 
@@ -278,6 +318,11 @@ export default function AdminMatchesBoard({
                       <div className="mt-1 text-3xl font-black tracking-tight">
                         {formatScore(match.scoreTeam, match.scoreOpponent)}
                       </div>
+                      {match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null ? (
+                        <div className="mt-1 text-[11px] font-black text-orange-300">
+                          TAB {match.penaltyScoreTeam} - {match.penaltyScoreOpponent}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="sm:text-right">

@@ -3,9 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
+import {
+  getCompetitionDefinition,
+  getCompetitionsForTeam,
+} from "@/lib/competitions";
 
 type Props = {
   favoriteTeam?: string;
+  eliminatedCompetitionKeysByTeam?: Record<string, string[]>;
 };
 
 function getNextMatchDateForTeam(team: string) {
@@ -50,19 +55,30 @@ function getCategoryFromTeam(team: string) {
   );
 }
 
-export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
+export default function NewMatchSmartForm({
+  favoriteTeam = "",
+  eliminatedCompetitionKeysByTeam = {},
+}: Props) {
   const [team, setTeam] = useState(favoriteTeam);
   const [category, setCategory] = useState(getCategoryFromTeam(favoriteTeam));
   const [matchDate, setMatchDate] = useState(
     getNextMatchDateForTeam(favoriteTeam),
   );
+  const [competitionKey, setCompetitionKey] = useState("championship");
 
   const availableTeams = useMemo(
     () =>
       category
-        ? CLUB_TEAMS.filter((clubTeam) => getCategoryFromTeam(clubTeam) === category)
+        ? CLUB_TEAMS.filter(
+            (clubTeam) => getCategoryFromTeam(clubTeam) === category,
+          )
         : CLUB_TEAMS,
     [category],
+  );
+
+  const availableCompetitions = useMemo(
+    () => getCompetitionsForTeam(team, eliminatedCompetitionKeysByTeam[team] || []),
+    [team, eliminatedCompetitionKeysByTeam],
   );
 
   useEffect(() => {
@@ -72,14 +88,24 @@ export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
     }
   }, [category, team]);
 
+  useEffect(() => {
+    if (!team) return;
+    if (!availableCompetitions.some((item) => item.key === competitionKey)) {
+      setCompetitionKey("championship");
+    }
+  }, [availableCompetitions, competitionKey, team]);
+
   function handleTeamChange(nextTeam: string) {
     setTeam(nextTeam);
 
     if (nextTeam) {
       setCategory(getCategoryFromTeam(nextTeam));
       setMatchDate(getNextMatchDateForTeam(nextTeam));
+      setCompetitionKey("championship");
     }
   }
+
+  const selectedCompetition = getCompetitionDefinition(competitionKey);
 
   return (
     <div className="grid gap-5 md:grid-cols-2">
@@ -124,6 +150,66 @@ export default function NewMatchSmartForm({ favoriteTeam = "" }: Props) {
           ))}
         </select>
       </div>
+
+      <div className="md:col-span-2">
+        <label htmlFor="competitionKey" className="label">
+          Compétition
+        </label>
+        <select
+          id="competitionKey"
+          name="competitionKey"
+          value={competitionKey}
+          onChange={(event) => setCompetitionKey(event.target.value)}
+          className="input"
+          required
+          disabled={!team}
+        >
+          {!team ? <option value="championship">Choisis d’abord l’équipe</option> : null}
+          {availableCompetitions.map((competition) => (
+            <option key={competition.key} value={competition.key}>
+              {competition.label}
+            </option>
+          ))}
+        </select>
+
+        {selectedCompetition?.knockout ? (
+          <p className="mt-2 text-xs font-semibold text-orange-700">
+            Coupe à élimination directe : après une défaite, elle ne sera plus proposée à cette équipe pour la saison.
+          </p>
+        ) : null}
+      </div>
+
+      {competitionKey === "other" ? (
+        <div className="md:col-span-2">
+          <label htmlFor="competitionCustomLabel" className="label">
+            Nom de la compétition
+          </label>
+          <input
+            id="competitionCustomLabel"
+            name="competitionCustomLabel"
+            type="text"
+            className="input"
+            placeholder="Ex : Tournoi de préparation"
+            required
+          />
+        </div>
+      ) : null}
+
+      {selectedCompetition?.type === "cup" ? (
+        <div className="md:col-span-2">
+          <label htmlFor="roundLabel" className="label">
+            Tour (facultatif)
+          </label>
+          <input
+            id="roundLabel"
+            name="roundLabel"
+            type="text"
+            className="input"
+            placeholder="Ex : 1er tour, 32e de finale, demi-finale..."
+            autoComplete="off"
+          />
+        </div>
+      ) : null}
 
       <div>
         <label htmlFor="opponent" className="label">

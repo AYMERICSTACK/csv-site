@@ -16,10 +16,16 @@ model Match {
   location      String
   isHome        Boolean
   status        String
-  scoreTeam     Int?
-  scoreOpponent Int?
-  scorers       String?
-  createdAt     DateTime @default(now())
+  scoreTeam            Int?
+  scoreOpponent        Int?
+  penaltyScoreTeam     Int?
+  penaltyScoreOpponent Int?
+  competitionKey       String   @default("championship")
+  competitionLabel     String   @default("Championnat")
+  competitionType      String   @default("league")
+  roundLabel           String?
+  scorers               String?
+  createdAt             DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   goals         MatchGoal[]

@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
+import { didTeamLoseKnockoutMatch, getCompetitionLabel } from "@/lib/competitions";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -261,11 +262,30 @@ export default async function AdminEquipeDetailPage({
     (player) => normalizeTeamName(player.team || "") === normalizedCurrentTeam,
   );
 
-  const matches = allMatches
-    .filter(
-      (match) => normalizeTeamName(match.team || "") === normalizedCurrentTeam,
-    )
-    .slice(0, 8);
+  const teamMatches = allMatches.filter(
+    (match) => normalizeTeamName(match.team || "") === normalizedCurrentTeam,
+  );
+
+  const matches = teamMatches.slice(0, 8);
+
+  const cupGroups = Array.from(
+    teamMatches
+      .filter((match) => match.competitionType === "cup")
+      .reduce((groups, match) => {
+        const key = match.competitionKey;
+        const current = groups.get(key) || [];
+        current.push(match);
+        groups.set(key, current);
+        return groups;
+      }, new Map<string, typeof teamMatches>()),
+  ).map(([key, cupMatches]) => ({
+    key,
+    label: getCompetitionLabel(key, cupMatches[0]?.competitionLabel),
+    matches: [...cupMatches].sort(
+      (a, b) => a.matchDate.getTime() - b.matchDate.getTime(),
+    ),
+    eliminated: cupMatches.some((match) => didTeamLoseKnockoutMatch(match)),
+  }));
 
   const topScorers = [...players]
     .sort((a, b) => (b.stats[0]?.goals || 0) - (a.stats[0]?.goals || 0))
@@ -743,6 +763,52 @@ export default async function AdminEquipeDetailPage({
               </div>
             </section>
 
+            {cupGroups.length ? (
+              <section className="rounded-[2rem] border border-orange-200 bg-orange-50/40 p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-black text-neutral-950">Parcours en coupe</h3>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-orange-700">🏆 Coupes</span>
+                </div>
+
+                <div className="mt-4 space-y-4">
+                  {cupGroups.map((cup) => (
+                    <div key={cup.key} className="rounded-2xl border border-orange-100 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="font-black text-neutral-950">{cup.label}</div>
+                        <span className={`rounded-full px-3 py-1 text-[11px] font-black ${
+                          cup.eliminated
+                            ? "bg-red-50 text-red-700"
+                            : "bg-green-50 text-green-700"
+                        }`}>
+                          {cup.eliminated ? "Éliminé" : "En course"}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {cup.matches.map((match) => (
+                          <Link
+                            key={match.id}
+                            href={`/admin/matchs/${match.id}/edit`}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-xs transition hover:bg-orange-50"
+                          >
+                            <span className="font-bold text-neutral-700">
+                              {match.roundLabel || "Tour de coupe"} · {match.opponent}
+                            </span>
+                            <span className="font-black text-neutral-950">
+                              {match.scoreTeam ?? "-"} - {match.scoreOpponent ?? "-"}
+                              {match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null
+                                ? ` (TAB ${match.penaltyScoreTeam}-${match.penaltyScoreOpponent})`
+                                : ""}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm">
               <h3 className="text-lg font-black text-neutral-950">
                 Derniers matchs
@@ -760,11 +826,15 @@ export default async function AdminEquipeDetailPage({
                     </div>
 
                     <div className="mt-1 text-xs font-semibold text-neutral-500">
-                      {new Date(match.matchDate).toLocaleDateString("fr-FR")}
+                      {new Date(match.matchDate).toLocaleDateString("fr-FR")} · {getCompetitionLabel(match.competitionKey, match.competitionLabel)}
+                      {match.roundLabel ? ` · ${match.roundLabel}` : ""}
                     </div>
 
                     <div className="mt-2 text-sm font-black text-csv-orange">
                       {match.scoreTeam ?? "-"} - {match.scoreOpponent ?? "-"}
+                      {match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null
+                        ? ` · TAB ${match.penaltyScoreTeam}-${match.penaltyScoreOpponent}`
+                        : ""}
                     </div>
                   </Link>
                 ))}

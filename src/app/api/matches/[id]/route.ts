@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { hasCurrentUserRole } from "@/lib/auth-guard";
 import { hasOnlyOneScoreFilled } from "@/lib/match-status";
 import { parseParisDateTime } from "@/lib/paris-datetime";
+import { getCompetitionDefinition, getCompetitionLabel } from "@/lib/competitions";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -82,6 +83,11 @@ export async function PUT(request: Request, { params }: RouteContext) {
       scoreTeam,
       scoreOpponent,
       scorers,
+      competitionKey = "championship",
+      competitionCustomLabel,
+      roundLabel,
+      penaltyScoreTeam,
+      penaltyScoreOpponent,
     } = body;
 
     if (
@@ -117,6 +123,11 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Match introuvable" }, { status: 404 });
     }
 
+    const competition = getCompetitionDefinition(competitionKey);
+    if (!competition || (competition.teams !== "all" && !competition.teams.includes(team))) {
+      return NextResponse.json({ error: "Compétition invalide pour cette équipe." }, { status: 400 });
+    }
+
     const normalizedScoreTeam = normalizeScore(scoreTeam);
     const normalizedScoreOpponent = normalizeScore(scoreOpponent);
     const allowedStatuses = ["scheduled", "finished", "postponed", "cancelled"] as const;
@@ -136,6 +147,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
         location,
         isHome,
         status: selectedStatus,
+        competitionKey,
+        competitionLabel: getCompetitionLabel(competitionKey, competitionCustomLabel),
+        competitionType: competition.type,
+        roundLabel: typeof roundLabel === "string" && roundLabel.trim() ? roundLabel.trim() : null,
+        penaltyScoreTeam: normalizeScore(penaltyScoreTeam),
+        penaltyScoreOpponent: normalizeScore(penaltyScoreOpponent),
         scoreTeam: normalizedScoreTeam,
         scoreOpponent: normalizedScoreOpponent,
         scorers:

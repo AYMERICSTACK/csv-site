@@ -42,22 +42,55 @@ function PlayerSelect({
   players: PlayerOption[];
   onChange: (value: string) => void;
 }) {
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
-    >
-      <option value="">Sélectionner un joueur</option>
+  const [query, setQuery] = useState("");
 
-      {players.map((player) => (
-        <option key={player.id} value={player.id}>
-          {player.firstName} {player.lastName}
-          {player.category ? ` — ${player.category}` : ""}
-          {player.team ? ` / ${player.team}` : ""}
-        </option>
-      ))}
-    </select>
+  const filteredPlayers = useMemo(() => {
+    const normalizedQuery = normalize(query);
+    if (!normalizedQuery) return players;
+
+    return players.filter((player) =>
+      normalize(
+        `${player.lastName} ${player.firstName} ${player.firstName} ${player.lastName} ${player.team || ""} ${player.category || ""}`,
+      ).includes(normalizedQuery),
+    );
+  }, [players, query]);
+
+  return (
+    <div className="space-y-2">
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-900 outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
+        placeholder="Rechercher un joueur..."
+        autoComplete="off"
+      />
+
+      <select
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setQuery("");
+        }}
+        className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
+      >
+        <option value="">Sélectionner un joueur</option>
+
+        {filteredPlayers.map((player) => (
+          <option key={player.id} value={player.id}>
+            {player.lastName.toUpperCase()} {player.firstName}
+            {player.category ? ` — ${player.category}` : ""}
+            {player.team ? ` / ${player.team}` : ""}
+          </option>
+        ))}
+      </select>
+
+      {query && filteredPlayers.length === 0 ? (
+        <p className="px-1 text-xs font-semibold text-red-600">
+          Aucun joueur ne correspond à cette recherche.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

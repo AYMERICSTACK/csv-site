@@ -4,11 +4,19 @@ import Container from "@/components/Container";
 import { prisma } from "@/lib/prisma";
 import { refreshPlayerStats } from "@/lib/player-stats";
 import MatchGoalsFields from "@/components/MatchGoalsFields";
+import CompetitionFields from "@/components/CompetitionFields";
+import PenaltyFields from "@/components/PenaltyFields";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
 import { hasOnlyOneScoreFilled } from "@/lib/match-status";
 import { parseParisDateTime } from "@/lib/paris-datetime";
 import { requireRole } from "@/lib/auth-guard";
+import {
+  competitionAllowsPenalties,
+  getCompetitionDefinition,
+  getCompetitionLabel,
+  isKnockoutCompetition,
+} from "@/lib/competitions";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -79,6 +87,11 @@ export default async function EditMatchPage({ params }: PageProps) {
     const scoreOpponentValue = String(
       formData.get("scoreOpponent") || "",
     ).trim();
+    const competitionKey = String(formData.get("competitionKey") || "championship").trim();
+    const competitionCustomLabel = String(formData.get("competitionCustomLabel") || "").trim();
+    const roundLabel = String(formData.get("roundLabel") || "").trim();
+    const penaltyScoreTeamValue = String(formData.get("penaltyScoreTeam") || "").trim();
+    const penaltyScoreOpponentValue = String(formData.get("penaltyScoreOpponent") || "").trim();
 
     const goalPlayerIds = formData
       .getAll("goalPlayerId")
@@ -98,12 +111,54 @@ export default async function EditMatchPage({ params }: PageProps) {
       throw new Error("Les deux scores doivent être remplis.");
     }
 
+    const competition = getCompetitionDefinition(competitionKey);
+    if (!competition) throw new Error("Compétition invalide.");
+
+    const eligible = competition.teams === "all" || competition.teams.includes(team);
+    if (!eligible) throw new Error("Cette compétition n’est pas disponible pour cette équipe.");
+
     const allowedStatuses = ["scheduled", "finished", "postponed", "cancelled"] as const;
     const selectedStatus = allowedStatuses.includes(
       status as (typeof allowedStatuses)[number],
     )
       ? status
       : "scheduled";
+
+    const hasPenaltyTeam = penaltyScoreTeamValue !== "";
+    const hasPenaltyOpponent = penaltyScoreOpponentValue !== "";
+    if (hasPenaltyTeam !== hasPenaltyOpponent) {
+      throw new Error("Renseigne les deux scores de la séance de tirs au but.");
+    }
+
+    let penaltyScoreTeam: number | null = null;
+    let penaltyScoreOpponent: number | null = null;
+    if (hasPenaltyTeam && hasPenaltyOpponent) {
+      penaltyScoreTeam = Number(penaltyScoreTeamValue);
+      penaltyScoreOpponent = Number(penaltyScoreOpponentValue);
+      if (
+        !competitionAllowsPenalties(competitionKey) ||
+        !Number.isInteger(penaltyScoreTeam) ||
+        !Number.isInteger(penaltyScoreOpponent) ||
+        penaltyScoreTeam < 0 ||
+        penaltyScoreOpponent < 0 ||
+        penaltyScoreTeam === penaltyScoreOpponent
+      ) {
+        throw new Error("La séance de tirs au but n’est pas valide.");
+      }
+      if (scoreTeamValue !== scoreOpponentValue) {
+        throw new Error("Les tirs au but ne peuvent être saisis que si le score du match est à égalité.");
+      }
+    }
+
+    if (
+      selectedStatus === "finished" &&
+      isKnockoutCompetition(competitionKey) &&
+      scoreTeamValue !== "" &&
+      scoreTeamValue === scoreOpponentValue &&
+      penaltyScoreTeam === null
+    ) {
+      throw new Error("Ce match de coupe est à égalité : renseigne les tirs au but.");
+    }
 
     const selectedGoalPlayers = await prisma.player.findMany({
       where: {
@@ -155,6 +210,12 @@ export default async function EditMatchPage({ params }: PageProps) {
           location,
           isHome: isHomeValue === "true",
           status: selectedStatus,
+          competitionKey,
+          competitionLabel: getCompetitionLabel(competitionKey, competitionCustomLabel),
+          competitionType: competition.type,
+          roundLabel: roundLabel || null,
+          penaltyScoreTeam,
+          penaltyScoreOpponent,
           scoreTeam: scoreTeamValue ? Number(scoreTeamValue) : null,
           scoreOpponent: scoreOpponentValue ? Number(scoreOpponentValue) : null,
           scorers: scorersText || null,
@@ -267,6 +328,15 @@ export default async function EditMatchPage({ params }: PageProps) {
                 <div className="mt-1 text-3xl font-black">
                   {match.scoreTeam ?? "-"} - {match.scoreOpponent ?? "-"}
                 </div>
+                {match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null ? (
+                  <div className="mt-1 text-xs font-black text-orange-300">
+                    TAB {match.penaltyScoreTeam} - {match.penaltyScoreOpponent}
+                  </div>
+                ) : null}
+                <div className="mt-2 text-xs font-bold text-white/60">
+                  {getCompetitionLabel(match.competitionKey, match.competitionLabel)}
+                  {match.roundLabel ? ` · ${match.roundLabel}` : ""}
+                </div>
               </div>
             </div>
           </div>
@@ -336,6 +406,15 @@ export default async function EditMatchPage({ params }: PageProps) {
                     defaultValue={match.location}
                     className="input md:col-span-2"
                     placeholder="Lieu"
+                  />
+                </div>
+
+                <div className="mt-5 border-t border-neutral-100 pt-5">
+                  <CompetitionFields
+                    initialTeam={match.team}
+                    initialCompetitionKey={match.competitionKey}
+                    initialCompetitionLabel={match.competitionLabel}
+                    initialRoundLabel={match.roundLabel}
                   />
                 </div>
               </section>
@@ -421,6 +500,13 @@ export default async function EditMatchPage({ params }: PageProps) {
                       placeholder="Adv."
                     />
                   </div>
+
+                  {competitionAllowsPenalties(match.competitionKey) ? (
+                    <PenaltyFields
+                      initialTeam={match.penaltyScoreTeam}
+                      initialOpponent={match.penaltyScoreOpponent}
+                    />
+                  ) : null}
                 </div>
 
                 <div className="mt-6 grid gap-3">

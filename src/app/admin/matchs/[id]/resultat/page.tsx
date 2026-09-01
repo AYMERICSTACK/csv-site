@@ -4,9 +4,15 @@ import { revalidatePath } from "next/cache";
 import { ArrowLeft, CheckCircle2, MapPin, Trophy } from "lucide-react";
 import Container from "@/components/Container";
 import MatchGoalsFields from "@/components/MatchGoalsFields";
+import PenaltyFields from "@/components/PenaltyFields";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guard";
 import { refreshPlayerStats } from "@/lib/player-stats";
+import {
+  competitionAllowsPenalties,
+  getCompetitionLabel,
+  isKnockoutCompetition,
+} from "@/lib/competitions";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -29,6 +35,7 @@ export default async function QuickResultPage({ params }: PageProps) {
 
   const match = await prisma.match.findUnique({ where: { id } });
   if (!match) redirect("/admin/matchs");
+  const competitionKey = match.competitionKey;
 
   const [players, goalEvents, assistEvents] = await Promise.all([
     prisma.player.findMany({
@@ -45,6 +52,8 @@ export default async function QuickResultPage({ params }: PageProps) {
 
     const scoreTeamValue = String(formData.get("scoreTeam") || "").trim();
     const scoreOpponentValue = String(formData.get("scoreOpponent") || "").trim();
+    const penaltyScoreTeamValue = String(formData.get("penaltyScoreTeam") || "").trim();
+    const penaltyScoreOpponentValue = String(formData.get("penaltyScoreOpponent") || "").trim();
 
     if (scoreTeamValue === "" || scoreOpponentValue === "") {
       throw new Error("Renseigne les deux scores.");
@@ -60,6 +69,42 @@ export default async function QuickResultPage({ params }: PageProps) {
       scoreOpponent < 0
     ) {
       throw new Error("Le score doit contenir deux nombres entiers positifs.");
+    }
+
+    const allowsPenalties = competitionAllowsPenalties(competitionKey);
+    const isKnockout = isKnockoutCompetition(competitionKey);
+    const hasPenaltyTeam = penaltyScoreTeamValue !== "";
+    const hasPenaltyOpponent = penaltyScoreOpponentValue !== "";
+
+    if (hasPenaltyTeam !== hasPenaltyOpponent) {
+      throw new Error("Renseigne les deux scores de la séance de tirs au but.");
+    }
+
+    let penaltyScoreTeam: number | null = null;
+    let penaltyScoreOpponent: number | null = null;
+
+    if (hasPenaltyTeam && hasPenaltyOpponent) {
+      penaltyScoreTeam = Number(penaltyScoreTeamValue);
+      penaltyScoreOpponent = Number(penaltyScoreOpponentValue);
+
+      if (
+        !allowsPenalties ||
+        !Number.isInteger(penaltyScoreTeam) ||
+        !Number.isInteger(penaltyScoreOpponent) ||
+        penaltyScoreTeam < 0 ||
+        penaltyScoreOpponent < 0 ||
+        penaltyScoreTeam === penaltyScoreOpponent
+      ) {
+        throw new Error("La séance de tirs au but n’est pas valide.");
+      }
+
+      if (scoreTeam !== scoreOpponent) {
+        throw new Error("Les tirs au but ne peuvent être saisis que si le score du match est à égalité.");
+      }
+    }
+
+    if (isKnockout && scoreTeam === scoreOpponent && penaltyScoreTeam === null) {
+      throw new Error("Ce match de coupe est à égalité : renseigne la séance de tirs au but pour déterminer le qualifié.");
     }
 
     const goalPlayerIds = formData
@@ -101,6 +146,8 @@ export default async function QuickResultPage({ params }: PageProps) {
         data: {
           scoreTeam,
           scoreOpponent,
+          penaltyScoreTeam,
+          penaltyScoreOpponent,
           status: "finished",
           scorers: scorersText || null,
         },
@@ -186,6 +233,7 @@ export default async function QuickResultPage({ params }: PageProps) {
             <span>{formatMatchDate(match.matchDate)}</span>
             <span className="inline-flex items-center gap-1.5"><MapPin size={14} /> {match.location}</span>
             <span>{match.isHome ? "Domicile" : "Extérieur"}</span>
+            <span className="font-black text-orange-700">{getCompetitionLabel(match.competitionKey, match.competitionLabel)}{match.roundLabel ? ` · ${match.roundLabel}` : ""}</span>
           </div>
         </section>
 
@@ -226,8 +274,15 @@ export default async function QuickResultPage({ params }: PageProps) {
               </label>
             </div>
 
+            {competitionAllowsPenalties(match.competitionKey) ? (
+              <PenaltyFields
+                initialTeam={match.penaltyScoreTeam}
+                initialOpponent={match.penaltyScoreOpponent}
+              />
+            ) : null}
+
             <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
-              <div className="flex gap-2"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>À l’enregistrement, le match passe automatiquement en <strong>Terminé</strong>.</span></div>
+              <div className="flex gap-2"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>À l’enregistrement, le match passe automatiquement en <strong>Terminé</strong>. En coupe, une défaite retire automatiquement cette compétition des prochains matchs de l’équipe.</span></div>
             </div>
 
             <button className="mt-5 w-full rounded-2xl bg-orange-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
