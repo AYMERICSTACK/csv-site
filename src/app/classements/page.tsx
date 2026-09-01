@@ -3,6 +3,7 @@ export const revalidate = 300;
 import Container from "@/components/Container";
 import PublicRankingsBoard from "@/components/PublicRankingsBoard";
 import { prisma } from "@/lib/prisma";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 import {
   CURRENT_FOOTBALL_SEASON,
   getFootballSeasonDateRange,
@@ -10,6 +11,58 @@ import {
 
 const FFF_CLUB_URL =
   "https://epreuves.fff.fr/competition/club/504312-c-s-viriat/club";
+
+
+function getParisWeekendRanges(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
+
+  // Date calendrier uniquement : UTC évite que le fuseau du serveur ne décale le jour.
+  const today = new Date(Date.UTC(values.year, values.month - 1, values.day));
+  const dayOfWeek = today.getUTCDay();
+
+  // Pour le club, le "week-end football" va du vendredi au dimanche inclus.
+  // Du lundi au jeudi, on vise le vendredi qui arrive ; du vendredi au dimanche,
+  // on reste sur le week-end en cours.
+  const daysUntilFriday =
+    dayOfWeek >= 1 && dayOfWeek <= 4 ? 5 - dayOfWeek : dayOfWeek === 5 ? 0 : dayOfWeek === 6 ? -1 : -2;
+
+  const friday = new Date(today);
+  friday.setUTCDate(today.getUTCDate() + daysUntilFriday);
+
+  const previousFriday = new Date(friday);
+  previousFriday.setUTCDate(friday.getUTCDate() - 7);
+
+  const formatDate = (date: Date) =>
+    `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(
+      date.getUTCDate(),
+    ).padStart(2, "0")}`;
+
+  const range = (startDay: Date) => {
+    const monday = new Date(startDay);
+    monday.setUTCDate(startDay.getUTCDate() + 3);
+
+    return {
+      start: parseParisDateTime(`${formatDate(startDay)}T00:00`),
+      end: parseParisDateTime(`${formatDate(monday)}T00:00`),
+    };
+  };
+
+  return {
+    upcomingWeekend: range(friday),
+    previousWeekend: range(previousFriday),
+  };
+}
 
 const defaultOfficialTeamRankings = [
   { label: "Seniors 1", category: "Seniors", level: "Équipe fanion" },
@@ -30,6 +83,7 @@ export default async function ClassementsPage() {
   const season = CURRENT_FOOTBALL_SEASON;
   const { start, end } = getFootballSeasonDateRange(season);
   const now = new Date();
+  const { upcomingWeekend, previousWeekend } = getParisWeekendRanges(now);
 
   const [players, teamSettings, seasonMatches] = await Promise.all([
     prisma.player.findMany({
@@ -96,9 +150,13 @@ export default async function ClassementsPage() {
     0,
   );
 
-  const recentResults = [...completedMatches]
-    .sort((a, b) => b.matchDate.getTime() - a.matchDate.getTime())
-    .slice(0, 4)
+  const recentResults = completedMatches
+    .filter(
+      (match) =>
+        match.matchDate >= previousWeekend.start &&
+        match.matchDate < previousWeekend.end,
+    )
+    .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime())
     .map((match) => ({
       id: match.id,
       category: match.category,
@@ -114,11 +172,11 @@ export default async function ClassementsPage() {
   const upcomingMatches = seasonMatches
     .filter(
       (match) =>
-        match.matchDate >= now &&
+        match.matchDate >= upcomingWeekend.start &&
+        match.matchDate < upcomingWeekend.end &&
         match.status !== "finished" &&
         match.status !== "cancelled",
     )
-    .slice(0, 4)
     .map((match) => ({
       id: match.id,
       category: match.category,

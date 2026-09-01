@@ -406,7 +406,7 @@ export default function PublicRankingsBoard({
                 Dernières rencontres
               </div>
               <h2 className="mt-2 text-2xl font-black text-neutral-950">
-                Résultats récents
+                Résultats du dernier week-end
               </h2>
             </div>
             <Link
@@ -467,7 +467,7 @@ export default function PublicRankingsBoard({
               })
             ) : (
               <div className="rounded-2xl border border-dashed border-neutral-200 p-7 text-center text-sm font-semibold text-neutral-500">
-                Aucun résultat enregistré pour le moment.
+                Aucun résultat enregistré le week-end dernier.
               </div>
             )}
           </div>
@@ -480,7 +480,7 @@ export default function PublicRankingsBoard({
                 À venir
               </div>
               <h2 className="mt-2 text-2xl font-black text-neutral-950">
-                Prochains matchs
+                Prochains matchs du week-end
               </h2>
             </div>
             <Link
@@ -532,7 +532,7 @@ export default function PublicRankingsBoard({
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-7 text-center text-sm font-semibold text-neutral-500">
-                Aucun match programmé pour le moment.
+                Aucun match programmé ce week-end.
               </div>
             )}
           </div>
