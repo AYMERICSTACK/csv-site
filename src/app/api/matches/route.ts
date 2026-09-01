@@ -6,14 +6,7 @@ import {
   hasOnlyOneScoreFilled,
   normalizeMatchStatus,
 } from "@/lib/match-status";
-
-function parseLocalDateTime(value: string) {
-  const [datePart, timePart] = value.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hours, minutes] = timePart.split(":").map(Number);
-
-  return new Date(year, month - 1, day, hours, minutes);
-}
+import { parseParisDateTime } from "@/lib/paris-datetime";
 
 function unauthorizedResponse() {
   return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
@@ -94,7 +87,7 @@ export async function POST(request: Request) {
         category,
         team,
         opponent,
-        matchDate: parseLocalDateTime(matchDate),
+        matchDate: parseParisDateTime(matchDate),
         location,
         isHome,
         status: normalizedStatus,

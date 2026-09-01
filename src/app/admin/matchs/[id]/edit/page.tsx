@@ -6,25 +6,13 @@ import { refreshPlayerStats } from "@/lib/player-stats";
 import MatchGoalsFields from "@/components/MatchGoalsFields";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
-import {
-  hasOnlyOneScoreFilled,
-  normalizeMatchStatus,
-} from "@/lib/match-status";
+import { hasOnlyOneScoreFilled } from "@/lib/match-status";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 import { requireRole } from "@/lib/auth-guard";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
-
-/* ================= HELPERS ================= */
-
-function parseLocalDateTime(value: string) {
-  const [datePart, timePart] = value.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hours, minutes] = timePart.split(":").map(Number);
-
-  return new Date(year, month - 1, day, hours, minutes);
-}
 
 /* ================= PAGE ================= */
 
@@ -110,11 +98,12 @@ export default async function EditMatchPage({ params }: PageProps) {
       throw new Error("Les deux scores doivent être remplis.");
     }
 
-    const normalizedStatus = normalizeMatchStatus(
-      status,
-      scoreTeamValue,
-      scoreOpponentValue,
-    );
+    const allowedStatuses = ["scheduled", "finished", "postponed", "cancelled"] as const;
+    const selectedStatus = allowedStatuses.includes(
+      status as (typeof allowedStatuses)[number],
+    )
+      ? status
+      : "scheduled";
 
     const selectedGoalPlayers = await prisma.player.findMany({
       where: {
@@ -162,10 +151,10 @@ export default async function EditMatchPage({ params }: PageProps) {
           category,
           team,
           opponent,
-          matchDate: parseLocalDateTime(matchDate),
+          matchDate: parseParisDateTime(matchDate),
           location,
           isHome: isHomeValue === "true",
-          status: normalizedStatus,
+          status: selectedStatus,
           scoreTeam: scoreTeamValue ? Number(scoreTeamValue) : null,
           scoreOpponent: scoreOpponentValue ? Number(scoreOpponentValue) : null,
           scorers: scorersText || null,

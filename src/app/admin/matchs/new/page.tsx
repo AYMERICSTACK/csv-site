@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import NewMatchSmartForm from "@/components/NewMatchSmartForm";
 import { ArrowLeft, CalendarDays, CheckCircle2 } from "lucide-react";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 
 async function createMatch(formData: FormData) {
   "use server";
@@ -24,10 +25,7 @@ async function createMatch(formData: FormData) {
     throw new Error("Tous les champs obligatoires doivent être remplis.");
   }
 
-  const [datePart, timePart] = rawMatchDate.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hours, minutes] = timePart.split(":").map(Number);
-  const matchDate = new Date(year, month - 1, day, hours, minutes);
+  const matchDate = parseParisDateTime(rawMatchDate);
 
   const createdMatch = await prisma.match.create({
     data: {

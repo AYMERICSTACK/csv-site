@@ -2,18 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hasCurrentUserRole } from "@/lib/auth-guard";
-import {
-  hasOnlyOneScoreFilled,
-  normalizeMatchStatus,
-} from "@/lib/match-status";
-
-function parseLocalDateTime(value: string) {
-  const [datePart, timePart] = value.split("T");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hours, minutes] = timePart.split(":").map(Number);
-
-  return new Date(year, month - 1, day, hours, minutes);
-}
+import { hasOnlyOneScoreFilled } from "@/lib/match-status";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -129,11 +119,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
     const normalizedScoreTeam = normalizeScore(scoreTeam);
     const normalizedScoreOpponent = normalizeScore(scoreOpponent);
-    const normalizedStatus = normalizeMatchStatus(
-      status,
-      scoreTeam,
-      scoreOpponent,
-    );
+    const allowedStatuses = ["scheduled", "finished", "postponed", "cancelled"] as const;
+    const selectedStatus = allowedStatuses.includes(
+      status as (typeof allowedStatuses)[number],
+    )
+      ? status
+      : "scheduled";
 
     const updatedMatch = await prisma.match.update({
       where: { id },
@@ -141,10 +132,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
         category,
         team,
         opponent,
-        matchDate: parseLocalDateTime(matchDate),
+        matchDate: parseParisDateTime(matchDate),
         location,
         isHome,
-        status: normalizedStatus,
+        status: selectedStatus,
         scoreTeam: normalizedScoreTeam,
         scoreOpponent: normalizedScoreOpponent,
         scorers:
