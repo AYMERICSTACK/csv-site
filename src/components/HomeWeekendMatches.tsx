@@ -21,6 +21,10 @@ type HomeMatch = {
   scoreTeam: number | null;
   scoreOpponent: number | null;
   scorers: string | null;
+  competitionKey: string;
+  competitionLabel: string;
+  competitionType: string;
+  roundLabel: string | null;
 };
 
 function getHomeWeekendWindow(): WeekendWindow {
@@ -199,6 +203,37 @@ function formatRepeatedPlayers(value: string) {
     .join(", ");
 }
 
+function getCompetitionBadgeLabel(match: HomeMatch) {
+  const label = match.competitionLabel?.trim() || "Championnat";
+  const round = match.roundLabel?.trim();
+
+  return round ? `${label} · ${round}` : label;
+}
+
+function getCompetitionBadgeClasses(match: HomeMatch) {
+  if (match.competitionType === "cup") {
+    return "border border-violet-500/35 bg-violet-500/12 text-violet-200";
+  }
+
+  if (match.competitionType === "friendly") {
+    return "border border-sky-500/35 bg-sky-500/12 text-sky-200";
+  }
+
+  return "border border-white/15 bg-white/8 text-white/75";
+}
+
+function getUpcomingCompetitionBadgeClasses(match: HomeMatch) {
+  if (match.competitionType === "cup") {
+    return "border border-violet-200 bg-violet-50 text-violet-700";
+  }
+
+  if (match.competitionType === "friendly") {
+    return "border border-sky-200 bg-sky-50 text-sky-700";
+  }
+
+  return "border border-neutral-200 bg-neutral-50 text-neutral-700";
+}
+
 function ResultCard({ match }: { match: HomeMatch }) {
   if (match.scoreTeam === null || match.scoreOpponent === null) {
     return null;
@@ -229,6 +264,12 @@ function ResultCard({ match }: { match: HomeMatch }) {
                 className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
               >
                 {venueBadge.label}
+              </div>
+
+              <div
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${getCompetitionBadgeClasses(match)}`}
+              >
+                {getCompetitionBadgeLabel(match)}
               </div>
             </div>
 
@@ -326,6 +367,12 @@ function UpcomingCard({ match }: { match: HomeMatch }) {
               >
                 {venueBadge.label}
               </div>
+              <div
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${getUpcomingCompetitionBadgeClasses(match)}`}
+              >
+                {getCompetitionBadgeLabel(match)}
+              </div>
+
             </div>
 
             <h3 className="mt-2 text-base font-extrabold leading-tight text-neutral-900 sm:text-lg">
