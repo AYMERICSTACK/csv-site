@@ -15,6 +15,10 @@ type MatchItem = {
   scoreTeam: number | null;
   scoreOpponent: number | null;
   scorers: string | null;
+  competitionKey: string;
+  competitionLabel: string;
+  competitionType: string;
+  roundLabel: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -267,6 +271,37 @@ function ViewChip({
   );
 }
 
+function getCompetitionBadgeLabel(match: MatchItem) {
+  const label = match.competitionLabel?.trim() || "Championnat";
+  const round = match.roundLabel?.trim();
+
+  return round ? `${label} · ${round}` : label;
+}
+
+function getResultCompetitionBadgeClasses(match: MatchItem) {
+  if (match.competitionType === "cup") {
+    return "border border-violet-500/35 bg-violet-500/12 text-violet-200";
+  }
+
+  if (match.competitionType === "friendly") {
+    return "border border-sky-500/35 bg-sky-500/12 text-sky-200";
+  }
+
+  return "border border-white/15 bg-white/8 text-white/75";
+}
+
+function getUpcomingCompetitionBadgeClasses(match: MatchItem) {
+  if (match.competitionType === "cup") {
+    return "border border-violet-200 bg-violet-50 text-violet-700";
+  }
+
+  if (match.competitionType === "friendly") {
+    return "border border-sky-200 bg-sky-50 text-sky-700";
+  }
+
+  return "border border-neutral-200 bg-neutral-50 text-neutral-700";
+}
+
 function ResultCard({ match }: { match: MatchItem }) {
   if (match.scoreTeam === null || match.scoreOpponent === null) {
     return null;
@@ -300,6 +335,12 @@ function ResultCard({ match }: { match: MatchItem }) {
                 className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
               >
                 {match.isHome ? "Domicile" : "Extérieur"}
+              </div>
+
+              <div
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${getResultCompetitionBadgeClasses(match)}`}
+              >
+                {getCompetitionBadgeLabel(match)}
               </div>
             </div>
 
@@ -394,6 +435,12 @@ function UpcomingCard({ match }: { match: MatchItem }) {
                 className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${venueBadge.className}`}
               >
                 {match.isHome ? "Domicile" : "Extérieur"}
+              </div>
+
+              <div
+                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${getUpcomingCompetitionBadgeClasses(match)}`}
+              >
+                {getCompetitionBadgeLabel(match)}
               </div>
             </div>
 
