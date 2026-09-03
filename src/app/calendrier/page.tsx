@@ -16,50 +16,11 @@ function getRecentResultsRange() {
   return { start, end };
 }
 
-function getUpcomingWeekendRange() {
-  const now = new Date();
-  const day = now.getDay();
-
-  if (![4, 5, 6, 0].includes(day)) {
-    return null;
-  }
-
-  if (day === 0) {
-    const sundayStart = new Date(now);
-    sundayStart.setHours(0, 0, 0, 0);
-
-    const sundayEnd = new Date(now);
-    sundayEnd.setHours(23, 59, 59, 999);
-
-    return {
-      start: sundayStart,
-      end: sundayEnd,
-    };
-  }
-
-  const friday = new Date(now);
-  friday.setHours(18, 0, 0, 0);
-
-  let diffToFriday = 0;
-  if (day === 4) diffToFriday = 1;
-  if (day === 5) diffToFriday = 0;
-  if (day === 6) diffToFriday = -1;
-
-  friday.setDate(now.getDate() + diffToFriday);
-
-  const sunday = new Date(friday);
-  sunday.setDate(friday.getDate() + 2);
-  sunday.setHours(23, 59, 59, 999);
-
-  return {
-    start: friday,
-    end: sunday,
-  };
-}
-
 export default async function CalendrierPage() {
   const recentRange = getRecentResultsRange();
-  const upcomingRange = getUpcomingWeekendRange();
+  const now = new Date();
+  const upcomingLimit = new Date(now);
+  upcomingLimit.setDate(upcomingLimit.getDate() + 30);
 
   const [recentResults, upcomingMatches] = await Promise.all([
     prisma.match.findMany({
@@ -74,22 +35,20 @@ export default async function CalendrierPage() {
         matchDate: "desc",
       },
     }),
-    upcomingRange
-      ? prisma.match.findMany({
-          where: {
-            status: {
-              not: "finished",
-            },
-            matchDate: {
-              gte: upcomingRange.start,
-              lte: upcomingRange.end,
-            },
-          },
-          orderBy: {
-            matchDate: "asc",
-          },
-        })
-      : Promise.resolve([]),
+    prisma.match.findMany({
+      where: {
+        status: {
+          not: "finished",
+        },
+        matchDate: {
+          gte: now,
+          lte: upcomingLimit,
+        },
+      },
+      orderBy: {
+        matchDate: "asc",
+      },
+    }),
   ]);
 
   const recentResultsSerialized = recentResults.map((match) => ({

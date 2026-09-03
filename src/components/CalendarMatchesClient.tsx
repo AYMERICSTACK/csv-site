@@ -25,6 +25,14 @@ type MatchItem = {
 
 type FilterKey = "all" | "ecole" | "jeunes" | "seniors";
 type ViewFilterKey = "all" | "upcoming" | "results";
+type UpcomingPeriodKey = "this-weekend" | "next-weekend" | "later";
+
+type UpcomingPeriod = {
+  key: UpcomingPeriodKey;
+  label: string;
+  description: string;
+  matches: MatchItem[];
+};
 
 type Props = {
   recentResults: MatchItem[];
@@ -121,6 +129,85 @@ function getCategoryOrder(category: string) {
   if (value.includes("u6")) return 57;
 
   return 10;
+}
+
+function getParisDateKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function getDayOfWeekFromDateKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function getWeekendRanges() {
+  const today = getParisDateKey(new Date());
+  const dayOfWeek = getDayOfWeekFromDateKey(today);
+
+  // Week-end football du CSV : vendredi, samedi et dimanche.
+  const daysUntilFriday = dayOfWeek <= 4 ? 5 - dayOfWeek : dayOfWeek === 5 ? 0 : dayOfWeek === 6 ? -1 : -2;
+  const thisFriday = addDaysToDateKey(today, daysUntilFriday);
+  const thisSunday = addDaysToDateKey(thisFriday, 2);
+  const nextFriday = addDaysToDateKey(thisFriday, 7);
+  const nextSunday = addDaysToDateKey(nextFriday, 2);
+
+  return { thisFriday, thisSunday, nextFriday, nextSunday };
+}
+
+function groupUpcomingByPeriod(matches: MatchItem[]): UpcomingPeriod[] {
+  const { thisFriday, thisSunday, nextFriday, nextSunday } = getWeekendRanges();
+  const groups: Record<UpcomingPeriodKey, MatchItem[]> = {
+    "this-weekend": [],
+    "next-weekend": [],
+    later: [],
+  };
+
+  for (const match of matches) {
+    const dateKey = getParisDateKey(new Date(match.matchDate));
+
+    if (dateKey >= thisFriday && dateKey <= thisSunday) {
+      groups["this-weekend"].push(match);
+    } else if (dateKey >= nextFriday && dateKey <= nextSunday) {
+      groups["next-weekend"].push(match);
+    } else {
+      groups.later.push(match);
+    }
+  }
+
+  return [
+    {
+      key: "this-weekend",
+      label: "Ce week-end",
+      description: "Les rencontres du vendredi au dimanche qui arrive.",
+      matches: groups["this-weekend"],
+    },
+    {
+      key: "next-weekend",
+      label: "Week-end prochain",
+      description: "Les rencontres prévues le week-end suivant.",
+      matches: groups["next-weekend"],
+    },
+    {
+      key: "later",
+      label: "Plus tard",
+      description: "Les autres rencontres prévues dans les 30 prochains jours.",
+      matches: groups.later,
+    },
+  ].filter((period) => period.matches.length > 0);
 }
 
 function groupMatchesByCategory(matches: MatchItem[]) {
@@ -531,8 +618,8 @@ export default function CalendarMatchesClient({
     return groupMatchesByCategory(filteredRecentResults);
   }, [filteredRecentResults]);
 
-  const groupedUpcomingMatches = useMemo(() => {
-    return groupMatchesByCategory(filteredUpcomingMatches);
+  const upcomingPeriods = useMemo(() => {
+    return groupUpcomingByPeriod(filteredUpcomingMatches);
   }, [filteredUpcomingMatches]);
 
   const showResults = activeView === "all" || activeView === "results";
@@ -655,37 +742,59 @@ export default function CalendarMatchesClient({
             </div>
 
             <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-neutral-900 md:text-3xl">
-              Prochains matchs du week-end
+              Prochains matchs
             </h2>
 
             <p className="mt-2 text-sm leading-relaxed text-neutral-700 md:text-base">
-              Les rencontres à venir du club, regroupées par catégorie pour une
-              lecture plus claire.
+              Les rencontres des 30 prochains jours, organisées par échéance puis
+              par catégorie.
             </p>
           </div>
 
-          <div className="space-y-8">
-            {groupedUpcomingMatches.map((group) => (
-              <section key={group.category} className="space-y-4">
-                <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-3">
-                  <div>
-                    <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 md:text-xl">
-                      {group.category}
-                    </h3>
-                    <p className="mt-1 text-sm text-neutral-500">
-                      {group.items.length} match
-                      {group.items.length > 1 ? "s" : ""}
+          <div className="space-y-10">
+            {upcomingPeriods.map((period) => {
+              const categoryGroups = groupMatchesByCategory(period.matches);
+
+              return (
+                <section
+                  key={period.key}
+                  className="rounded-[1.75rem] border border-neutral-200 bg-neutral-50/70 p-4 md:p-5"
+                >
+                  <div className="mb-6 border-b border-neutral-200 pb-4">
+                    <div className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-700">
+                      {period.label}
+                    </div>
+                    <p className="mt-2 text-sm text-neutral-600">
+                      {period.description}
                     </p>
                   </div>
-                </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {group.items.map((match) => (
-                    <UpcomingCard key={match.id} match={match} />
-                  ))}
-                </div>
-              </section>
-            ))}
+                  <div className="space-y-8">
+                    {categoryGroups.map((group) => (
+                      <section key={`${period.key}-${group.category}`} className="space-y-4">
+                        <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-3">
+                          <div>
+                            <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 md:text-xl">
+                              {group.category}
+                            </h3>
+                            <p className="mt-1 text-sm text-neutral-500">
+                              {group.items.length} match
+                              {group.items.length > 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                          {group.items.map((match) => (
+                            <UpcomingCard key={match.id} match={match} />
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </section>
       ) : null}
