@@ -188,7 +188,7 @@ function groupUpcomingByPeriod(matches: MatchItem[]): UpcomingPeriod[] {
     }
   }
 
-  return [
+  const periods: UpcomingPeriod[] = [
     {
       key: "this-weekend",
       label: "Ce week-end",
@@ -207,7 +207,9 @@ function groupUpcomingByPeriod(matches: MatchItem[]): UpcomingPeriod[] {
       description: "Les autres rencontres prévues dans les 30 prochains jours.",
       matches: groups.later,
     },
-  ].filter((period) => period.matches.length > 0);
+  ];
+
+  return periods.filter((period) => period.matches.length > 0);
 }
 
 function groupMatchesByCategory(matches: MatchItem[]) {
