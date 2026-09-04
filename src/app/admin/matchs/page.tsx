@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { refreshPlayerStats } from "@/lib/player-stats";
 import { revalidatePath } from "next/cache";
 import AdminMatchesBoard from "@/components/AdminMatchesBoard";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, FileUp } from "lucide-react";
 
 async function deleteMatch(formData: FormData) {
   "use server";
@@ -121,6 +121,14 @@ export default async function AdminMatchsPage() {
                   <Plus size={14} />
                   Ajouter
                 </Link>
+
+                <Link
+                  href="/admin/matchs/importer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black text-white transition hover:bg-white/15 md:hidden"
+                >
+                  <FileUp size={14} />
+                  Importer PDF
+                </Link>
               </div>
 
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
@@ -163,6 +171,14 @@ export default async function AdminMatchsPage() {
                   </div>
                 </div>
               </div>
+
+              <Link
+                href="/admin/matchs/importer"
+                className="hidden items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 md:inline-flex"
+              >
+                <FileUp size={18} />
+                Importer le programme
+              </Link>
 
               <Link
                 href="/admin/matchs/new?noFavorite=1"
