@@ -54,9 +54,12 @@ function toNumber(value: string) {
 }
 
 function cleanTeamName(value: string) {
+  return decodeHtml(value.replace(/\s+/g, " ").trim());
+}
+
+function cleanFallbackTeamName(value: string) {
   return decodeHtml(
     value
-      .replace(/\b\d+\b/g, " ")
       .replace(/\bpts?\b/gi, " ")
       .replace(/\bpoints?\b/gi, " ")
       .replace(/\s+/g, " ")
@@ -79,6 +82,7 @@ function dedupeRankings(rankings: RankingLine[]) {
   });
 }
 
+// Compatible avec l’ancien tableau FFF et le tableau Angular CDK 2026/2027.
 function parseRowsFromTables(html: string): RankingLine[] {
   const rows = Array.from(html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi));
   const rankings: RankingLine[] = [];
@@ -101,7 +105,7 @@ function parseRowsFromTables(html: string): RankingLine[] {
 
     const rankCell =
       cells.find((cell) =>
-        /cdk-column-rank|cdk-column-position/i.test(cell.attrs),
+        /cdk-column-rank|cdk-column-position|cdk-column-classement/i.test(cell.attrs),
       ) || cells[0];
 
     const rank = toNumber(rankCell?.text || "");
@@ -115,7 +119,7 @@ function parseRowsFromTables(html: string): RankingLine[] {
 
     const teamCell =
       cells.find((cell) =>
-        /cdk-column-team|cdk-column-name|cdk-column-club/i.test(cell.attrs),
+        /cdk-column-team|cdk-column-name|cdk-column-club|cdk-column-nomEquipe/i.test(cell.attrs),
       ) ||
       cells.find((cell, index) => {
         if (index === 0) return false;
@@ -150,7 +154,7 @@ function parseRowsFromText(html: string): RankingLine[] {
     if (!match) continue;
 
     const rank = Number(match[1]);
-    const team = cleanTeamName(match[2]);
+    const team = cleanFallbackTeamName(match[2]);
     const points = Number(match[3]);
 
     if (rank && team) {
@@ -192,11 +196,17 @@ async function fetchWithTimeout(url: string) {
   try {
     return await fetch(url, {
       signal: controller.signal,
-      next: { revalidate: 1800 },
+      redirect: "follow",
+      cache: "no-store",
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; CS-Viriat-Rankings/1.0; +https://csviriat.fr)",
-        Accept: "text/html,application/xhtml+xml",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Referer: "https://epreuves.fff.fr/",
       },
     });
   } finally {
