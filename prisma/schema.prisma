@@ -127,6 +127,19 @@ model Partner {
 }
 
 
+
+model FffRankingSnapshot {
+  id            String   @id @default(cuid())
+  sourceUrl     String   @unique
+  rows          Json
+  found         Boolean  @default(false)
+  fetchedAt     DateTime
+  lastSuccessAt DateTime
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model TeamSetting {
   id        String   @id @default(cuid())
   team      String   @unique

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export const revalidate = 1800;
 
@@ -214,30 +216,94 @@ async function fetchWithTimeout(url: string) {
   }
 }
 
-async function refreshRanking(url: string) {
-  if (refreshInProgress.has(url)) return;
+async function savePersistentSnapshot(url: string, entry: CacheEntry) {
+  await prisma.fffRankingSnapshot.upsert({
+    where: { sourceUrl: url },
+    update: {
+      rows: entry.rows as unknown as Prisma.InputJsonValue,
+      found: entry.found,
+      fetchedAt: new Date(entry.updatedAt),
+      lastSuccessAt: new Date(entry.updatedAt),
+      lastError: null,
+    },
+    create: {
+      sourceUrl: url,
+      rows: entry.rows as unknown as Prisma.InputJsonValue,
+      found: entry.found,
+      fetchedAt: new Date(entry.updatedAt),
+      lastSuccessAt: new Date(entry.updatedAt),
+    },
+  });
+}
+
+async function getPersistentSnapshot(url: string): Promise<CacheEntry | null> {
+  const snapshot = await prisma.fffRankingSnapshot.findUnique({
+    where: { sourceUrl: url },
+  });
+
+  if (!snapshot) return null;
+
+  const rows = Array.isArray(snapshot.rows)
+    ? (snapshot.rows as unknown as RankingPreviewRow[])
+    : [];
+
+  return {
+    updatedAt: snapshot.lastSuccessAt.toISOString(),
+    rows,
+    found: snapshot.found,
+  };
+}
+
+async function recordRefreshError(url: string, message: string) {
+  try {
+    await prisma.fffRankingSnapshot.update({
+      where: { sourceUrl: url },
+      data: { lastError: message.slice(0, 500) },
+    });
+  } catch {
+    // Aucun snapshot n'existe encore : rien à mettre à jour.
+  }
+}
+
+async function refreshRanking(url: string): Promise<CacheEntry | null> {
+  if (refreshInProgress.has(url)) return memoryCache.get(url) || null;
 
   refreshInProgress.add(url);
 
   try {
     const response = await fetchWithTimeout(url);
 
-    if (!response.ok) return;
+    if (!response.ok) {
+      await recordRefreshError(url, `FFF HTTP ${response.status}`);
+      return null;
+    }
 
     const html = await response.text();
     const rankings = parseRowsFromTables(html);
     const fallbackRankings = rankings.length
       ? rankings
       : parseRowsFromText(html);
-    const preview = buildPreview(fallbackRankings);
 
-    memoryCache.set(url, {
+    if (!fallbackRankings.length) {
+      await recordRefreshError(url, "Aucune ligne de classement détectée");
+      return null;
+    }
+
+    const preview = buildPreview(fallbackRankings);
+    const entry: CacheEntry = {
       updatedAt: new Date().toISOString(),
       rows: preview.rows,
       found: preview.found,
-    });
-  } catch {
-    // On garde le cache existant si la FFF rame ou ne répond pas.
+    };
+
+    memoryCache.set(url, entry);
+    await savePersistentSnapshot(url, entry);
+
+    return entry;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erreur FFF inconnue";
+    await recordRefreshError(url, message);
+    return null;
   } finally {
     refreshInProgress.delete(url);
   }
@@ -266,49 +332,70 @@ export async function GET(request: NextRequest) {
   }
 
   const rankingUrl = parsedUrl.toString();
-  const cached = memoryCache.get(rankingUrl);
+  const memory = memoryCache.get(rankingUrl);
+
+  let persisted: CacheEntry | null = null;
+
+  try {
+    persisted = await getPersistentSnapshot(rankingUrl);
+  } catch {
+    // Si Neon est momentanément indisponible, le cache mémoire reste utilisable.
+  }
+
+  const cached = memory || persisted;
   const isFresh =
     cached && Date.now() - new Date(cached.updatedAt).getTime() < CACHE_TTL;
 
   if (isFresh) {
+    if (!memory && persisted) {
+      memoryCache.set(rankingUrl, persisted);
+    }
+
     return NextResponse.json({
       ...cached,
       cached: true,
+      persistent: Boolean(persisted),
+      stale: false,
       refreshing: false,
     });
   }
 
-  if (cached) {
-    void refreshRanking(rankingUrl);
+  const refreshed = await refreshRanking(rankingUrl);
 
+  if (refreshed) {
     return NextResponse.json({
-      ...cached,
-      cached: true,
-      refreshing: true,
+      ...refreshed,
+      cached: false,
+      persistent: true,
+      stale: false,
+      refreshing: false,
     });
   }
 
-  try {
-    await refreshRanking(rankingUrl);
+  // En production la FFF peut bloquer les IP Vercel (403). Dans ce cas,
+  // on sert le dernier classement enregistré dans Neon, même s'il est ancien.
+  const fallback = persisted || memory;
 
-    const freshCache = memoryCache.get(rankingUrl);
-
-    if (freshCache) {
-      return NextResponse.json({
-        ...freshCache,
-        cached: false,
-        refreshing: false,
-      });
+  if (fallback) {
+    if (!memoryCache.has(rankingUrl)) {
+      memoryCache.set(rankingUrl, fallback);
     }
 
-    return NextResponse.json(
-      { error: "Classement FFF indisponible", rows: [] },
-      { status: 504 },
-    );
-  } catch {
-    return NextResponse.json(
-      { error: "Impossible de récupérer le classement FFF", rows: [] },
-      { status: 504 },
-    );
+    return NextResponse.json({
+      ...fallback,
+      cached: true,
+      persistent: Boolean(persisted),
+      stale: true,
+      refreshing: false,
+    });
   }
+
+  return NextResponse.json(
+    {
+      error:
+        "Classement FFF indisponible et aucun classement synchronisé dans Neon",
+      rows: [],
+    },
+    { status: 504 },
+  );
 }
