@@ -1,3 +1,4 @@
+import { OWN_GOAL_VALUE, parseGoalPlayerIds, buildGoalEvents, buildScorersText } from "@/lib/own-goals";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -42,7 +43,7 @@ export default async function QuickResultPage({ params }: PageProps) {
       where: { isActive: true },
       orderBy: [{ category: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
     }),
-    prisma.matchEvent.findMany({ where: { matchId: id, type: "GOAL" } }),
+    prisma.matchEvent.findMany({ where: { matchId: id, type: { in: ["GOAL", "OWN_GOAL"] } } }),
     prisma.matchEvent.findMany({ where: { matchId: id, type: "ASSIST" } }),
   ]);
 
@@ -107,10 +108,8 @@ export default async function QuickResultPage({ params }: PageProps) {
       throw new Error("Ce match de coupe est à égalité : renseigne la séance de tirs au but pour déterminer le qualifié.");
     }
 
-    const goalPlayerIds = formData
-      .getAll("goalPlayerId")
-      .map((value) => String(value || "").trim())
-      .filter(Boolean);
+    const goalPlayerIds = parseGoalPlayerIds(formData);
+    const realGoalPlayerIds = goalPlayerIds.filter((id) => id !== OWN_GOAL_VALUE);
 
     const assistPlayerIds = formData
       .getAll("assistPlayerId")
@@ -118,27 +117,26 @@ export default async function QuickResultPage({ params }: PageProps) {
       .filter(Boolean);
 
     const selectedGoalPlayers = await prisma.player.findMany({
-      where: { id: { in: goalPlayerIds } },
+      where: { id: { in: realGoalPlayerIds } },
       select: { id: true, firstName: true, lastName: true },
     });
 
-    const scorersText = goalPlayerIds
-      .map((playerId) => {
-        const player = selectedGoalPlayers.find((item) => item.id === playerId);
-        return player ? `${player.firstName} ${player.lastName}` : null;
-      })
-      .filter(Boolean)
-      .join(", ");
+    const selectedAssistPlayers = await prisma.player.findMany({
+      where: { id: { in: assistPlayerIds } }, select: { id: true },
+    });
+    if (new Set(realGoalPlayerIds).size !== selectedGoalPlayers.length ||
+        new Set(assistPlayerIds).size !== selectedAssistPlayers.length) {
+      throw new Error("Un joueur sélectionné est introuvable.");
+    }
+
+    const scorersText = buildScorersText(goalPlayerIds, selectedGoalPlayers);
 
     const previousEvents = await prisma.matchEvent.findMany({
       where: { matchId: id },
       select: { playerId: true },
     });
 
-    const eventsData = [
-      ...goalPlayerIds.map((playerId) => ({ matchId: id, playerId, type: "GOAL" })),
-      ...assistPlayerIds.map((playerId) => ({ matchId: id, playerId, type: "ASSIST" })),
-    ];
+    const eventsData = buildGoalEvents(id, goalPlayerIds, assistPlayerIds);
 
     await prisma.$transaction(async (tx) => {
       await tx.match.update({
@@ -162,8 +160,8 @@ export default async function QuickResultPage({ params }: PageProps) {
 
     const affectedPlayerIds = Array.from(
       new Set([
-        ...previousEvents.map((event) => event.playerId),
-        ...goalPlayerIds,
+        ...previousEvents.map((event) => event.playerId).filter((id): id is string => id !== null),
+        ...realGoalPlayerIds,
         ...assistPlayerIds,
       ]),
     );
@@ -302,8 +300,11 @@ export default async function QuickResultPage({ params }: PageProps) {
                 players={players}
                 matchCategory={match.category}
                 matchTeam={match.team}
-                initialGoals={goalEvents.map((event) => ({ playerId: event.playerId }))}
-                initialAssists={assistEvents.map((event) => ({ playerId: event.playerId }))}
+                initialGoals={goalEvents.map((event) => ({
+                      playerId: event.playerId,
+                      type: event.type,
+                    }))}
+                    initialAssists={assistEvents.filter((event): event is typeof event & { playerId: string } => event.playerId !== null).map((event) => ({ playerId: event.playerId }))}
               />
             </div>
 

@@ -283,13 +283,13 @@ model MatchEvent {
   id        String   @id @default(cuid())
 
   matchId   String
-  playerId  String
+  playerId  String?
   type      String
 
   createdAt DateTime @default(now())
 
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  player    Player?  @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([matchId])
   @@index([playerId])

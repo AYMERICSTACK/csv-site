@@ -27,7 +27,7 @@ async function deleteMatch(formData: FormData) {
   });
 
   await prisma.match.delete({ where: { id } });
-  await refreshPlayerStats(events.map((event) => event.playerId));
+  await refreshPlayerStats(events.map((event) => event.playerId).filter((id): id is string => id !== null));
 
   revalidatePath("/");
   revalidatePath("/admin/matchs");

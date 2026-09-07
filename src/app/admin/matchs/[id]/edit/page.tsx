@@ -1,3 +1,4 @@
+import { OWN_GOAL_VALUE, parseGoalPlayerIds, buildGoalEvents, buildScorersText } from "@/lib/own-goals";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
@@ -45,7 +46,7 @@ export default async function EditMatchPage({ params }: PageProps) {
   const goalEvents = await prisma.matchEvent.findMany({
     where: {
       matchId: match.id,
-      type: "GOAL",
+      type: { in: ["GOAL", "OWN_GOAL"] },
     },
   });
 
@@ -93,10 +94,8 @@ export default async function EditMatchPage({ params }: PageProps) {
     const penaltyScoreTeamValue = String(formData.get("penaltyScoreTeam") || "").trim();
     const penaltyScoreOpponentValue = String(formData.get("penaltyScoreOpponent") || "").trim();
 
-    const goalPlayerIds = formData
-      .getAll("goalPlayerId")
-      .map((v) => String(v || "").trim())
-      .filter(Boolean);
+    const goalPlayerIds = parseGoalPlayerIds(formData);
+    const realGoalPlayerIds = goalPlayerIds.filter((id) => id !== OWN_GOAL_VALUE);
 
     const assistPlayerIds = formData
       .getAll("assistPlayerId")
@@ -163,7 +162,7 @@ export default async function EditMatchPage({ params }: PageProps) {
     const selectedGoalPlayers = await prisma.player.findMany({
       where: {
         id: {
-          in: goalPlayerIds,
+          in: realGoalPlayerIds,
         },
       },
       select: {
@@ -173,31 +172,22 @@ export default async function EditMatchPage({ params }: PageProps) {
       },
     });
 
-    const scorersText = goalPlayerIds
-      .map((playerId) => {
-        const player = selectedGoalPlayers.find((p) => p.id === playerId);
-        return player ? `${player.firstName} ${player.lastName}` : null;
-      })
-      .filter(Boolean)
-      .join(", ");
+    const selectedAssistPlayers = await prisma.player.findMany({
+      where: { id: { in: assistPlayerIds } }, select: { id: true },
+    });
+    if (new Set(realGoalPlayerIds).size !== selectedGoalPlayers.length ||
+        new Set(assistPlayerIds).size !== selectedAssistPlayers.length) {
+      throw new Error("Un joueur sélectionné est introuvable.");
+    }
+
+    const scorersText = buildScorersText(goalPlayerIds, selectedGoalPlayers);
 
     const previousEvents = await prisma.matchEvent.findMany({
       where: { matchId: id },
       select: { playerId: true },
     });
 
-    const eventsData = [
-      ...goalPlayerIds.map((playerId) => ({
-        matchId: id,
-        playerId,
-        type: "GOAL",
-      })),
-      ...assistPlayerIds.map((playerId) => ({
-        matchId: id,
-        playerId,
-        type: "ASSIST",
-      })),
-    ];
+    const eventsData = buildGoalEvents(id, goalPlayerIds, assistPlayerIds);
 
     await prisma.$transaction(async (tx) => {
       await tx.match.update({
@@ -235,8 +225,8 @@ export default async function EditMatchPage({ params }: PageProps) {
 
     const affectedPlayerIds = Array.from(
       new Set([
-        ...previousEvents.map((event) => event.playerId),
-        ...goalPlayerIds,
+        ...previousEvents.map((event) => event.playerId).filter((id): id is string => id !== null),
+        ...realGoalPlayerIds,
         ...assistPlayerIds,
       ]),
     );
@@ -440,8 +430,9 @@ export default async function EditMatchPage({ params }: PageProps) {
                     matchTeam={match.team}
                     initialGoals={goalEvents.map((event) => ({
                       playerId: event.playerId,
+                      type: event.type,
                     }))}
-                    initialAssists={assistEvents.map((event) => ({
+                    initialAssists={assistEvents.filter((event): event is typeof event & { playerId: string } => event.playerId !== null).map((event) => ({
                       playerId: event.playerId,
                     }))}
                   />

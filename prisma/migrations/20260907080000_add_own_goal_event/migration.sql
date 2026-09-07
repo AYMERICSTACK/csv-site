@@ -1,0 +1,1 @@
+ALTER TABLE "MatchEvent" ALTER COLUMN "playerId" DROP NOT NULL;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { OWN_GOAL_VALUE } from "@/lib/own-goals";
 
 type PlayerOption = {
   id: string;
@@ -21,7 +22,7 @@ type Props = {
   matchTeam?: string | null;
   targetCategoryField?: string;
   targetTeamField?: string;
-  initialGoals?: { playerId: string }[];
+  initialGoals?: { playerId: string | null; type?: string }[];
   initialAssists?: { playerId: string }[];
 };
 
@@ -37,10 +38,12 @@ function PlayerSelect({
   value,
   players,
   onChange,
+  allowOwnGoal = false,
 }: {
   value: string;
   players: PlayerOption[];
   onChange: (value: string) => void;
+  allowOwnGoal?: boolean;
 }) {
   const [query, setQuery] = useState("");
 
@@ -75,6 +78,7 @@ function PlayerSelect({
         className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-100"
       >
         <option value="">Sélectionner un joueur</option>
+        {allowOwnGoal ? <option value={OWN_GOAL_VALUE}>CSC adverse</option> : null}
 
         {filteredPlayers.map((player) => (
           <option key={player.id} value={player.id}>
@@ -106,7 +110,7 @@ export default function MatchGoalsFields({
   const [goals, setGoals] = useState<MatchEventInput[]>(
     initialGoals.length > 0
       ? initialGoals.map((goal) => ({
-          playerId: goal.playerId,
+          playerId: goal.type === "OWN_GOAL" ? OWN_GOAL_VALUE : goal.playerId || "",
           count: 1,
         }))
       : [{ playerId: "", count: 1 }],
@@ -231,6 +235,7 @@ export default function MatchGoalsFields({
               >
                 <div className="flex flex-col gap-3">
                   <PlayerSelect
+                    allowOwnGoal
                     value={goal.playerId}
                     players={displayedPlayers}
                     onChange={(value) =>
@@ -246,6 +251,10 @@ export default function MatchGoalsFields({
                       )
                     }
                   />
+
+                  {goal.playerId === OWN_GOAL_VALUE ? (
+                    <p className="text-xs font-semibold text-orange-700">But contre son camp adverse. Aucun joueur du CSV ne reçoit le but. Le passeur peut être renseigné normalement.</p>
+                  ) : null}
 
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
