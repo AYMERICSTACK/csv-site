@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { auth } from "@/auth";
+import { getRankingAccess } from "@/lib/fff-ranking-access";
 import { prisma } from "@/lib/prisma";
 
 const CLUB_NUMBER = 2218;
@@ -170,33 +170,20 @@ function buildPreview(members: DofaMember[]) {
   };
 }
 
-async function requireAdmin() {
-  const session = await auth();
-
-  if (!session?.user?.email) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true, role: true },
-  });
-
-  return user?.role === "admin" ? user : null;
-}
-
 export async function GET() {
-  const admin = await requireAdmin();
+  const access = await getRankingAccess();
 
-  if (!admin) {
+  if (!access) {
     return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
   }
 
-  return NextResponse.json({ teams: TEAM_CONFIGS });
+  return NextResponse.json({ teams: TEAM_CONFIGS.filter((config) => access.isAdmin || access.teams?.includes(config.team)) });
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const access = await getRankingAccess();
 
-  if (!admin) {
+  if (!access) {
     return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
   }
 
@@ -225,6 +212,16 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!access.isAdmin && !access.teams?.includes(team)) {
+    return NextResponse.json({ error: "Cette équipe ne vous est pas attribuée." }, { status: 403 });
+  }
+
+  const expectedPath = new URL(config.dofaUrl).pathname;
+  const payloadId = dofaPayload["@id"];
+  if (typeof payloadId !== "string" || payloadId !== expectedPath) {
+    return NextResponse.json({ error: "Le classement ne correspond pas à la compétition configurée." }, { status: 400 });
+  }
+
   const members = Array.isArray(dofaPayload?.["hydra:member"])
     ? (dofaPayload["hydra:member"] as DofaMember[])
     : [];
@@ -237,6 +234,14 @@ export async function POST(request: Request) {
       totalRows: 0,
       message: "Classement pas encore disponible.",
     });
+  }
+
+  if (members.length > 100 || members.some((member) =>
+    typeof member !== "object" || member === null ||
+    typeof member.rank !== "number" || !Number.isFinite(member.rank) ||
+    typeof member.equipe?.short_name !== "string"
+  )) {
+    return NextResponse.json({ error: "Données de classement invalides." }, { status: 400 });
   }
 
   const preview = buildPreview(members);

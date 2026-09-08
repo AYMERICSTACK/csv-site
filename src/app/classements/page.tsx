@@ -76,7 +76,6 @@ const defaultOfficialTeamRankings = [
   { label: "U13 1", category: "École de foot", level: "Jeunes" },
   { label: "U13 2", category: "École de foot", level: "Jeunes" },
   { label: "U13 3", category: "École de foot", level: "Jeunes" },
-  { label: "U13 4", category: "École de foot", level: "Jeunes" },
 ];
 
 export default async function ClassementsPage() {

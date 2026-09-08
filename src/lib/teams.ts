@@ -17,7 +17,6 @@ export const CLUB_TEAMS = [
   "U13 1",
   "U13 2",
   "U13 3",
-  "U13 4",
 ] as const;
 
 export type ClubTeam = (typeof CLUB_TEAMS)[number];

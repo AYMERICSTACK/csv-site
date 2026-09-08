@@ -173,7 +173,7 @@ export default function FffRankingSyncClient() {
               Synchronisation navigateur
             </div>
             <h2 className="mt-2 text-2xl font-black text-neutral-950">
-              Mettre à jour les 12 classements
+              Mettre à jour les classements
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-neutral-600">
               Les sources officielles sont déjà configurées. Ton navigateur lit
@@ -302,8 +302,7 @@ export default function FffRankingSyncClient() {
 
       <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 text-sm leading-relaxed text-neutral-600">
         <strong className="text-neutral-900">Non concernés :</strong>{" "}
-        Vétérans et U13 4 ne sont pas synchronisés, car aucun classement n’est
-        prévu pour eux dans la configuration actuelle.
+        Les Les équipes sans classement officiel ne sont pas synchronisées.
       </section>
     </div>
   );
