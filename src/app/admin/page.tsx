@@ -6,6 +6,7 @@ import {
   Handshake,
   LayoutDashboard,
   Megaphone,
+  RefreshCw,
   ShieldCheck,
   Trophy,
   UserCog,
@@ -191,6 +192,14 @@ const sportCards: DashboardCard[] = [
     href: "/admin/matchs",
     eyebrow: "Rencontres",
     icon: CalendarDays,
+    tone: "manage",
+  },
+  {
+    title: "Synchroniser les classements FFF",
+    description: "Actualiser les classements Seniors depuis le navigateur et les enregistrer dans Neon.",
+    href: "/admin/classements-fff",
+    eyebrow: "Classements",
+    icon: RefreshCw,
     tone: "manage",
   },
   {
