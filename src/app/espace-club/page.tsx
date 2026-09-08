@@ -69,6 +69,18 @@ const CLUB_CARDS: ClubCard[] = [
     icon: Calendar,
   },
   {
+    title: "Mettre à jour mon classement",
+    description:
+      "Synchroniser le classement officiel FFF de votre équipe.",
+    href: "/espace-educateurs/classements-fff",
+    roles: ["admin", "educateurs"],
+    badge: "Sportif",
+    section: "sportif",
+    tone: "manage",
+    priority: true,
+    icon: Trophy,
+  },
+  {
     title: "Classements publics",
     description:
       "Consulter les classements buteurs, passeurs et les liens officiels FFF.",

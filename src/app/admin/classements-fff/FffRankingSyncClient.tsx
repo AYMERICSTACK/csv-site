@@ -173,7 +173,9 @@ export default function FffRankingSyncClient() {
               Synchronisation navigateur
             </div>
             <h2 className="mt-2 text-2xl font-black text-neutral-950">
-              Mettre à jour les classements
+              {configuredCount === 1
+                ? "Mettre à jour mon classement"
+                : "Mettre à jour les classements"}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-neutral-600">
               Les sources officielles sont déjà configurées. Ton navigateur lit
@@ -190,7 +192,9 @@ export default function FffRankingSyncClient() {
           >
             {syncingAll
               ? "Synchronisation en cours…"
-              : `Synchroniser les ${configuredCount} équipes`}
+              : configuredCount === 1
+                ? "Synchroniser mon classement"
+                : `Synchroniser les ${configuredCount} équipes`}
           </button>
         </div>
       </section>
@@ -301,8 +305,8 @@ export default function FffRankingSyncClient() {
       </div>
 
       <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 text-sm leading-relaxed text-neutral-600">
-        <strong className="text-neutral-900">Non concernés :</strong>{" "}
-        Les Les équipes sans classement officiel ne sont pas synchronisées.
+        <strong className="text-neutral-900">À noter :</strong>{" "}
+        Les équipes sans classement officiel ne sont pas synchronisées.
       </section>
     </div>
   );
