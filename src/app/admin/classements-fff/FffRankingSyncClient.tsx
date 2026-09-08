@@ -4,20 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 
 type TeamConfig = {
   team: string;
-  sourceUrl: string | null;
+  sourceUrl: string;
+  dofaUrl: string;
 };
 
 type SyncState = {
   status: "idle" | "loading" | "success" | "error";
   message?: string;
 };
-
-const DEFAULT_DOFA_URLS: Record<string, string> = {
-  "Seniors 1":
-    "https://api-dofa.fff.fr/api/compets/457862/phases/1/poules/8/classement_journees?page=1",
-};
-
-const STORAGE_KEY = "csv-fff-dofa-urls-v1";
 
 function isDofaUrl(value: string) {
   try {
@@ -34,34 +28,27 @@ function isDofaUrl(value: string) {
 
 export default function FffRankingSyncClient() {
   const [configs, setConfigs] = useState<TeamConfig[]>([]);
-  const [dofaUrls, setDofaUrls] = useState<Record<string, string>>(
-    DEFAULT_DOFA_URLS,
-  );
   const [states, setStates] = useState<Record<string, SyncState>>({});
   const [loadingConfig, setLoadingConfig] = useState(true);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Record<string, string>;
-        setDofaUrls((current) => ({ ...current, ...parsed }));
-      }
-    } catch {
-      // Les URL par défaut restent utilisables.
-    }
-
     void fetch("/api/admin/fff-ranking-sync", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || "Configuration indisponible.");
+        if (!response.ok) {
+          throw new Error(data?.error || "Configuration indisponible.");
+        }
         setConfigs(Array.isArray(data?.teams) ? data.teams : []);
       })
       .catch((error) => {
         setStates({
           global: {
             status: "error",
-            message: error instanceof Error ? error.message : "Erreur de configuration.",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Erreur de configuration.",
           },
         });
       })
@@ -69,40 +56,17 @@ export default function FffRankingSyncClient() {
   }, []);
 
   const configuredCount = useMemo(
-    () =>
-      configs.filter(
-        (config) => config.sourceUrl && isDofaUrl(dofaUrls[config.team] || ""),
-      ).length,
-    [configs, dofaUrls],
+    () => configs.filter((config) => isDofaUrl(config.dofaUrl)).length,
+    [configs],
   );
 
-  function updateDofaUrl(team: string, value: string) {
-    const next = { ...dofaUrls, [team]: value };
-    setDofaUrls(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setStates((current) => ({ ...current, [team]: { status: "idle" } }));
-  }
-
   async function syncTeam(config: TeamConfig) {
-    const dofaUrl = (dofaUrls[config.team] || "").trim();
-
-    if (!config.sourceUrl) {
+    if (!isDofaUrl(config.dofaUrl)) {
       setStates((current) => ({
         ...current,
         [config.team]: {
           status: "error",
-          message: "Aucun lien FFF n’est configuré pour cette équipe.",
-        },
-      }));
-      return false;
-    }
-
-    if (!isDofaUrl(dofaUrl)) {
-      setStates((current) => ({
-        ...current,
-        [config.team]: {
-          status: "error",
-          message: "Colle l’URL API DOFA classement_journees de cette équipe.",
+          message: "La source DOFA de cette équipe est invalide.",
         },
       }));
       return false;
@@ -110,15 +74,21 @@ export default function FffRankingSyncClient() {
 
     setStates((current) => ({
       ...current,
-      [config.team]: { status: "loading", message: "Lecture FFF en cours…" },
+      [config.team]: {
+        status: "loading",
+        message: "Lecture FFF en cours…",
+      },
     }));
 
     try {
-      // Cette requête part du navigateur de l'admin (IP résidentielle), pas de Vercel.
-      const dofaResponse = await fetch(dofaUrl, {
+      // Important : cette requête part du navigateur de l'admin.
+      // Vercel ne contacte pas directement api-dofa.fff.fr.
+      const dofaResponse = await fetch(config.dofaUrl, {
         method: "GET",
         cache: "no-store",
-        headers: { Accept: "application/ld+json, application/json" },
+        headers: {
+          Accept: "application/ld+json, application/json",
+        },
       });
 
       if (!dofaResponse.ok) {
@@ -132,7 +102,6 @@ export default function FffRankingSyncClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           team: config.team,
-          sourceUrl: config.sourceUrl,
           dofaPayload,
         }),
       });
@@ -140,7 +109,9 @@ export default function FffRankingSyncClient() {
       const result = await saveResponse.json();
 
       if (!saveResponse.ok) {
-        throw new Error(result?.error || "Impossible d’enregistrer le classement.");
+        throw new Error(
+          result?.error || "Impossible d’enregistrer le classement.",
+        );
       }
 
       setStates((current) => ({
@@ -150,6 +121,7 @@ export default function FffRankingSyncClient() {
           message: `Mis à jour : ${result.rank}e · ${result.points ?? "—"} pt(s)`,
         },
       }));
+
       return true;
     } catch (error) {
       const message =
@@ -163,15 +135,22 @@ export default function FffRankingSyncClient() {
         ...current,
         [config.team]: { status: "error", message },
       }));
+
       return false;
     }
   }
 
   async function syncAll() {
-    for (const config of configs) {
-      if (config.sourceUrl && isDofaUrl(dofaUrls[config.team] || "")) {
-        await syncTeam(config);
+    setSyncingAll(true);
+
+    try {
+      for (const config of configs) {
+        if (isDofaUrl(config.dofaUrl)) {
+          await syncTeam(config);
+        }
       }
+    } finally {
+      setSyncingAll(false);
     }
   }
 
@@ -192,20 +171,24 @@ export default function FffRankingSyncClient() {
               Synchronisation navigateur
             </div>
             <h2 className="mt-2 text-2xl font-black text-neutral-950">
-              Mettre à jour les classements
+              Mettre à jour les 12 classements
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-neutral-600">
-              La lecture FFF est faite directement depuis ton navigateur, puis le classement valide est enregistré dans Neon. Vercel ne contacte donc pas la FFF.
+              Les sources officielles sont déjà configurées. Ton navigateur lit
+              les classements FFF/DOFA puis envoie uniquement les données
+              validées à Neon. Vercel ne contacte pas directement la FFF.
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => void syncAll()}
-            disabled={configuredCount === 0}
+            disabled={configuredCount === 0 || syncingAll}
             className="inline-flex min-h-12 items-center justify-center rounded-xl bg-neutral-950 px-5 py-3 text-sm font-black text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Synchroniser les équipes configurées
+            {syncingAll
+              ? "Synchronisation en cours…"
+              : `Synchroniser les ${configuredCount} équipes`}
           </button>
         </div>
       </section>
@@ -219,7 +202,6 @@ export default function FffRankingSyncClient() {
       <div className="grid gap-4 lg:grid-cols-2">
         {configs.map((config) => {
           const state = states[config.team] || { status: "idle" as const };
-          const dofaUrl = dofaUrls[config.team] || "";
 
           return (
             <article
@@ -235,6 +217,7 @@ export default function FffRankingSyncClient() {
                     {config.team}
                   </h3>
                 </div>
+
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-black ${
                     state.status === "success"
@@ -257,31 +240,34 @@ export default function FffRankingSyncClient() {
               </div>
 
               <div className="mt-5 space-y-4">
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wide text-neutral-500">
-                    URL API DOFA
-                  </label>
-                  <input
-                    type="url"
-                    value={dofaUrl}
-                    onChange={(event) => updateDofaUrl(config.team, event.target.value)}
-                    placeholder="https://api-dofa.fff.fr/api/compets/.../classement_journees?page=1"
-                    className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-orange-400 focus:bg-white"
-                  />
-                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                    Cette URL est mémorisée uniquement dans ce navigateur.
-                  </p>
+                <div className="rounded-xl bg-neutral-50 p-4 text-xs leading-relaxed text-neutral-600">
+                  <div>
+                    <span className="font-black text-neutral-800">
+                      Source officielle :
+                    </span>{" "}
+                    configurée
+                  </div>
+                  <div className="mt-1">
+                    <span className="font-black text-neutral-800">
+                      API DOFA :
+                    </span>{" "}
+                    configurée
+                  </div>
                 </div>
 
-                <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600">
-                  <span className="font-black text-neutral-800">Lien FFF public :</span>{" "}
-                  {config.sourceUrl ? "configuré" : "manquant"}
-                </div>
+                <a
+                  href={config.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm font-bold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition hover:text-orange-600"
+                >
+                  Ouvrir le classement officiel ↗
+                </a>
 
                 <button
                   type="button"
                   onClick={() => void syncTeam(config)}
-                  disabled={state.status === "loading"}
+                  disabled={state.status === "loading" || syncingAll}
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-wait disabled:opacity-60"
                 >
                   {state.status === "loading"
@@ -309,12 +295,9 @@ export default function FffRankingSyncClient() {
       </div>
 
       <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 text-sm leading-relaxed text-neutral-600">
-        <strong className="text-neutral-900">Pour Seniors 2, 3 et 4 :</strong>{" "}
-        ouvre leur classement LAuRAFoot, puis dans F12 → Réseau → Fetch/XHR, copie la requête
-        <code className="mx-1 rounded bg-white px-1.5 py-0.5 text-xs font-bold text-neutral-800">
-          classement_journees?page=1
-        </code>
-        et colle-la ici une seule fois.
+        <strong className="text-neutral-900">Non concernés :</strong>{" "}
+        Vétérans et U13 4 ne sont pas synchronisés, car aucun classement n’est
+        prévu pour eux dans la configuration actuelle.
       </section>
     </div>
   );

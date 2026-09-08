@@ -3,14 +3,96 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-const ALLOWED_TEAMS = new Set([
-  "Seniors 1",
-  "Seniors 2",
-  "Seniors 3",
-  "Seniors 4",
-]);
-
 const CLUB_NUMBER = 2218;
+
+const TEAM_CONFIGS = [
+  {
+    team: "Seniors 1",
+    sourceUrl:
+      "https://laurafoot.fff.fr/competitions?tab=ranking&id=457862&phase=1&poule=8&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/457862/phases/1/poules/8/classement_journees?page=1",
+  },
+  {
+    team: "Seniors 2",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=454799&phase=1&poule=2&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/454799/phases/1/poules/2/classement_journees?page=1",
+  },
+  {
+    team: "Seniors 3",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=454800&phase=1&poule=3&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/454800/phases/1/poules/3/classement_journees?page=1",
+  },
+  {
+    team: "Seniors 4",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=454801&phase=1&poule=1&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/454801/phases/1/poules/1/classement_journees?page=1",
+  },
+  {
+    team: "Féminines",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=457029&phase=1&poule=1&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/457029/phases/1/poules/1/classement_journees?page=1",
+  },
+  {
+    team: "U20",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=455649&phase=1&poule=1&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/455649/phases/1/poules/1/classement_journees?page=1",
+  },
+  {
+    team: "U17",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=455651&phase=1&poule=3&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/455651/phases/1/poules/3/classement_journees?page=1",
+  },
+  {
+    team: "U15 1",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=455653&phase=1&poule=1&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/455653/phases/1/poules/1/classement_journees?page=1",
+  },
+  {
+    team: "U15 2",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=455653&phase=1&poule=14&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/455653/phases/1/poules/14/classement_journees?page=1",
+  },
+  {
+    team: "U13 1",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=457148&phase=1&poule=2&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/457148/phases/1/poules/2/classement_journees?page=1",
+  },
+  {
+    team: "U13 2",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=457148&phase=1&poule=5&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/457148/phases/1/poules/5/classement_journees?page=1",
+  },
+  {
+    team: "U13 3",
+    sourceUrl:
+      "https://ain.fff.fr/competitions?tab=ranking&id=457148&phase=1&poule=15&type=ch",
+    dofaUrl:
+      "https://api-dofa.fff.fr/api/compets/457148/phases/1/poules/15/classement_journees?page=1",
+  },
+] as const;
+
+const ALLOWED_TEAMS = new Set(TEAM_CONFIGS.map((config) => config.team));
 
 type DofaMember = {
   rank?: unknown;
@@ -28,15 +110,6 @@ type RankingPreviewRow = {
   points: number | null;
   isClub: boolean;
 };
-
-function isAllowedFffSource(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.hostname === "epreuves.fff.fr";
-  } catch {
-    return false;
-  }
-}
 
 function toFiniteNumber(value: unknown) {
   const number = Number(value);
@@ -117,17 +190,7 @@ export async function GET() {
     return NextResponse.json({ error: "Accès interdit." }, { status: 403 });
   }
 
-  const settings = await prisma.teamSetting.findMany({
-    where: { team: { in: Array.from(ALLOWED_TEAMS) } },
-    select: { team: true, fffUrl: true },
-  });
-
-  return NextResponse.json({
-    teams: Array.from(ALLOWED_TEAMS).map((team) => ({
-      team,
-      sourceUrl: settings.find((setting) => setting.team === team)?.fffUrl ?? null,
-    })),
-  });
+  return NextResponse.json({ teams: TEAM_CONFIGS });
 }
 
 export async function POST(request: Request) {
@@ -139,19 +202,16 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const team = typeof body?.team === "string" ? body.team.trim() : "";
-  const sourceUrl =
-    typeof body?.sourceUrl === "string" ? body.sourceUrl.trim() : "";
   const dofaPayload = body?.dofaPayload;
 
-  if (!ALLOWED_TEAMS.has(team)) {
+  if (!ALLOWED_TEAMS.has(team as (typeof TEAM_CONFIGS)[number]["team"])) {
     return NextResponse.json({ error: "Équipe invalide." }, { status: 400 });
   }
 
-  if (!isAllowedFffSource(sourceUrl)) {
-    return NextResponse.json(
-      { error: "URL FFF source invalide." },
-      { status: 400 },
-    );
+  const config = TEAM_CONFIGS.find((item) => item.team === team);
+
+  if (!config) {
+    return NextResponse.json({ error: "Configuration introuvable." }, { status: 400 });
   }
 
   const members = Array.isArray(dofaPayload?.["hydra:member"])
@@ -176,24 +236,31 @@ export async function POST(request: Request) {
 
   const now = new Date();
 
-  await prisma.fffRankingSnapshot.upsert({
-    where: { sourceUrl },
-    update: {
-      rows: preview.rows as unknown as Prisma.InputJsonValue,
-      found: true,
-      fetchedAt: now,
-      lastSuccessAt: now,
-      lastError: null,
-    },
-    create: {
-      sourceUrl,
-      rows: preview.rows as unknown as Prisma.InputJsonValue,
-      found: true,
-      fetchedAt: now,
-      lastSuccessAt: now,
-      lastError: null,
-    },
-  });
+  await prisma.$transaction([
+    prisma.teamSetting.upsert({
+      where: { team },
+      update: { fffUrl: config.sourceUrl },
+      create: { team, fffUrl: config.sourceUrl },
+    }),
+    prisma.fffRankingSnapshot.upsert({
+      where: { sourceUrl: config.sourceUrl },
+      update: {
+        rows: preview.rows as unknown as Prisma.InputJsonValue,
+        found: true,
+        fetchedAt: now,
+        lastSuccessAt: now,
+        lastError: null,
+      },
+      create: {
+        sourceUrl: config.sourceUrl,
+        rows: preview.rows as unknown as Prisma.InputJsonValue,
+        found: true,
+        fetchedAt: now,
+        lastSuccessAt: now,
+        lastError: null,
+      },
+    }),
+  ]);
 
   const clubRow = preview.rows.find((row) => row.isClub) ?? null;
 

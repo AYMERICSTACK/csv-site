@@ -33,7 +33,9 @@ export default async function AdminClassementsFffPage() {
             Synchronisation des classements
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-neutral-300 sm:text-base">
-            Mets à jour les snapshots Neon depuis ton navigateur lorsque les serveurs FFF bloquent les requêtes Vercel.
+            Les 12 équipes disposant d’un classement sont préconfigurées. La
+            récupération est lancée depuis ton navigateur, puis le dernier
+            classement valide est enregistré dans Neon.
           </p>
         </section>
 

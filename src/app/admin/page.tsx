@@ -196,7 +196,7 @@ const sportCards: DashboardCard[] = [
   },
   {
     title: "Synchroniser les classements FFF",
-    description: "Actualiser les classements Seniors depuis le navigateur et les enregistrer dans Neon.",
+    description: "Actualiser les 12 classements FFF depuis le navigateur et les enregistrer dans Neon.",
     href: "/admin/classements-fff",
     eyebrow: "Classements",
     icon: RefreshCw,
