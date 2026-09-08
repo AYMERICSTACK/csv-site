@@ -345,3 +345,28 @@ model PlayerStat {
 
   @@unique([playerId, season])
 }
+
+model FffMatchdaySnapshot {
+  id String @id @default(cuid())
+  sourceUrl String
+  team String
+  season Int
+  competitionId Int
+  phase Int
+  poule Int
+  dayNumber Int
+  dayDate DateTime
+  totalMatches Int
+  resultCount Int
+  complete Boolean @default(false)
+  matches Json
+  checkedAt DateTime @default(now())
+  completedAt DateTime?
+  rankingSyncedAt DateTime?
+  rankingSyncUserId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceUrl, season, dayNumber])
+  @@index([team, season, dayNumber])
+}

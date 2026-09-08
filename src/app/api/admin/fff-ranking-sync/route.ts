@@ -281,6 +281,26 @@ export async function POST(request: Request) {
     }),
   ]);
 
+  // Only a completed, already observed matchday can be marked as synchronized.
+  if (team === "Seniors 2") {
+    const day = await prisma.fffMatchdaySnapshot.findFirst({
+      where: { team, season: 2026, complete: true, dayDate: { lte: now } },
+      orderBy: [{ dayDate: "desc" }, { dayNumber: "desc" }],
+    });
+    if (day) {
+      const rankingMembers = members as Array<DofaMember & { cj_no?: unknown; season?: unknown }>;
+      const coversDay = rankingMembers.some(member =>
+        member.cj_no === day.dayNumber && member.season === day.season
+      );
+      if (coversDay) {
+        await prisma.fffMatchdaySnapshot.update({
+          where: { id: day.id },
+          data: { rankingSyncedAt: now },
+        });
+      }
+    }
+  }
+
   const clubRow = preview.rows.find((row) => row.isClub) ?? null;
 
   return NextResponse.json({

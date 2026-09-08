@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { parseMatchdays } from "@/lib/fff-matchday";
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Clock3, RefreshCw, Trophy } from "lucide-react";
 
@@ -38,6 +39,7 @@ type MatchdayState =
       totalMatches: number;
       resultCount: number;
       complete: boolean;
+      rankingSyncedAt: string | null;
     };
 
 function buildMatchdaysUrl(dofaRankingUrl: string) {
@@ -117,40 +119,26 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
       }
 
       const payload = await response.json();
-      const matchdays = Array.isArray(payload?.["hydra:member"])
-        ? (payload["hydra:member"] as DofaMatchday[])
-        : [];
+      const matchdays = parseMatchdays(payload);
+      const savedResponse = await fetch("/api/admin/fff-matchday-status", {
+        method: "POST", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team, dofaPayload: payload }),
+      });
+      const savedPayload = await savedResponse.json();
+      if (!savedResponse.ok) throw new Error(savedPayload?.error || "Enregistrement impossible.");
+      const savedDays = Array.isArray(savedPayload.days) ? savedPayload.days : [];
 
-      const now = Date.now();
-      const pastMatchdays = matchdays
-        .filter((day) => {
-          if (!day.date || !Array.isArray(day.matchs) || day.matchs.length === 0) {
-            return false;
-          }
-          const timestamp = new Date(day.date).getTime();
-          return Number.isFinite(timestamp) && timestamp <= now;
-        })
-        .sort((a, b) => {
-          const dateDiff = new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return (b.number ?? 0) - (a.number ?? 0);
-        });
-
-      const latest = pastMatchdays[0];
-      if (!latest) {
-        throw new Error("Aucune journée passée trouvée pour Seniors 2.");
-      }
-
-      const matches = Array.isArray(latest.matchs) ? latest.matchs : [];
-      const resultCount = matches.filter(hasResult).length;
-
+      const latest = matchdays
+        .filter(day => day.date.getTime() <= Date.now() && day.totalMatches > 0)
+        .sort((a,b) => b.date.getTime()-a.date.getTime() || b.number-a.number)[0];
+      if (!latest) throw new Error("Aucune journée passée trouvée pour Seniors 2.");
+      const saved = savedDays.find((day: { dayNumber: number }) => day.dayNumber === latest.number);
       setState({
-        status: "ready",
-        number: typeof latest.number === "number" ? latest.number : null,
-        date: latest.date ?? null,
-        totalMatches: matches.length,
-        resultCount,
-        complete: matches.length > 0 && resultCount === matches.length,
+        status: "ready", number: latest.number, date: latest.date.toISOString(),
+        totalMatches: latest.totalMatches, resultCount: latest.resultCount,
+        complete: latest.complete,
+        rankingSyncedAt: saved?.rankingSyncedAt ?? null,
       });
     } catch (error) {
       setState({
@@ -178,7 +166,7 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
               État de la dernière journée
             </h2>
             <p className="mt-2 text-sm text-neutral-600">
-              Vérification automatique depuis ton navigateur. Aucun résultat n’est modifié sur le site.
+              Vérification automatique depuis ton navigateur. L’état des journées est enregistré dans Neon. Aucun résultat de match n’est modifié.
             </p>
           </div>
 
@@ -225,6 +213,11 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
                   {state.resultCount} résultat{state.resultCount > 1 ? "s" : ""} sur {state.totalMatches} publié{state.totalMatches > 1 ? "s" : ""} par la FFF
                   {formatDay(state.date) ? ` · ${formatDay(state.date)}` : ""}.
                 </p>
+                {state.rankingSyncedAt && (
+                  <p className="mt-2 text-sm font-bold text-green-800">
+                    Classement synchronisé le {formatDay(state.rankingSyncedAt)}.
+                  </p>
+                )}
                 {!state.complete && (
                   <p className="mt-2 text-sm text-neutral-600">
                     Le classement ne sera considéré comme prêt que lorsque tous les matchs auront un score. Les cas reportés seront traités dans l’étape suivante.
