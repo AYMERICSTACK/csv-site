@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugifyTeam } from "@/lib/teams";
+import FffMatchdayStatusClient from "./FffMatchdayStatusClient";
 import {
   CURRENT_FOOTBALL_SEASON,
   getFootballSeasonDateRange,
@@ -390,6 +391,10 @@ export default async function EspaceEducateursPage() {
               </Link>
             </div>
           </section>
+        )}
+
+        {favoriteTeam && (
+          <FffMatchdayStatusClient team={favoriteTeam.category} />
         )}
 
         <section className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5">
