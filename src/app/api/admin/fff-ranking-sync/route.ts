@@ -214,15 +214,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Configuration introuvable." }, { status: 400 });
   }
 
+  if (
+    !dofaPayload ||
+    typeof dofaPayload !== "object" ||
+    !Array.isArray(dofaPayload["hydra:member"])
+  ) {
+    return NextResponse.json(
+      { error: "Réponse DOFA invalide : collection de classement absente." },
+      { status: 400 },
+    );
+  }
+
   const members = Array.isArray(dofaPayload?.["hydra:member"])
     ? (dofaPayload["hydra:member"] as DofaMember[])
     : [];
 
   if (!members.length) {
-    return NextResponse.json(
-      { error: "Aucune ligne de classement reçue depuis DOFA." },
-      { status: 400 },
-    );
+    return NextResponse.json({
+      success: true,
+      available: false,
+      team,
+      totalRows: 0,
+      message: "Classement pas encore disponible.",
+    });
   }
 
   const preview = buildPreview(members);
@@ -266,6 +280,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     success: true,
+    available: true,
     team,
     totalRows: preview.totalRows,
     rank: clubRow?.rank ?? null,

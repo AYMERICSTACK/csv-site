@@ -9,7 +9,7 @@ type TeamConfig = {
 };
 
 type SyncState = {
-  status: "idle" | "loading" | "success" | "error";
+  status: "idle" | "loading" | "success" | "unavailable" | "error";
   message?: string;
 };
 
@@ -117,8 +117,10 @@ export default function FffRankingSyncClient() {
       setStates((current) => ({
         ...current,
         [config.team]: {
-          status: "success",
-          message: `Mis à jour : ${result.rank}e · ${result.points ?? "—"} pt(s)`,
+          status: result.available === false ? "unavailable" : "success",
+          message: result.available === false
+            ? "Classement pas encore disponible."
+            : `Mis à jour : ${result.rank}e · ${result.points ?? "—"} pt(s)`,
         },
       }));
 
@@ -222,6 +224,8 @@ export default function FffRankingSyncClient() {
                   className={`rounded-full px-3 py-1 text-xs font-black ${
                     state.status === "success"
                       ? "bg-green-100 text-green-700"
+                      : state.status === "unavailable"
+                        ? "bg-neutral-100 text-neutral-600"
                       : state.status === "error"
                         ? "bg-red-100 text-red-700"
                         : state.status === "loading"
@@ -231,6 +235,8 @@ export default function FffRankingSyncClient() {
                 >
                   {state.status === "success"
                     ? "À jour"
+                    : state.status === "unavailable"
+                      ? "Pas encore disponible"
                     : state.status === "error"
                       ? "Erreur"
                       : state.status === "loading"
