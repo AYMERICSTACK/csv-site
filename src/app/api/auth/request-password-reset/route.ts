@@ -75,26 +75,86 @@ export async function POST(request: Request) {
 
     const resetUrl = `${getResetBaseUrl(request)}/reinitialiser-mot-de-passe/${token}`;
 
+    const logoUrl = `${getResetBaseUrl(request)}/logo-csv-mail.png`;
+
     const result = await resend.emails.send({
       from,
       to: [user.email],
       subject: "Réinitialiser votre mot de passe — CS Viriat",
       html: `
-        <div style="margin:0;padding:24px;background:#f7f7f7;font-family:Arial,sans-serif;color:#171717;">
-          <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5;border-radius:18px;padding:28px;">
-            <h1 style="margin:0 0 16px;font-size:24px;">Réinitialiser votre mot de passe</h1>
-            <p style="line-height:1.6;">Bonjour,</p>
-            <p style="line-height:1.6;">
-              Une demande de réinitialisation du mot de passe de votre espace CS Viriat a été effectuée.
-            </p>
-            <p style="margin:24px 0;">
-              <a href="${resetUrl}" style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;font-weight:700;padding:13px 18px;border-radius:10px;">
-                Choisir un nouveau mot de passe
-              </a>
-            </p>
-            <p style="line-height:1.6;color:#666666;">
-              Ce lien expire dans 1 heure. Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer cet email.
-            </p>
+        <div style="margin:0;padding:0;background-color:#f7f7f7;font-family:Arial,sans-serif;color:#171717;">
+          <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+
+            <div style="background:#111111;border-radius:20px 20px 0 0;padding:24px 28px;text-align:center;">
+              <img
+                src="${logoUrl}"
+                alt="CS Viriat"
+                width="72"
+                height="72"
+                style="display:block;margin:0 auto 12px auto;"
+              />
+              <div style="font-size:24px;font-weight:800;color:#ffffff;">
+                CS Viriat
+              </div>
+              <div style="margin-top:8px;font-size:13px;color:#ffffffb3;">
+                Espace membre
+              </div>
+            </div>
+
+            <div style="background:#ffffff;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 20px 20px;padding:28px;">
+              <div style="height:4px;width:72px;background:#f97316;border-radius:999px;margin-bottom:24px;"></div>
+
+              <h1 style="margin:0 0 20px;font-size:26px;line-height:1.25;color:#171717;">
+                Réinitialiser votre mot de passe
+              </h1>
+
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#404040;">
+                Bonjour,
+              </p>
+
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#404040;">
+                Une demande de réinitialisation du mot de passe de votre espace
+                <strong>CS Viriat</strong> a été effectuée.
+              </p>
+
+              <div style="margin:28px 0;text-align:center;">
+                <a
+                  href="${resetUrl}"
+                  style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;font-size:15px;font-weight:800;padding:15px 22px;border-radius:12px;"
+                >
+                  Choisir un nouveau mot de passe
+                </a>
+              </div>
+
+              <div style="margin-top:26px;background:#fafafa;border:1px solid #e5e5e5;border-radius:16px;padding:18px;">
+                <div style="font-size:14px;font-weight:800;color:#171717;margin-bottom:6px;">
+                  Ce lien expire dans 1 heure.
+                </div>
+                <div style="font-size:13px;line-height:1.6;color:#737373;">
+                  Si vous n’êtes pas à l’origine de cette demande, vous pouvez simplement ignorer cet email.
+                </div>
+              </div>
+
+              <div style="margin-top:26px;padding-top:22px;border-top:1px solid #eeeeee;">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#737373;">
+                  Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
+                </p>
+                <p style="margin:8px 0 0;font-size:12px;line-height:1.6;word-break:break-all;">
+                  <a href="${resetUrl}" style="color:#f97316;text-decoration:none;">
+                    ${resetUrl}
+                  </a>
+                </p>
+              </div>
+
+              <p style="margin:28px 0 0;font-size:14px;line-height:1.7;color:#404040;">
+                Sportivement,<br />
+                <strong>CS Viriat</strong>
+              </p>
+            </div>
+
+            <div style="padding:18px 20px;text-align:center;font-size:11px;line-height:1.6;color:#a3a3a3;">
+              Message automatique envoyé depuis l’espace membre du CS Viriat.
+            </div>
           </div>
         </div>
       `,
