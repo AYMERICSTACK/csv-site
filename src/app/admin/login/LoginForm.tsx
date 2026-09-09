@@ -73,7 +73,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="inline-flex w-full items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex w-full cursor-pointer items-center justify-center rounded-2xl bg-csv-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "Connexion..." : "Se connecter"}
       </button>
