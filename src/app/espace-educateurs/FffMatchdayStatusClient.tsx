@@ -40,6 +40,7 @@ type MatchdayState =
       resultCount: number;
       complete: boolean;
       rankingSyncedAt: string | null;
+      notificationSentAt: string | null;
     };
 
 function buildMatchdaysUrl(dofaRankingUrl: string) {
@@ -139,6 +140,7 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
         totalMatches: latest.totalMatches, resultCount: latest.resultCount,
         complete: latest.complete,
         rankingSyncedAt: saved?.rankingSyncedAt ?? null,
+        notificationSentAt: saved?.notificationSentAt ?? null,
       });
     } catch (error) {
       setState({
@@ -216,6 +218,11 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
                 {state.rankingSyncedAt && (
                   <p className="mt-2 text-sm font-bold text-green-800">
                     Classement synchronisé le {formatDay(state.rankingSyncedAt)}.
+                  </p>
+                )}
+                {!state.rankingSyncedAt && state.notificationSentAt && (
+                  <p className="mt-2 text-sm font-bold text-green-800">
+                    Rappel envoyé aux responsables du club.
                   </p>
                 )}
                 {!state.complete && (

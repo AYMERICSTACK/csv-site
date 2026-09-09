@@ -364,6 +364,10 @@ model FffMatchdaySnapshot {
   completedAt DateTime?
   rankingSyncedAt DateTime?
   rankingSyncUserId String?
+  notificationClaimedAt DateTime?
+  notificationSentAt DateTime?
+  notificationResendId String?
+  notificationLastError String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
