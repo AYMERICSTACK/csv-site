@@ -12,6 +12,62 @@ type NewsAssetUploadProps = {
   placeholder?: string;
 };
 
+type UploadResponse = {
+  url?: string;
+  error?: string;
+};
+
+function uploadWithXhr(file: File): Promise<UploadResponse> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/news/upload", true);
+    xhr.responseType = "json";
+    xhr.timeout = 60_000;
+
+    xhr.onload = () => {
+      let data = xhr.response as UploadResponse | null;
+
+      // Certains Safari renvoient response=null même avec une réponse JSON valide.
+      if (!data && xhr.responseText) {
+        try {
+          data = JSON.parse(xhr.responseText) as UploadResponse;
+        } catch {
+          data = null;
+        }
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300 && data?.url) {
+        resolve(data);
+        return;
+      }
+
+      reject(
+        new Error(
+          data?.error ||
+            `Upload impossible (HTTP ${xhr.status || "inconnu"}).`,
+        ),
+      );
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Erreur réseau pendant l’envoi du fichier."));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error("L’envoi du fichier a pris trop de temps."));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error("L’envoi du fichier a été interrompu."));
+    };
+
+    xhr.send(formData);
+  });
+}
+
 export default function NewsAssetUpload({
   label,
   name,
@@ -32,29 +88,22 @@ export default function NewsAssetUpload({
     setMessage("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const data = await uploadWithXhr(file);
 
-      const response = await fetch("/api/news/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Upload impossible.");
+      if (!data.url) {
+        throw new Error("L’upload n’a retourné aucune URL.");
       }
 
       setValue(data.url);
       setMessage("Fichier envoyé avec succès.");
     } catch (err) {
-      console.error(err);
+      console.error("Upload actualité :", err);
       setError(
         err instanceof Error ? err.message : "Impossible d’envoyer le fichier.",
       );
     } finally {
       setIsUploading(false);
+
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -73,25 +122,25 @@ export default function NewsAssetUpload({
         {label}
       </label>
 
-      {/* INPUT PRINCIPAL — SOURCE UNIQUE */}
       <input
         id={name}
         name={name}
         type="text"
         className="input"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(event) => setValue(event.target.value)}
         placeholder={placeholder}
       />
 
-      {/* UPLOAD */}
       <input
         ref={fileInputRef}
         type="file"
         accept={accept}
-        className="mt-3 block w-full text-sm text-neutral-700 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-semibold file:text-orange-700 hover:file:bg-orange-100"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
+        disabled={isUploading}
+        className="mt-3 block w-full text-sm text-neutral-700 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:font-semibold file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-60"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+
           if (file) {
             void handleUpload(file);
           }
@@ -102,7 +151,6 @@ export default function NewsAssetUpload({
         <p className="mt-2 text-xs text-neutral-500">{helpText}</p>
       ) : null}
 
-      {/* STATUS */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {isUploading && (
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
