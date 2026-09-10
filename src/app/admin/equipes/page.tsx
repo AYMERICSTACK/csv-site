@@ -297,13 +297,22 @@ export default async function AdminEquipesPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                 <Link
-                  href={`#team-${favoriteTeam.slug}`}
-                  className="inline-flex items-center justify-center rounded-xl border border-orange-200 bg-white px-4 py-3 text-sm font-black text-orange-700 transition hover:bg-orange-100"
+                  href="/espace-educateurs"
+                  className="inline-flex items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-black text-white transition hover:opacity-90"
                 >
-                  Voir la carte
+                  Tableau de bord sportif
                 </Link>
+
+                {favoriteTeam.id ? (
+                  <Link
+                    href={`/espace-educateurs/equipes/${favoriteTeam.id}/edit`}
+                    className="inline-flex items-center justify-center rounded-xl border border-orange-200 bg-white px-4 py-3 text-sm font-black text-orange-700 transition hover:bg-orange-100"
+                  >
+                    Infos & responsable
+                  </Link>
+                ) : null}
 
                 <Link
                   href={`/admin/equipes/${favoriteTeam.slug}`}

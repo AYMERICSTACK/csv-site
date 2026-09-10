@@ -258,6 +258,19 @@ export default async function AdminEquipeDetailPage({
     where: { team: teamName },
   });
 
+  const editableTeam = await prisma.team.findFirst({
+    where: {
+      category: {
+        equals: teamName,
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+      coach: true,
+    },
+  });
+
   const players = allPlayers.filter(
     (player) => normalizeTeamName(player.team || "") === normalizedCurrentTeam,
   );
@@ -358,9 +371,22 @@ export default async function AdminEquipeDetailPage({
                 Gérez l’effectif, suivez les statistiques et retrouvez les
                 derniers matchs de cette équipe.
               </p>
+
+              <p className="mt-3 text-sm font-semibold text-neutral-700">
+                Responsable : {editableTeam?.coach || "À renseigner"}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              {editableTeam ? (
+                <Link
+                  href={`/espace-educateurs/equipes/${editableTeam.id}/edit`}
+                  className="col-span-2 inline-flex items-center justify-center rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-700 transition hover:bg-orange-100 sm:col-span-1 sm:py-2"
+                >
+                  Infos & responsable
+                </Link>
+              ) : null}
+
               <Link
                 href={`/admin/equipes/${teamSlug}/joueurs`}
                 className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white sm:py-2"
