@@ -83,11 +83,6 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
   const [state, setState] = useState<MatchdayState>({ status: "loading" });
 
   const check = useCallback(async () => {
-    if (team !== "Seniors 2") {
-      setState({ status: "unsupported" });
-      return;
-    }
-
     setState({ status: "loading" });
 
     try {
@@ -103,10 +98,10 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
       const configs = Array.isArray(configPayload?.teams)
         ? (configPayload.teams as TeamConfig[])
         : [];
-      const config = configs.find((item) => item.team === "Seniors 2");
+      const config = configs.find((item) => item.team === team);
 
       if (!config?.dofaUrl) {
-        throw new Error("Configuration Seniors 2 introuvable.");
+        throw new Error(`Configuration ${team} introuvable.`);
       }
 
       const matchdaysUrl = buildMatchdaysUrl(config.dofaUrl);
@@ -120,7 +115,7 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
       }
 
       const payload = await response.json();
-      const matchdays = parseMatchdays(payload);
+      const matchdays = parseMatchdays(payload, new URL(matchdaysUrl).origin + new URL(matchdaysUrl).pathname);
       const savedResponse = await fetch("/api/admin/fff-matchday-status", {
         method: "POST", cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -133,7 +128,7 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
       const latest = matchdays
         .filter(day => day.date.getTime() <= Date.now() && day.totalMatches > 0)
         .sort((a,b) => b.date.getTime()-a.date.getTime() || b.number-a.number)[0];
-      if (!latest) throw new Error("Aucune journée passée trouvée pour Seniors 2.");
+      if (!latest) throw new Error(`Aucune journée passée trouvée pour ${team}.`);
       const saved = savedDays.find((day: { dayNumber: number }) => day.dayNumber === latest.number);
       setState({
         status: "ready", number: latest.number, date: latest.date.toISOString(),

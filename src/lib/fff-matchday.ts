@@ -1,7 +1,3 @@
-export const MATCHDAY_TEAM = "Seniors 2";
-export const MATCHDAY_SOURCE = "https://api-dofa.fff.fr/api/compets/454799/phases/1/poules/2/poule_journees";
-export const MATCHDAY_SEASON = 2026;
-
 type RecordValue = Record<string, unknown>;
 function object(value: unknown): RecordValue | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -10,25 +6,18 @@ function object(value: unknown): RecordValue | null {
 function integer(value: unknown): number | null {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
-function isExpectedCollectionId(value: unknown) {
+function isExpectedCollectionId(value: unknown, sourceUrl: string) {
   if (typeof value !== "string" || !value.trim()) return false;
-
   try {
-    const expected = new URL(MATCHDAY_SOURCE);
+    const expected = new URL(sourceUrl);
     const actual = new URL(value, expected.origin);
-
-    return (
-      actual.origin === expected.origin &&
-      actual.pathname.replace(/\/$/, "") === expected.pathname.replace(/\/$/, "")
-    );
-  } catch {
-    return false;
-  }
+    return actual.origin === expected.origin && actual.pathname.replace(/\/$/, "") === expected.pathname.replace(/\/$/, "");
+  } catch { return false; }
 }
 
-export function parseMatchdays(payload: unknown) {
+export function parseMatchdays(payload: unknown, sourceUrl: string) {
   const collection = object(payload);
-  if (!collection || !isExpectedCollectionId(collection["@id"]) || !Array.isArray(collection["hydra:member"])) {
+  if (!collection || !isExpectedCollectionId(collection["@id"], sourceUrl) || !Array.isArray(collection["hydra:member"])) {
     throw new Error("Collection FFF inattendue.");
   }
   const members = collection["hydra:member"] as unknown[];
@@ -41,26 +30,18 @@ export function parseMatchdays(payload: unknown) {
       throw new Error("Journée FFF invalide.");
     }
     const matches = (day.matchs as unknown[]).map((rawMatch) => {
-      const match = object(rawMatch);
-      const id = integer(match?.ma_no);
-      const home = object(match?.home);
-      const away = object(match?.away);
-      const homeScore = integer(match?.home_score);
-      const awayScore = integer(match?.away_score);
+      const match = object(rawMatch); const id = integer(match?.ma_no);
+      const home = object(match?.home); const away = object(match?.away);
+      const homeScore = integer(match?.home_score); const awayScore = integer(match?.away_score);
       if (!match || id === null || !home || !away) throw new Error("Match FFF invalide.");
       const name = (value: RecordValue) => typeof value.short_name === "string" ? value.short_name.slice(0, 150) : "";
-      return {
-        id, home: name(home), away: name(away),
-        homeScore, awayScore,
+      return { id, home: name(home), away: name(away), homeScore, awayScore,
         status: typeof match.status === "string" ? match.status : null,
         postponed: typeof match.seems_postponed === "string" ? match.seems_postponed : null,
-        homeForfeit: match.home_is_forfeit === "O",
-        awayForfeit: match.away_is_forfeit === "O",
-      };
+        homeForfeit: match.home_is_forfeit === "O", awayForfeit: match.away_is_forfeit === "O" };
     });
     if (new Set(matches.map(match => match.id)).size !== matches.length) throw new Error("Matchs dupliqués.");
     const resultCount = matches.filter(match => match.homeScore !== null && match.awayScore !== null).length;
-    return { number, date, matches, totalMatches: matches.length, resultCount,
-      complete: matches.length > 0 && resultCount === matches.length };
+    return { number, date, matches, totalMatches: matches.length, resultCount, complete: matches.length > 0 && resultCount === matches.length };
   });
 }
