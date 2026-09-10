@@ -20,25 +20,16 @@ function siteOrigin(request: Request) {
   return new URL(request.url).origin;
 }
 
-const MATCHDAY_NOTIFICATION_RESPONSIBLES = [
-  "mathieu joly",
-  "lilian grenier",
-] as const;
-
-function normalizePersonName(value: string | null | undefined) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
+const MATCHDAY_NOTIFICATION_RESPONSIBLE_USER_IDS = new Set([
+  "cmoeb77ei0000ky04cnm49y4s", // JOLY Mathieu
+  "cmoebbxeo0006ky04stafwmk1", // Grenier lilian
+]);
 
 async function getNotificationRecipients() {
   const users = await prisma.user.findMany({
     where: { isActive: true },
     select: {
-      name: true,
+      id: true,
       email: true,
       role: true,
       memberships: {
@@ -47,16 +38,12 @@ async function getNotificationRecipients() {
     },
   });
 
-  const responsibleNames = new Set(MATCHDAY_NOTIFICATION_RESPONSIBLES);
-
   const recipients = users
     .filter((user) => {
       const isAdmin =
         user.role === "admin" ||
         user.memberships.some((membership) => membership.commission.slug === "admin");
-      const isResponsible = responsibleNames.has(
-        normalizePersonName(user.name) as (typeof MATCHDAY_NOTIFICATION_RESPONSIBLES)[number],
-      );
+      const isResponsible = MATCHDAY_NOTIFICATION_RESPONSIBLE_USER_IDS.has(user.id);
 
       return isAdmin || isResponsible;
     })
