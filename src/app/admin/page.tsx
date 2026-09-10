@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
+import AdminFffWeekendRecap from "@/components/AdminFffWeekendRecap";
 import { getHomePathByRole } from "@/lib/roles";
 
 type DashboardCard = {
@@ -384,6 +385,8 @@ export default async function AdminDashboardPage() {
             <DashboardCardItem key={`${card.title}-${card.href}`} card={card} />
           ))}
         </section>
+
+        <AdminFffWeekendRecap />
 
         <div className="mt-10 space-y-8">
           <DashboardSection

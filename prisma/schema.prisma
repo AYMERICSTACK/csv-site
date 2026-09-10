@@ -374,3 +374,17 @@ model FffMatchdaySnapshot {
   @@unique([sourceUrl, season, dayNumber])
   @@index([team, season, dayNumber])
 }
+
+model FffWeekendAdminRecap {
+  id           String   @id @default(cuid())
+  weekendKey   String   @unique
+  weekendStart DateTime
+  claimedAt    DateTime?
+  sentAt       DateTime?
+  resendId     String?
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([weekendStart])
+}

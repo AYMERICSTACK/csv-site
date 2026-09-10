@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getRankingAccess } from "@/lib/fff-ranking-access";
 import { prisma } from "@/lib/prisma";
+import { maybeSendAdminWeekendRecap } from "@/lib/fff-weekend-admin-recap";
 
 const CLUB_NUMBER = 2218;
 
@@ -296,6 +297,7 @@ export async function POST(request: Request) {
         where: { id: day.id },
         data: { rankingSyncedAt: now },
       });
+      await maybeSendAdminWeekendRecap(request, day.dayDate);
     }
   }
 

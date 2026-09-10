@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { MATCHDAY_SEASON, getMatchdayConfig, matchdaySource } from "@/lib/fff-matchday-config";
 import { parseMatchdays } from "@/lib/fff-matchday";
+import { maybeSendAdminWeekendRecap } from "@/lib/fff-weekend-admin-recap";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
   }
   const latest=saved.filter(row=>row.dayDate.getTime()<=now.getTime()).sort((a,b)=>b.dayDate.getTime()-a.dayDate.getTime()||b.dayNumber-a.dayNumber)[0];
   if(latest?.complete&&!latest.rankingSyncedAt&&!latest.notificationSentAt) await sendMatchdayNotification(request,latest.id,config.responsibleNames);
+  if (latest) await maybeSendAdminWeekendRecap(request, latest.dayDate);
   const refreshed=await prisma.fffMatchdaySnapshot.findMany({where:{sourceUrl,season:MATCHDAY_SEASON},orderBy:{dayNumber:"desc"},take:30});
   return NextResponse.json({days:refreshed});
 }
