@@ -10,9 +10,25 @@ function object(value: unknown): RecordValue | null {
 function integer(value: unknown): number | null {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
+function isExpectedCollectionId(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  try {
+    const expected = new URL(MATCHDAY_SOURCE);
+    const actual = new URL(value, expected.origin);
+
+    return (
+      actual.origin === expected.origin &&
+      actual.pathname.replace(/\/$/, "") === expected.pathname.replace(/\/$/, "")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function parseMatchdays(payload: unknown) {
   const collection = object(payload);
-  if (collection?.["@id"] !== MATCHDAY_SOURCE || !Array.isArray(collection["hydra:member"])) {
+  if (!collection || !isExpectedCollectionId(collection["@id"]) || !Array.isArray(collection["hydra:member"])) {
     throw new Error("Collection FFF inattendue.");
   }
   const members = collection["hydra:member"] as unknown[];
