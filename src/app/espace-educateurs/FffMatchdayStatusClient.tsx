@@ -262,7 +262,7 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
               </div>
             </div>
             {state.complete && (
-              <Link href="/espace-educateurs/classements-fff" className="mt-4 inline-flex rounded-xl bg-neutral-950 px-5 py-3 text-sm font-black text-white transition hover:bg-neutral-800">
+              <Link href={`/espace-educateurs/classements-fff?team=${encodeURIComponent(team)}`} className="mt-4 inline-flex rounded-xl bg-neutral-950 px-5 py-3 text-sm font-black text-white transition hover:bg-neutral-800">
                 Mettre à jour mon classement →
               </Link>
             )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type TeamConfig = {
   team: string;
@@ -90,6 +91,9 @@ function isDofaUrl(value: string) {
 }
 
 export default function FffRankingSyncClient() {
+  const searchParams = useSearchParams();
+  const requestedTeam = searchParams.get("team")?.trim() || null;
+  const highlightedRef = useRef<HTMLElement | null>(null);
   const [configs, setConfigs] = useState<TeamConfig[]>([]);
   const [states, setStates] = useState<Record<string, SyncState>>({});
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -122,6 +126,19 @@ export default function FffRankingSyncClient() {
     () => configs.filter((config) => isDofaUrl(config.dofaUrl)).length,
     [configs],
   );
+
+  const highlightedTeam = useMemo(
+    () => configs.find((config) => config.team === requestedTeam)?.team ?? null,
+    [configs, requestedTeam],
+  );
+
+  useEffect(() => {
+    if (!loadingConfig && highlightedTeam) {
+      window.setTimeout(() => {
+        highlightedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+  }, [loadingConfig, highlightedTeam]);
 
   async function syncTeam(config: TeamConfig) {
     if (!isDofaUrl(config.dofaUrl)) {
@@ -272,16 +289,26 @@ export default function FffRankingSyncClient() {
           return (
             <article
               key={config.team}
-              className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6"
+              ref={config.team === highlightedTeam ? highlightedRef : undefined}
+              className={`rounded-[1.75rem] border bg-white p-5 shadow-sm transition sm:p-6 ${
+                config.team === highlightedTeam
+                  ? "border-orange-400 ring-4 ring-orange-100"
+                  : "border-neutral-200"
+              }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
                     Championnat
                   </div>
-                  <h3 className="mt-1 text-xl font-black text-neutral-950">
-                    {config.team}
-                  </h3>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <h3 className="text-xl font-black text-neutral-950">{config.team}</h3>
+                    {config.team === highlightedTeam && (
+                      <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-orange-700">
+                        Équipe à mettre à jour
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <span
