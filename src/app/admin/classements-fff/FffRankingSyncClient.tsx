@@ -13,6 +13,69 @@ type SyncState = {
   message?: string;
 };
 
+const DOFA_MAX_ATTEMPTS = 3;
+const DOFA_RETRY_DELAY_MS = 900;
+const SYNC_ALL_DELAY_MS = 450;
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function getFetchErrorMessage(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return "La FFF n’a pas répondu dans le délai prévu.";
+  }
+
+  if (error instanceof TypeError) {
+    return `Connexion à l’API FFF impossible (${error.message || "erreur réseau / CORS"}).`;
+  }
+
+  return error instanceof Error ? error.message : "Erreur inconnue.";
+}
+
+async function fetchDofaWithRetry(
+  url: string,
+  onAttempt: (attempt: number) => void,
+) {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= DOFA_MAX_ATTEMPTS; attempt += 1) {
+    onAttempt(attempt);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Accept: "application/ld+json, application/json",
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = new Error(`FFF DOFA HTTP ${response.status}`);
+        // Une erreur client permanente ne gagnera rien à être rejouée.
+        if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
+          throw Object.assign(error, { retryable: false });
+        }
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if ((error as { retryable?: boolean })?.retryable === false) break;
+      if (attempt < DOFA_MAX_ATTEMPTS) await wait(DOFA_RETRY_DELAY_MS * attempt);
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  throw lastError ?? new Error("Impossible de lire l’API FFF.");
+}
+
 function isDofaUrl(value: string) {
   try {
     const url = new URL(value);
@@ -83,19 +146,18 @@ export default function FffRankingSyncClient() {
     try {
       // Important : cette requête part du navigateur de l'admin.
       // Vercel ne contacte pas directement api-dofa.fff.fr.
-      const dofaResponse = await fetch(config.dofaUrl, {
-        method: "GET",
-        cache: "no-store",
-        headers: {
-          Accept: "application/ld+json, application/json",
-        },
+      const dofaPayload = await fetchDofaWithRetry(config.dofaUrl, (attempt) => {
+        setStates((current) => ({
+          ...current,
+          [config.team]: {
+            status: "loading",
+            message:
+              attempt === 1
+                ? "Lecture FFF en cours…"
+                : `Nouvelle tentative FFF ${attempt}/${DOFA_MAX_ATTEMPTS}…`,
+          },
+        }));
       });
-
-      if (!dofaResponse.ok) {
-        throw new Error(`FFF DOFA HTTP ${dofaResponse.status}`);
-      }
-
-      const dofaPayload = await dofaResponse.json();
 
       const saveResponse = await fetch("/api/admin/fff-ranking-sync", {
         method: "POST",
@@ -126,12 +188,7 @@ export default function FffRankingSyncClient() {
 
       return true;
     } catch (error) {
-      const message =
-        error instanceof TypeError && /fetch/i.test(error.message)
-          ? "Le navigateur n’a pas pu lire l’API FFF (probable blocage CORS)."
-          : error instanceof Error
-            ? error.message
-            : "Erreur inconnue.";
+      const message = getFetchErrorMessage(error);
 
       setStates((current) => ({
         ...current,
@@ -146,9 +203,12 @@ export default function FffRankingSyncClient() {
     setSyncingAll(true);
 
     try {
-      for (const config of configs) {
-        if (isDofaUrl(config.dofaUrl)) {
-          await syncTeam(config);
+      const eligibleConfigs = configs.filter((config) => isDofaUrl(config.dofaUrl));
+
+      for (let index = 0; index < eligibleConfigs.length; index += 1) {
+        await syncTeam(eligibleConfigs[index]);
+        if (index < eligibleConfigs.length - 1) {
+          await wait(SYNC_ALL_DELAY_MS);
         }
       }
     } finally {
