@@ -245,7 +245,9 @@ export default function FffMatchdayStatusClient({ team }: { team: string }) {
               {state.complete ? <CheckCircle2 className="mt-0.5 shrink-0 text-green-600" size={22} /> : <Clock3 className="mt-0.5 shrink-0 text-orange-600" size={22} />}
               <div className="min-w-0">
                 <div className={`text-lg font-black ${state.complete ? "text-green-900" : "text-orange-900"}`}>
-                  Journée {state.number ?? "—"} {state.complete ? "complète" : "en attente"}
+                  {state.complete
+                    ? `Journée ${state.number ?? "—"} complète — ${state.rankingSyncedAt ? "classement à jour" : "classement à mettre à jour"}`
+                    : `Journée ${state.number ?? "—"} en attente`}
                 </div>
                 <p className={`mt-1 text-sm font-bold ${state.complete ? "text-green-700" : "text-orange-700"}`}>
                   {state.resultCount} résultat{state.resultCount > 1 ? "s" : ""} sur {state.totalMatches} publié{state.totalMatches > 1 ? "s" : ""} par la FFF

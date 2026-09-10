@@ -397,14 +397,6 @@ export default async function EspaceEducateursPage() {
           <FffMatchdayStatusClient team={favoriteTeam.category} />
         )}
 
-        <section className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5">
-          <h2 className="text-lg font-extrabold text-neutral-950">Classement de mon équipe</h2>
-          <p className="mt-2 text-sm text-neutral-600">Consulte et synchronise le classement officiel de ton équipe.</p>
-          <Link href="/espace-educateurs/classements-fff" className="mt-4 inline-flex rounded-xl bg-neutral-950 px-5 py-3 text-sm font-bold text-white">
-            Mettre à jour mon classement →
-          </Link>
-        </section>
-
         <section className="mt-8 rounded-[1.75rem] border border-neutral-800 bg-neutral-950 p-6 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.45)]">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
