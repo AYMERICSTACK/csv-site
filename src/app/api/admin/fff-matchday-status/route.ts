@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { getRankingAccess } from "@/lib/fff-ranking-access";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
-import { normalizeTeamName } from "@/lib/teams";
 import { MATCHDAY_TEAM, MATCHDAY_SOURCE, MATCHDAY_SEASON, parseMatchdays } from "@/lib/fff-matchday";
 
 export const dynamic = "force-dynamic";
@@ -21,24 +20,45 @@ function siteOrigin(request: Request) {
   return new URL(request.url).origin;
 }
 
+const MATCHDAY_NOTIFICATION_RESPONSIBLES = [
+  "mathieu joly",
+  "lilian grenier",
+] as const;
+
+function normalizePersonName(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 async function getNotificationRecipients() {
   const users = await prisma.user.findMany({
     where: { isActive: true },
     select: {
+      name: true,
       email: true,
       role: true,
-      favoriteTeam: { select: { category: true } },
       memberships: {
         select: { commission: { select: { slug: true } } },
       },
     },
   });
 
+  const responsibleNames = new Set(MATCHDAY_NOTIFICATION_RESPONSIBLES);
+
   const recipients = users
     .filter((user) => {
-      const isAdmin = user.role === "admin" || user.memberships.some((membership) => membership.commission.slug === "admin");
-      const favorite = user.favoriteTeam?.category ? normalizeTeamName(user.favoriteTeam.category) : null;
-      return isAdmin || favorite === MATCHDAY_TEAM;
+      const isAdmin =
+        user.role === "admin" ||
+        user.memberships.some((membership) => membership.commission.slug === "admin");
+      const isResponsible = responsibleNames.has(
+        normalizePersonName(user.name) as (typeof MATCHDAY_NOTIFICATION_RESPONSIBLES)[number],
+      );
+
+      return isAdmin || isResponsible;
     })
     .map((user) => user.email.trim().toLowerCase())
     .filter(Boolean);
