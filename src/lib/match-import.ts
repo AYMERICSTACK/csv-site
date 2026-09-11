@@ -1,5 +1,19 @@
 import { MATCH_TEAMS } from "@/lib/teams";
 
+
+export type ImportedPlateauDraft = {
+  sourceIndex: number;
+  team: string;
+  eventDate: string;
+  location: string;
+  format: "festival" | "matches";
+  participants: string[];
+  opponents: string[];
+  title: string;
+  confidence: "high" | "medium" | "low";
+  warning?: string;
+};
+
 export type ImportedMatchDraft = {
   sourceIndex: number;
   category: string;
@@ -194,4 +208,86 @@ export function parseProgramTokens(tokens: string[]): ImportedMatchDraft[] {
   return results
     .filter((item) => item.matchDate && item.opponent)
     .map((item, index) => ({ ...item, sourceIndex: index }));
+}
+
+
+const SCHOOL_TEAM_RE = /^u(?:7|9|11)(?:\s+\d+)?$/i;
+
+function normalizeSchoolTeam(value: string) {
+  const clean = normalize(value).toUpperCase();
+  if (!SCHOOL_TEAM_RE.test(clean)) return "";
+  return clean.replace(/^U(7|9|11)\s*(\d+)?$/, (_, age: string, number?: string) =>
+    number ? `U${age} ${number}` : `U${age}`,
+  );
+}
+
+function splitSchoolOpponents(values: string[]) {
+  const joined = values
+    .filter((value) => !isCsv(value))
+    .join(" ")
+    .replace(/\s*\/\s*/g, " / ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!joined) return [];
+  return joined
+    .split("/")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Reconstruit les plateaux école de foot depuis le PDF Canva.
+ * Le PDF exporte chaque carte sous la forme : clubs -> date -> équipe (U7/U9/U11).
+ * Pour les U11, un libellé comme « Plaine Tonique / Manziat » devient deux rencontres
+ * à l'intérieur du même plateau.
+ */
+export function parseSchoolFootPlateaux(tokens: string[]): ImportedPlateauDraft[] {
+  const results: ImportedPlateauDraft[] = [];
+  let previousLabelIndex = -1;
+
+  for (let labelIndex = 0; labelIndex < tokens.length; labelIndex += 1) {
+    const team = normalizeSchoolTeam(tokens[labelIndex]);
+    if (!team) continue;
+
+    const segmentStart = previousLabelIndex + 1;
+    const segment = tokens.slice(segmentStart, labelIndex);
+    previousLabelIndex = labelIndex;
+
+    let dateOffset = -1;
+    for (let index = segment.length - 1; index >= 0; index -= 1) {
+      if (DATE_RE.test(segment[index])) {
+        dateOffset = index;
+        break;
+      }
+    }
+    if (dateOffset < 0) continue;
+
+    const matchDate = parseFrenchDate(segment[dateOffset]);
+    if (!matchDate) continue;
+
+    const clubTokens = segment.slice(0, dateOffset).filter((value) => {
+      const clean = normalize(value);
+      return clean && clean !== "programme week end" && clean !== "ecole de foot" && !clean.includes("venez encourager");
+    });
+    if (!clubTokens.some(isCsv)) continue;
+
+    const opponents = splitSchoolOpponents(clubTokens);
+    const isU11 = team.startsWith("U11");
+
+    results.push({
+      sourceIndex: results.length,
+      team,
+      eventDate: matchDate,
+      location: "À confirmer",
+      format: isU11 ? "matches" : "festival",
+      participants: isU11 ? [] : opponents,
+      opponents: isU11 ? opponents : [],
+      title: isU11 ? `Plateau ${team}` : `Rassemblement ${team}`,
+      confidence: opponents.length ? "high" : "medium",
+      warning: opponents.length ? undefined : "Clubs participants non déduits automatiquement : à vérifier.",
+    });
+  }
+
+  return results.map((item, index) => ({ ...item, sourceIndex: index }));
 }
