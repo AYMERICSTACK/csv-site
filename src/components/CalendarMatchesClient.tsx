@@ -37,6 +37,7 @@ type UpcomingPeriod = {
 type Props = {
   recentResults: MatchItem[];
   upcomingMatches: MatchItem[];
+  initialView?: ViewFilterKey;
 };
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
@@ -65,7 +66,8 @@ function getCategoryGroup(category: string): FilterKey {
   if (
     value.includes("senior") ||
     value.includes("veteran") ||
-    value.includes("vétéran")
+    value.includes("vétéran") ||
+    value.includes("femin")
   ) {
     return "seniors";
   }
@@ -94,6 +96,7 @@ function getCategoryGroup(category: string): FilterKey {
     value.includes("u17") ||
     value.includes("u18") ||
     value.includes("u19") ||
+    value.includes("u20") ||
     value.includes("jeune")
   ) {
     return "jeunes";
@@ -600,9 +603,10 @@ function UpcomingCard({ match }: { match: MatchItem }) {
 export default function CalendarMatchesClient({
   recentResults,
   upcomingMatches,
+  initialView = "all",
 }: Props) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
-  const [activeView, setActiveView] = useState<ViewFilterKey>("all");
+  const [activeView, setActiveView] = useState<ViewFilterKey>(initialView);
 
   const filteredRecentResults = useMemo(() => {
     return recentResults.filter((match) =>

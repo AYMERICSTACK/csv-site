@@ -3,6 +3,18 @@ import Badge from "@/components/Badge";
 import { prisma } from "@/lib/prisma";
 import CalendarMatchesClient from "@/components/CalendarMatchesClient";
 
+
+function getDefaultCalendarView() {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date());
+
+  return ["Thu", "Fri", "Sat", "Sun"].includes(weekday)
+    ? ("upcoming" as const)
+    : ("all" as const);
+}
+
 function getRecentResultsRange() {
   const now = new Date();
 
@@ -95,6 +107,7 @@ export default async function CalendrierPage() {
         <CalendarMatchesClient
           recentResults={recentResultsSerialized}
           upcomingMatches={upcomingMatchesSerialized}
+          initialView={getDefaultCalendarView()}
         />
       </div>
     </Container>
