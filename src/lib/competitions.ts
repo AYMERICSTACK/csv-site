@@ -38,7 +38,7 @@ export const COMPETITIONS: readonly CompetitionDefinition[] = [
     key: "coupe-ain",
     label: "Coupe de l'Ain",
     type: "cup",
-    teams: ["Seniors 2"],
+    teams: ["Seniors 2", "Seniors 3"],
     knockout: true,
     penalties: true,
   },
