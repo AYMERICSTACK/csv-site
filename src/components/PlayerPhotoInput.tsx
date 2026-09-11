@@ -9,7 +9,7 @@ type PlayerPhotoInputProps = {
   compact?: boolean;
 };
 
-const MAX_PHOTO_SIZE = 12 * 1024 * 1024;
+const MAX_PHOTO_SIZE = 3 * 1024 * 1024;
 const SUPPORTED_PHOTO_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -92,7 +92,7 @@ export default function PlayerPhotoInput({
     }
 
     if (selectedFile.size > MAX_PHOTO_SIZE) {
-      setMessage("La photo est trop lourde. Taille maximale : 12 Mo.");
+      setMessage("La photo est trop lourde. Taille maximale : 3 Mo.");
       event.target.value = "";
       setFile(null);
       return;
@@ -148,7 +148,7 @@ export default function PlayerPhotoInput({
           Retirer la photo sélectionnée
         </button>
       ) : (
-        <p className="text-xs text-neutral-500">PNG, JPG ou WEBP · 12 Mo max.</p>
+        <p className="text-xs text-neutral-500">PNG, JPG ou WEBP · 3 Mo max.</p>
       )}
 
       {message ? (
