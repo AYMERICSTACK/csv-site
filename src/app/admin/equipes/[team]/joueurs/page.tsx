@@ -12,6 +12,7 @@ import DeletePlayerButton from "@/components/DeletePlayerButton";
 import PlayerPhotoInput from "@/components/PlayerPhotoInput";
 import MobileCreatePanel from "@/components/MobileCreatePanel";
 import PlayerSaveState from "@/components/PlayerSaveState";
+import PlayerRosterSearch from "@/components/PlayerRosterSearch";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -407,6 +408,8 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
             </div>
           </div>
 
+          <PlayerRosterSearch total={players.length} />
+
           <div className="mt-5 grid gap-3 sm:gap-4">
             {players.map((player) => {
               const stat = player.stats[0];
@@ -415,6 +418,8 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
                 <form
                   key={player.id}
                   action={updatePlayer}
+                  data-player-search-card
+                  data-player-search={`${player.firstName} ${player.lastName} ${player.category || ""} ${player.position || ""} ${player.positionSide || ""}`}
                   className="rounded-[1.5rem] border border-neutral-200 bg-white p-3 transition hover:border-orange-200 hover:shadow-md sm:p-4"
                 >
                   <input type="hidden" name="id" value={player.id} />
