@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { refreshPlayerStats } from "@/lib/player-stats";
 import { revalidatePath } from "next/cache";
 import AdminMatchesBoard from "@/components/AdminMatchesBoard";
-import { ArrowLeft, Plus, FileUp } from "lucide-react";
+import { ArrowLeft, Plus, FileUp, UsersRound } from "lucide-react";
 
 async function deleteMatch(formData: FormData) {
   "use server";
@@ -180,13 +180,22 @@ export default async function AdminMatchsPage() {
                 Importer le programme
               </Link>
 
-              <Link
-                href="/admin/matchs/new?noFavorite=1"
-                className="hidden items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:-translate-y-0.5 hover:bg-orange-400 md:inline-flex"
-              >
-                <Plus size={18} />
-                Ajouter un match
-              </Link>
+              <div className="hidden gap-2 md:flex">
+                <Link
+                  href="/admin/plateaux"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-orange-400/30 bg-orange-500/10 px-5 py-3 text-sm font-black text-orange-200 transition hover:bg-orange-500/20"
+                >
+                  <UsersRound size={18} />
+                  Plateaux école de foot
+                </Link>
+                <Link
+                  href="/admin/matchs/new?noFavorite=1"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:-translate-y-0.5 hover:bg-orange-400"
+                >
+                  <Plus size={18} />
+                  Ajouter un match
+                </Link>
+              </div>
             </div>
           </div>
         </section>

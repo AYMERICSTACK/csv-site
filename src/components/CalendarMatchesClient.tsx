@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CalendarDays, Clock3, MapPin, Trophy } from "lucide-react";
+import PlateauPublicCard, { type PlateauPublicItem } from "@/components/PlateauPublicCard";
 
 type MatchItem = {
   id: string;
@@ -37,6 +38,7 @@ type UpcomingPeriod = {
 type Props = {
   recentResults: MatchItem[];
   upcomingMatches: MatchItem[];
+  upcomingPlateaux: PlateauPublicItem[];
   initialView?: ViewFilterKey;
 };
 
@@ -603,6 +605,7 @@ function UpcomingCard({ match }: { match: MatchItem }) {
 export default function CalendarMatchesClient({
   recentResults,
   upcomingMatches,
+  upcomingPlateaux,
   initialView = "all",
 }: Props) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
@@ -620,6 +623,10 @@ export default function CalendarMatchesClient({
     );
   }, [upcomingMatches, activeFilter]);
 
+  const filteredUpcomingPlateaux = useMemo(() => {
+    return activeFilter === "all" || activeFilter === "ecole" ? upcomingPlateaux : [];
+  }, [upcomingPlateaux, activeFilter]);
+
   const groupedRecentResults = useMemo(() => {
     return groupMatchesByCategory(filteredRecentResults);
   }, [filteredRecentResults]);
@@ -632,7 +639,7 @@ export default function CalendarMatchesClient({
   const showUpcoming = activeView === "all" || activeView === "upcoming";
 
   const hasVisibleResults = showResults && filteredRecentResults.length > 0;
-  const hasVisibleUpcoming = showUpcoming && filteredUpcomingMatches.length > 0;
+  const hasVisibleUpcoming = showUpcoming && (filteredUpcomingMatches.length > 0 || filteredUpcomingPlateaux.length > 0);
   const hasContent = hasVisibleResults || hasVisibleUpcoming;
 
   return (
@@ -756,6 +763,22 @@ export default function CalendarMatchesClient({
               par catégorie.
             </p>
           </div>
+
+          {filteredUpcomingPlateaux.length > 0 ? (
+            <section className="rounded-[1.75rem] border border-orange-200 bg-orange-50/50 p-5 md:p-6">
+              <div className="flex items-end justify-between gap-3 border-b border-orange-200 pb-3">
+                <div>
+                  <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 md:text-xl">Plateaux école de foot</h3>
+                  <p className="mt-1 text-sm text-neutral-600">{filteredUpcomingPlateaux.length} plateau{filteredUpcomingPlateaux.length > 1 ? "x" : ""} à venir.</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredUpcomingPlateaux.map((plateau) => (
+                  <PlateauPublicCard key={plateau.id} plateau={plateau} />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <div className="space-y-10">
             {upcomingPeriods.map((period) => {

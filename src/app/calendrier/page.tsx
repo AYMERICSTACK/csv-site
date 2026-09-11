@@ -34,7 +34,7 @@ export default async function CalendrierPage() {
   const upcomingLimit = new Date(now);
   upcomingLimit.setDate(upcomingLimit.getDate() + 30);
 
-  const [recentResults, upcomingMatches] = await Promise.all([
+  const [recentResults, upcomingMatches, upcomingPlateaux] = await Promise.all([
     prisma.match.findMany({
       where: {
         status: "finished",
@@ -61,6 +61,18 @@ export default async function CalendrierPage() {
         matchDate: "asc",
       },
     }),
+    prisma.plateau.findMany({
+      where: {
+        status: { notIn: ["finished", "cancelled"] },
+        eventDate: { gte: now, lte: upcomingLimit },
+      },
+      orderBy: { eventDate: "asc" },
+      include: {
+        team: { select: { category: true } },
+        participants: { orderBy: { sortOrder: "asc" } },
+        games: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
   ]);
 
   const recentResultsSerialized = recentResults.map((match) => ({
@@ -75,6 +87,23 @@ export default async function CalendrierPage() {
     matchDate: match.matchDate.toISOString(),
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
+  }));
+
+  const upcomingPlateauxSerialized = upcomingPlateaux.map((plateau) => ({
+    id: plateau.id,
+    team: plateau.team.category,
+    eventDate: plateau.eventDate.toISOString(),
+    location: plateau.location,
+    format: plateau.format,
+    status: plateau.status,
+    title: plateau.title,
+    participants: plateau.participants.map((item) => item.name),
+    games: plateau.games.map((game) => ({
+      id: game.id,
+      opponent: game.opponent,
+      scoreTeam: game.scoreTeam,
+      scoreOpponent: game.scoreOpponent,
+    })),
   }));
 
   return (
@@ -107,6 +136,7 @@ export default async function CalendrierPage() {
         <CalendarMatchesClient
           recentResults={recentResultsSerialized}
           upcomingMatches={upcomingMatchesSerialized}
+          upcomingPlateaux={upcomingPlateauxSerialized}
           initialView={getDefaultCalendarView()}
         />
       </div>

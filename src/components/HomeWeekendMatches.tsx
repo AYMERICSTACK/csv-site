@@ -49,7 +49,8 @@ function getWeekendContent() {
 
 export default async function HomeWeekendMatches() {
   const range = getHomeWeekendWindow();
-  const matches = await prisma.match.findMany({
+  const [matches, plateaux] = await Promise.all([
+    prisma.match.findMany({
     where: {
       matchDate: {
         gte: range.start,
@@ -74,13 +75,43 @@ export default async function HomeWeekendMatches() {
       competitionType: true,
       roundLabel: true,
     },
-  });
+    }),
+    prisma.plateau.findMany({
+      where: {
+        eventDate: { gte: range.start, lte: range.end },
+        status: { not: "cancelled" },
+      },
+      orderBy: { eventDate: "asc" },
+      include: {
+        team: { select: { category: true } },
+        participants: { orderBy: { sortOrder: "asc" } },
+        games: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+  ]);
 
-  if (matches.length === 0) return null;
+  if (matches.length === 0 && plateaux.length === 0) return null;
 
   const serialized = matches.map((match) => ({
     ...match,
     matchDate: match.matchDate.toISOString(),
+  }));
+
+  const serializedPlateaux = plateaux.map((plateau) => ({
+    id: plateau.id,
+    team: plateau.team.category,
+    eventDate: plateau.eventDate.toISOString(),
+    location: plateau.location,
+    format: plateau.format,
+    status: plateau.status,
+    title: plateau.title,
+    participants: plateau.participants.map((item) => item.name),
+    games: plateau.games.map((game) => ({
+      id: game.id,
+      opponent: game.opponent,
+      scoreTeam: game.scoreTeam,
+      scoreOpponent: game.scoreOpponent,
+    })),
   }));
 
   const content = getWeekendContent();
@@ -107,7 +138,7 @@ export default async function HomeWeekendMatches() {
           </Link>
         </div>
 
-        <HomeWeekendMatchesClient matches={serialized} />
+        <HomeWeekendMatchesClient matches={serialized} plateaux={serializedPlateaux} />
       </Container>
     </section>
   );

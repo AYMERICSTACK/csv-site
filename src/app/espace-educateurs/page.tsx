@@ -211,12 +211,21 @@ export default async function EspaceEducateursPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    href="/admin/matchs/new"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white transition hover:bg-orange-400"
-                  >
-                    <Plus size={17} /> Ajouter un match
-                  </Link>
+                  {/^U(?:7|9|11)(?:\s|$)/i.test(favoriteTeam.category) ? (
+                    <Link
+                      href="/admin/plateaux/new"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white transition hover:bg-orange-400"
+                    >
+                      <Plus size={17} /> Ajouter un plateau
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/admin/matchs/new"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white transition hover:bg-orange-400"
+                    >
+                      <Plus size={17} /> Ajouter un match
+                    </Link>
+                  )}
                   <Link
                     href={`/admin/equipes/${slugifyTeam(favoriteTeam.category)}`}
                     className="inline-flex items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"

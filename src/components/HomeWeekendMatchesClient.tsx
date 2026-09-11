@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CalendarDays, Clock3, MapPin, Trophy } from "lucide-react";
+import PlateauPublicCard, { type PlateauPublicItem } from "@/components/PlateauPublicCard";
 
 type HomeMatch = {
   id: string;
@@ -227,7 +228,7 @@ function UpcomingCard({ match }: { match: HomeMatch }) {
   );
 }
 
-export default function HomeWeekendMatchesClient({ matches }: { matches: HomeMatch[] }) {
+export default function HomeWeekendMatchesClient({ matches, plateaux }: { matches: HomeMatch[]; plateaux: PlateauPublicItem[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
 
   const filteredMatches = useMemo(
@@ -235,24 +236,43 @@ export default function HomeWeekendMatchesClient({ matches }: { matches: HomeMat
     [matches, activeFilter],
   );
 
+  const filteredPlateaux = useMemo(
+    () => (activeFilter === "all" || activeFilter === "ecole" ? plateaux : []),
+    [plateaux, activeFilter],
+  );
+
+  type WeekendEvent =
+    | { kind: "match"; id: string; date: string; match: HomeMatch }
+    | { kind: "plateau"; id: string; date: string; plateau: PlateauPublicItem };
+
   const dayGroups = useMemo(() => {
-    const groups = new Map<string, HomeMatch[]>();
-    for (const match of filteredMatches) {
-      const key = getDayKey(match.matchDate);
+    const groups = new Map<string, WeekendEvent[]>();
+    const events: WeekendEvent[] = [
+      ...filteredMatches.map((match) => ({ kind: "match" as const, id: match.id, date: match.matchDate, match })),
+      ...filteredPlateaux.map((plateau) => ({ kind: "plateau" as const, id: plateau.id, date: plateau.eventDate, plateau })),
+    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    for (const event of events) {
+      const key = getDayKey(event.date);
       const current = groups.get(key) || [];
-      current.push(match);
+      current.push(event);
       groups.set(key, current);
     }
+
     return Array.from(groups.entries()).map(([key, items]) => ({ key, items }));
-  }, [filteredMatches]);
+  }, [filteredMatches, filteredPlateaux]);
+
+  const total = filteredMatches.length + filteredPlateaux.length;
+  const summary = [
+    filteredMatches.length ? `${filteredMatches.length} match${filteredMatches.length > 1 ? "s" : ""}` : "",
+    filteredPlateaux.length ? `${filteredPlateaux.length} plateau${filteredPlateaux.length > 1 ? "x" : ""}` : "",
+  ].filter(Boolean).join(" · ");
 
   return (
     <>
       <div className="mt-6 flex flex-col gap-4 rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-extrabold text-neutral-900">
-            {filteredMatches.length} rencontre{filteredMatches.length > 1 ? "s" : ""}
-          </div>
+          <div className="text-sm font-extrabold text-neutral-900">{summary || "Aucun événement"} ce week-end</div>
           <div className="mt-1 text-xs text-neutral-500">Filtre le programme sans quitter la page d’accueil.</div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -273,23 +293,27 @@ export default function HomeWeekendMatchesClient({ matches }: { matches: HomeMat
         </div>
       </div>
 
-      {filteredMatches.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-orange-300 bg-orange-50 p-5 text-sm text-neutral-700">Aucun match pour ce filtre ce week-end.</div>
+      {total === 0 ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-orange-300 bg-orange-50 p-5 text-sm text-neutral-700">Aucun match ou plateau pour ce filtre ce week-end.</div>
       ) : (
         <div className="mt-8 space-y-10">
           {dayGroups.map((group) => (
             <section key={group.key}>
               <div className="mb-4 flex items-end justify-between gap-3 border-b border-neutral-200 pb-3">
                 <div>
-                  <h3 className="text-xl font-extrabold tracking-tight text-neutral-900">{formatDay(group.items[0].matchDate)}</h3>
-                  <p className="mt-1 text-sm text-neutral-500">{group.items.length} match{group.items.length > 1 ? "s" : ""}</p>
+                  <h3 className="text-xl font-extrabold tracking-tight text-neutral-900">{formatDay(group.items[0].date)}</h3>
+                  <p className="mt-1 text-sm text-neutral-500">{group.items.length} événement{group.items.length > 1 ? "s" : ""}</p>
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {group.items.map((match) =>
-                  match.scoreTeam !== null && match.scoreOpponent !== null
-                    ? <ResultCard key={match.id} match={match} />
-                    : <UpcomingCard key={match.id} match={match} />
+                {group.items.map((event) =>
+                  event.kind === "plateau" ? (
+                    <PlateauPublicCard key={`plateau-${event.id}`} plateau={event.plateau} />
+                  ) : event.match.scoreTeam !== null && event.match.scoreOpponent !== null ? (
+                    <ResultCard key={`match-${event.id}`} match={event.match} />
+                  ) : (
+                    <UpcomingCard key={`match-${event.id}`} match={event.match} />
+                  ),
                 )}
               </div>
             </section>
