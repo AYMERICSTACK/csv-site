@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import NewMatchSmartForm from "@/components/NewMatchSmartForm";
 import { ArrowLeft, CalendarDays, CheckCircle2 } from "lucide-react";
 import { parseParisDateTime } from "@/lib/paris-datetime";
-import { CLUB_TEAMS } from "@/lib/teams";
+import { MATCH_TEAMS } from "@/lib/teams";
 import {
   getCompetitionDefinition,
   getCompetitionLabel,
@@ -139,7 +139,7 @@ export default async function NewMatchPage({
   });
 
   const eliminatedCompetitionKeysByTeam = Object.fromEntries(
-    CLUB_TEAMS.map((team) => [team, getEliminatedCompetitionKeys(team, cupMatches)]),
+    MATCH_TEAMS.map((team) => [team, getEliminatedCompetitionKeys(team, cupMatches)]),
   );
 
   return (

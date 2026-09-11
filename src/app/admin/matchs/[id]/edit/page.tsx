@@ -8,7 +8,7 @@ import MatchGoalsFields from "@/components/MatchGoalsFields";
 import CompetitionFields from "@/components/CompetitionFields";
 import PenaltyFields from "@/components/PenaltyFields";
 import { CLUB_CATEGORIES } from "@/lib/categories";
-import { CLUB_TEAMS } from "@/lib/teams";
+import { MATCH_TEAMS } from "@/lib/teams";
 import { hasOnlyOneScoreFilled } from "@/lib/match-status";
 import { parseParisDateTime } from "@/lib/paris-datetime";
 import { requireRole } from "@/lib/auth-guard";
@@ -63,8 +63,8 @@ export default async function EditMatchPage({ params }: PageProps) {
     ? match.category
     : "";
 
-  const safeTeam = CLUB_TEAMS.includes(
-    match.team as (typeof CLUB_TEAMS)[number],
+  const safeTeam = MATCH_TEAMS.includes(
+    match.team as (typeof MATCH_TEAMS)[number],
   )
     ? match.team
     : "";
@@ -365,7 +365,7 @@ export default async function EditMatchPage({ params }: PageProps) {
                   <select name="team" defaultValue={safeTeam} className="input">
                     <option value="">Sélectionner une équipe</option>
 
-                    {CLUB_TEAMS.map((team) => (
+                    {MATCH_TEAMS.map((team) => (
                       <option key={team} value={team}>
                         {team}
                       </option>

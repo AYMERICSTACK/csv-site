@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CLUB_CATEGORIES } from "@/lib/categories";
-import { CLUB_TEAMS } from "@/lib/teams";
+import { MATCH_TEAMS } from "@/lib/teams";
 import {
   getCompetitionDefinition,
   getCompetitionsForTeam,
@@ -69,10 +69,10 @@ export default function NewMatchSmartForm({
   const availableTeams = useMemo(
     () =>
       category
-        ? CLUB_TEAMS.filter(
+        ? MATCH_TEAMS.filter(
             (clubTeam) => getCategoryFromTeam(clubTeam) === category,
           )
-        : CLUB_TEAMS,
+        : MATCH_TEAMS,
     [category],
   );
 

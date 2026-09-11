@@ -1,4 +1,4 @@
-export const CLUB_TEAMS = [
+export const MATCH_TEAMS = [
   "Seniors 1",
   "Seniors 2",
   "Seniors 3",
@@ -19,6 +19,19 @@ export const CLUB_TEAMS = [
   "U13 3",
 ] as const;
 
+export const SCHOOL_FOOT_TEAMS = [
+  "U7",
+  "U9",
+  "U11 1",
+  "U11 2",
+  "U11 3",
+  "U11 4",
+] as const;
+
+export const CLUB_TEAMS = [...MATCH_TEAMS, ...SCHOOL_FOOT_TEAMS] as const;
+
+export type MatchTeam = (typeof MATCH_TEAMS)[number];
+export type SchoolFootTeam = (typeof SCHOOL_FOOT_TEAMS)[number];
 export type ClubTeam = (typeof CLUB_TEAMS)[number];
 
 export function normalizeTeamName(team: string | null | undefined) {
@@ -42,6 +55,9 @@ export function normalizeTeamName(team: string | null | undefined) {
 
   if (lower === "u20") return "U20";
   if (lower === "u13") return "U13";
+  if (lower === "u11") return "U11";
+  if (lower === "u9") return "U9";
+  if (lower === "u7") return "U7";
 
   return cleaned;
 }

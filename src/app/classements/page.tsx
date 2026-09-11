@@ -73,9 +73,9 @@ const defaultOfficialTeamRankings = [
   { label: "U17", category: "Formation", level: "Jeunes" },
   { label: "U15 1", category: "Formation", level: "Jeunes" },
   { label: "U15 2", category: "Formation", level: "Jeunes" },
-  { label: "U13 1", category: "École de foot", level: "Jeunes" },
-  { label: "U13 2", category: "École de foot", level: "Jeunes" },
-  { label: "U13 3", category: "École de foot", level: "Jeunes" },
+  { label: "U13 1", category: "Formation", level: "Jeunes" },
+  { label: "U13 2", category: "Formation", level: "Jeunes" },
+  { label: "U13 3", category: "Formation", level: "Jeunes" },
 ];
 
 export default async function ClassementsPage() {

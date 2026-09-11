@@ -1,4 +1,4 @@
-import { CLUB_TEAMS } from "@/lib/teams";
+import { MATCH_TEAMS } from "@/lib/teams";
 
 export type ImportedMatchDraft = {
   sourceIndex: number;
@@ -56,7 +56,7 @@ function normalize(value: string) {
 function teamFromLevel(level: string) {
   const clean = normalize(level);
 
-  const explicit = CLUB_TEAMS.find((team) => normalize(team) === clean);
+  const explicit = MATCH_TEAMS.find((team) => normalize(team) === clean);
   if (explicit) return explicit;
 
   const rules: Array<[RegExp, string]> = [
@@ -128,7 +128,7 @@ export function parseProgramTokens(tokens: string[]): ImportedMatchDraft[] {
     if (!firstIsCsv && !secondIsCsv) return;
 
     const inferred = teamFromLevel(level) || inferredCupTeam(level);
-    const team = CLUB_TEAMS.includes(inferred as (typeof CLUB_TEAMS)[number]) ? inferred : "";
+    const team = MATCH_TEAMS.includes(inferred as (typeof MATCH_TEAMS)[number]) ? inferred : "";
     const [competitionKey, competitionLabel] = competitionFromLabel(level);
 
     results.push({

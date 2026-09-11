@@ -20,7 +20,8 @@ function getTeamSection(team: string) {
     team.startsWith("U20") ||
     team.startsWith("U18") ||
     team.startsWith("U17") ||
-    team.startsWith("U15")
+    team.startsWith("U15") ||
+    team.startsWith("U13")
   ) {
     return "Formation";
   }
@@ -30,8 +31,8 @@ function getTeamSection(team: string) {
 
 const sectionDescriptions: Record<string, string> = {
   Seniors: "Équipes seniors, féminines et vétérans.",
-  Formation: "Groupes jeunes compétitifs et transition vers les seniors.",
-  "École de foot": "Catégories jeunes et apprentissage.",
+  Formation: "Groupes jeunes compétitifs U13 à U20.",
+  "École de foot": "U7, U9 et U11 : apprentissage, rassemblements et plateaux.",
 };
 
 export default async function AdminEquipesPage() {
@@ -144,6 +145,17 @@ export default async function AdminEquipesPage() {
     orderBy: { matchDate: "desc" },
   });
 
+  const plateaux = await prisma.plateau.findMany({
+    orderBy: { eventDate: "desc" },
+    select: {
+      id: true,
+      eventDate: true,
+      location: true,
+      title: true,
+      team: { select: { category: true } },
+    },
+  });
+
   const dbTeams = await prisma.team.findMany({
     select: {
       id: true,
@@ -175,11 +187,24 @@ export default async function AdminEquipesPage() {
       (match) => normalizeTeamName(match.team || "") === normalizedTeam,
     );
 
+    const teamPlateaux = plateaux.filter(
+      (plateau) => normalizeTeamName(plateau.team.category) === normalizedTeam,
+    );
+
+    const isSchoolFoot = /^(U7|U9|U11)(?:\s|$)/i.test(team);
+
     const nextMatch = teamMatches
       .filter((match) => new Date(match.matchDate) >= new Date())
       .sort(
         (a, b) =>
           new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
+      )[0];
+
+    const nextPlateau = teamPlateaux
+      .filter((plateau) => new Date(plateau.eventDate) >= new Date())
+      .sort(
+        (a, b) =>
+          new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime(),
       )[0];
 
     return {
@@ -189,7 +214,10 @@ export default async function AdminEquipesPage() {
       section: getTeamSection(team),
       playersCount: teamPlayers.length,
       matchesCount: teamMatches.length,
+      plateauxCount: teamPlateaux.length,
       nextMatch,
+      nextPlateau,
+      isSchoolFoot,
       isFavorite: dbTeam?.id === favoriteTeamId,
     };
   });
@@ -293,7 +321,9 @@ export default async function AdminEquipesPage() {
 
                 <p className="mt-1 text-sm font-semibold text-neutral-600">
                   {favoriteTeam.playersCount} joueur(s) ·{" "}
-                  {favoriteTeam.matchesCount} match(s)
+                  {favoriteTeam.isSchoolFoot
+                    ? `${favoriteTeam.plateauxCount} plateau${favoriteTeam.plateauxCount > 1 ? "x" : ""}`
+                    : `${favoriteTeam.matchesCount} match(s)`}
                 </p>
               </div>
 
@@ -304,6 +334,15 @@ export default async function AdminEquipesPage() {
                 >
                   Tableau de bord sportif
                 </Link>
+
+                {favoriteTeam.isSchoolFoot ? (
+                  <Link
+                    href={`/admin/plateaux/new?team=${encodeURIComponent(favoriteTeam.team)}`}
+                    className="inline-flex items-center justify-center rounded-xl border border-orange-200 bg-white px-4 py-3 text-sm font-black text-orange-700 transition hover:bg-orange-100"
+                  >
+                    Ajouter un plateau
+                  </Link>
+                ) : null}
 
                 {favoriteTeam.id ? (
                   <Link
@@ -445,35 +484,58 @@ export default async function AdminEquipesPage() {
 
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-black ${
-                            hasMatches
-                              ? "bg-neutral-950 text-white"
-                              : "bg-neutral-100 text-neutral-500"
+                            item.isSchoolFoot
+                              ? item.plateauxCount > 0
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-neutral-100 text-neutral-500"
+                              : hasMatches
+                                ? "bg-neutral-950 text-white"
+                                : "bg-neutral-100 text-neutral-500"
                           }`}
                         >
-                          {item.matchesCount} match(s)
+                          {item.isSchoolFoot
+                            ? `${item.plateauxCount} plateau${item.plateauxCount > 1 ? "x" : ""}`
+                            : `${item.matchesCount} match(s)`}
                         </span>
                       </div>
 
                       <div className="mt-4 rounded-2xl bg-neutral-50 p-3 sm:mt-5 sm:p-4">
                         <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
-                          Prochain match
+                          {item.isSchoolFoot ? "Prochain plateau" : "Prochain match"}
                         </div>
 
                         <div className="mt-1 text-sm font-bold text-neutral-800">
-                          {item.nextMatch
-                            ? `${item.nextMatch.opponent} — ${new Date(
-                                item.nextMatch.matchDate,
-                              ).toLocaleDateString("fr-FR")}`
-                            : "Aucun match à venir"}
+                          {item.isSchoolFoot
+                            ? item.nextPlateau
+                              ? `${item.nextPlateau.title || "Plateau"} — ${new Date(
+                                  item.nextPlateau.eventDate,
+                                ).toLocaleDateString("fr-FR")}`
+                              : "Aucun plateau à venir"
+                            : item.nextMatch
+                              ? `${item.nextMatch.opponent} — ${new Date(
+                                  item.nextMatch.matchDate,
+                                ).toLocaleDateString("fr-FR")}`
+                              : "Aucun match à venir"}
                         </div>
                       </div>
 
-                      <Link
-                        href={`/admin/equipes/${item.slug}`}
-                        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 sm:mt-5 sm:w-auto sm:py-2"
-                      >
-                        Gérer l’équipe
-                      </Link>
+                      <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:flex-wrap">
+                        {item.isSchoolFoot ? (
+                          <Link
+                            href={`/admin/plateaux/new?team=${encodeURIComponent(item.team)}`}
+                            className="inline-flex w-full items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 sm:w-auto sm:py-2"
+                          >
+                            Ajouter un plateau
+                          </Link>
+                        ) : null}
+
+                        <Link
+                          href={`/admin/equipes/${item.slug}`}
+                          className="inline-flex w-full items-center justify-center rounded-xl bg-csv-black px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 sm:w-auto sm:py-2"
+                        >
+                          Gérer l’équipe
+                        </Link>
+                      </div>
                     </article>
                   );
                 })}
