@@ -7,6 +7,20 @@ function norm(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function opponentSimilarity(a: string, b: string) {
+  const left = norm(a);
+  const right = norm(b);
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.9;
+
+  const leftWords = new Set(left.split(" ").filter((word) => word.length > 2));
+  const rightWords = new Set(right.split(" ").filter((word) => word.length > 2));
+  if (!leftWords.size || !rightWords.size) return 0;
+  const common = [...leftWords].filter((word) => rightWords.has(word)).length;
+  return common / Math.min(leftWords.size, rightWords.size);
+}
+
 export async function POST(request: Request) {
   const access = await hasCurrentUserRole(["admin", "educateurs"]);
   if (!access.ok) return NextResponse.json({ error: access.reason === "unauthorized" ? "Non authentifié." : "Accès interdit." }, { status: access.reason === "unauthorized" ? 401 : 403 });
@@ -28,17 +42,38 @@ export async function POST(request: Request) {
 
   const matches = drafts.map((draft) => {
     const target = new Date(draft.matchDate).getTime();
-    const found = existing.find((item) => item.team === draft.team && norm(item.opponent) === norm(draft.opponent) && Math.abs(item.matchDate.getTime() - target) <= 6 * 60 * 60 * 1000);
+    const nearby = existing.filter((item) => Math.abs(item.matchDate.getTime() - target) <= 8 * 60 * 60 * 1000);
+
+    // 1) Correspondance forte : équipe + adversaire (tolère FC, nom long/court, etc.).
+    let found = nearby.find((item) => draft.team && item.team === draft.team && opponentSimilarity(item.opponent, draft.opponent) >= 0.75);
+
+    // 2) Même équipe le même jour : une équipe du club ne joue qu’un match officiel par journée.
+    if (!found && draft.team) {
+      const sameTeam = nearby.filter((item) => item.team === draft.team);
+      if (sameTeam.length === 1) found = sameTeam[0];
+    }
+
+    // 3) Si le PDF n’a pas permis de déduire l’équipe (ex. certaines Coupes),
+    // on peut la récupérer d’un match déjà saisi grâce à l’adversaire et l’horaire.
+    if (!found && !draft.team) {
+      const opponentMatches = nearby.filter((item) => opponentSimilarity(item.opponent, draft.opponent) >= 0.75);
+      if (opponentMatches.length === 1) found = opponentMatches[0];
+    }
+
     if (!found) return { ...draft, existingMatch: null };
 
-    // Pour un doublon, la base reste la source de vérité : on affiche les
-    // informations déjà enregistrées au lieu des valeurs déduites du PDF.
+    // Pour un doublon, la base reste la source de vérité.
     return {
       ...draft,
+      team: found.team,
+      category: found.team.startsWith("Seniors") ? "Seniors" : found.team.startsWith("U15") ? "U15" : found.team.startsWith("U13") ? "U13" : found.team,
+      opponent: found.opponent,
+      matchDate: found.matchDate.toISOString().slice(0, 16),
       location: found.location,
       isHome: found.isHome,
       competitionKey: found.competitionKey,
       competitionLabel: found.competitionLabel,
+      warning: undefined,
       existingMatch: { ...found, matchDate: found.matchDate.toISOString() },
     };
   });
