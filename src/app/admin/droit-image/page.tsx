@@ -7,6 +7,7 @@ import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import {
   consentStateLabel,
   getImageConsentState,
+  isMinorTeam,
   shouldPublishPlayerPhoto,
   normalizeConsentIdentity,
 } from "@/lib/image-consent";
@@ -186,7 +187,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
 
   const counts = players.reduce(
     (acc, player) => {
-      const state = getImageConsentState(player.imageConsents[0], player.photoConsent);
+      const state = getImageConsentState(player.imageConsents[0], player.photoConsent, isMinorTeam(player.team));
       acc[state] += 1;
       return acc;
     },
@@ -198,7 +199,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
       ? players
       : players.filter(
           (player) =>
-            getImageConsentState(player.imageConsents[0], player.photoConsent) === activeStatus,
+            getImageConsentState(player.imageConsents[0], player.photoConsent, isMinorTeam(player.team)) === activeStatus,
         );
 
   const playersByTeam = new Map<string, typeof players>();
@@ -327,10 +328,8 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
               <div className="mt-4 grid gap-3">
                 {teamPlayers.map((player) => {
                   const consent = player.imageConsents[0];
-                  const state = getImageConsentState(consent, player.photoConsent);
-                  const paperApplicable =
-                    consent?.isMinor === true ||
-                    /^(U7|U9|U11|U13|U15|U17)(?:\s|$)/.test(player.team || "");
+                  const state = getImageConsentState(consent, player.photoConsent, isMinorTeam(player.team));
+                  const paperApplicable = consent?.isMinor === true || isMinorTeam(player.team);
                   return (
                     <div key={player.id} className="rounded-2xl border border-neutral-200 p-4">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -342,7 +341,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                           <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-neutral-600">
                             <span className="rounded-full bg-neutral-100 px-2.5 py-1">{digitalLabel(consent?.digitalStatus || "pending")}</span>
                             {consent?.isMinor === true ? <span className="rounded-full bg-neutral-100 px-2.5 py-1">{paperLabel(consent.paperStatus)}</span> : null}
-                            {!consent && player.photoConsent ? <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-700">Autorisation existante · à régulariser dans V19</span> : null}
+                            {!consent && player.photoConsent ? <span className={`rounded-full px-2.5 py-1 ${isMinorTeam(player.team) ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"}`}>{isMinorTeam(player.team) ? "Ancienne autorisation · validation V19 requise" : "Autorisation existante · à régulariser dans V19"}</span> : null}
                             {consent?.digitalRespondentName ? <span className="rounded-full bg-neutral-100 px-2.5 py-1">Réponse : {consent.digitalRespondentName}</span> : null}
                           </div>
                         </div>

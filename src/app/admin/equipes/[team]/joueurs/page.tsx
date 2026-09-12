@@ -13,7 +13,7 @@ import PlayerPhotoInput from "@/components/PlayerPhotoInput";
 import MobileCreatePanel from "@/components/MobileCreatePanel";
 import PlayerSaveState from "@/components/PlayerSaveState";
 import PlayerRosterSearch from "@/components/PlayerRosterSearch";
-import { getImageConsentState, consentStateLabel } from "@/lib/image-consent";
+import { getImageConsentState, consentStateLabel, isMinorTeam } from "@/lib/image-consent";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -414,7 +414,7 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
             {players.map((player) => {
               const stat = player.stats[0];
               const imageConsent = player.imageConsents[0];
-              const consentState = getImageConsentState(imageConsent, player.photoConsent);
+              const consentState = getImageConsentState(imageConsent, player.photoConsent, isMinorTeam(player.team));
 
               return (
                 <form
@@ -433,7 +433,7 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
 
                   <div className="grid gap-4 lg:grid-cols-[70px_1fr_150px]">
                     <div>
-                      {player.photoConsent && player.photoUrl ? (
+                      {consentState === "granted" && player.photoUrl ? (
                         <img
                           src={player.photoUrl}
                           alt={`${player.firstName} ${player.lastName}`}

@@ -10,8 +10,15 @@ type ConsentLike = {
   digitalStatus: string;
 } | null | undefined;
 
-export function getImageConsentState(consent: ConsentLike, legacyPhotoConsent = false): ConsentState {
-  if (!consent) return legacyPhotoConsent ? "granted" : "pending";
+export function getImageConsentState(
+  consent: ConsentLike,
+  legacyPhotoConsent = false,
+  legacyIsMinor = false,
+): ConsentState {
+  if (!consent) {
+    if (legacyPhotoConsent && legacyIsMinor) return "pending";
+    return legacyPhotoConsent ? "granted" : "pending";
+  }
   if (["refused", "withdrawn"].includes(consent.digitalStatus)) return "refused";
   if (consent.paperStatus === "refused") return "refused";
   if (consent.digitalStatus !== "granted") return "pending";
@@ -37,4 +44,8 @@ export function normalizeConsentIdentity(value: string) {
     .replace(/[-'’]/g, " ")
     .replace(/\s+/g, " ")
     .toLowerCase();
+}
+
+export function isMinorTeam(team: string | null | undefined) {
+  return /^(U7|U9|U11|U13|U15|U17)(?:\s|$)/i.test(team || "");
 }
