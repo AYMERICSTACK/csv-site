@@ -8,6 +8,7 @@ import {
   consentStateLabel,
   getImageConsentState,
   shouldPublishPlayerPhoto,
+  normalizeConsentIdentity,
 } from "@/lib/image-consent";
 
 function statusClasses(status: "granted" | "pending" | "refused") {
@@ -40,28 +41,54 @@ export default async function AdminImageConsentPage() {
     const paperStatus = String(formData.get("paperStatus") || "");
     if (!playerId || !["pending", "received", "refused"].includes(paperStatus)) return;
 
-    const current = await prisma.playerImageConsent.findUnique({
-      where: { playerId_season: { playerId, season } },
-    });
-
-    const consent = await prisma.playerImageConsent.upsert({
-      where: { playerId_season: { playerId, season } },
-      create: {
-        playerId,
-        season,
-        isMinor: true,
-        paperStatus,
-        paperReceivedAt: paperStatus === "received" ? new Date() : null,
-      },
-      update: {
-        paperStatus,
-        paperReceivedAt: paperStatus === "received" ? new Date() : null,
-      },
-    });
-
-    await prisma.player.update({
+    const player = await prisma.player.findUnique({
       where: { id: playerId },
-      data: { photoConsent: shouldPublishPlayerPhoto({ ...consent, isMinor: current?.isMinor ?? consent.isMinor }) },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    if (!player) return;
+
+    const firstKey = normalizeConsentIdentity(player.firstName);
+    const lastKey = normalizeConsentIdentity(player.lastName);
+    const identityPlayers = (await prisma.player.findMany({
+      where: { isActive: true },
+      select: { id: true, firstName: true, lastName: true },
+    })).filter(
+      (candidate) =>
+        normalizeConsentIdentity(candidate.firstName) === firstKey &&
+        normalizeConsentIdentity(candidate.lastName) === lastKey,
+    );
+
+    await prisma.$transaction(async (tx) => {
+      for (const identityPlayer of identityPlayers) {
+        const current = await tx.playerImageConsent.findUnique({
+          where: { playerId_season: { playerId: identityPlayer.id, season } },
+        });
+
+        const consent = await tx.playerImageConsent.upsert({
+          where: { playerId_season: { playerId: identityPlayer.id, season } },
+          create: {
+            playerId: identityPlayer.id,
+            season,
+            isMinor: true,
+            paperStatus,
+            paperReceivedAt: paperStatus === "received" ? new Date() : null,
+          },
+          update: {
+            paperStatus,
+            paperReceivedAt: paperStatus === "received" ? new Date() : null,
+          },
+        });
+
+        await tx.player.update({
+          where: { id: identityPlayer.id },
+          data: {
+            photoConsent: shouldPublishPlayerPhoto({
+              ...consent,
+              isMinor: current?.isMinor ?? consent.isMinor,
+            }),
+          },
+        });
+      }
     });
 
     revalidatePath("/admin/droit-image");
@@ -81,44 +108,54 @@ export default async function AdminImageConsentPage() {
     ]);
     if (!submission || !player || submission.season !== season) return;
 
-    const consent = await prisma.$transaction(async (tx) => {
-      const nextConsent = await tx.playerImageConsent.upsert({
-        where: { playerId_season: { playerId, season } },
-        create: {
-          playerId,
-          season,
-          isMinor: submission.isMinor,
-          digitalStatus: submission.choice,
-          digitalRespondentName: submission.respondentName,
-          digitalRespondentRole: submission.respondentRole,
-          digitalRespondentEmail: submission.respondentEmail,
-          digitalSubmittedAt: submission.createdAt,
-          policyVersion: submission.policyVersion,
-        },
-        update: {
-          isMinor: submission.isMinor,
-          digitalStatus: submission.choice,
-          digitalRespondentName: submission.respondentName,
-          digitalRespondentRole: submission.respondentRole,
-          digitalRespondentEmail: submission.respondentEmail,
-          digitalSubmittedAt: submission.createdAt,
-          policyVersion: submission.policyVersion,
-        },
-      });
+    const firstKey = normalizeConsentIdentity(player.firstName);
+    const lastKey = normalizeConsentIdentity(player.lastName);
+    const identityPlayers = (await prisma.player.findMany({
+      where: { isActive: true },
+      select: { id: true, firstName: true, lastName: true },
+    })).filter(
+      (candidate) =>
+        normalizeConsentIdentity(candidate.firstName) === firstKey &&
+        normalizeConsentIdentity(candidate.lastName) === lastKey,
+    );
+
+    await prisma.$transaction(async (tx) => {
+      for (const identityPlayer of identityPlayers) {
+        const nextConsent = await tx.playerImageConsent.upsert({
+          where: { playerId_season: { playerId: identityPlayer.id, season } },
+          create: {
+            playerId: identityPlayer.id,
+            season,
+            isMinor: submission.isMinor,
+            digitalStatus: submission.choice,
+            digitalRespondentName: submission.respondentName,
+            digitalRespondentRole: submission.respondentRole,
+            digitalRespondentEmail: submission.respondentEmail,
+            digitalSubmittedAt: submission.createdAt,
+            policyVersion: submission.policyVersion,
+          },
+          update: {
+            isMinor: submission.isMinor,
+            digitalStatus: submission.choice,
+            digitalRespondentName: submission.respondentName,
+            digitalRespondentRole: submission.respondentRole,
+            digitalRespondentEmail: submission.respondentEmail,
+            digitalSubmittedAt: submission.createdAt,
+            policyVersion: submission.policyVersion,
+          },
+        });
+
+        await tx.player.update({
+          where: { id: identityPlayer.id },
+          data: { photoConsent: shouldPublishPlayerPhoto(nextConsent) },
+        });
+      }
 
       await tx.imageConsentSubmission.update({
         where: { id: submissionId },
         data: { playerId, matched: true },
       });
-
-      await tx.player.update({
-        where: { id: playerId },
-        data: { photoConsent: shouldPublishPlayerPhoto(nextConsent) },
-      });
-      return nextConsent;
     });
-
-    void consent;
     revalidatePath("/admin/droit-image");
     revalidatePath("/admin/equipes");
   }
