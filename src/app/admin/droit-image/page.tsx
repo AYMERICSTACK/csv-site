@@ -185,7 +185,21 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
     }),
   ]);
 
-  const counts = players.reduce(
+  // Les mêmes personnes peuvent exister dans plusieurs équipes (ex. Seniors 1 + Seniors 2).
+  // Les compteurs du registre doivent représenter des personnes uniques, pas des fiches Player.
+  const uniquePlayers = new Map<string, typeof players[number]>();
+  for (const player of players) {
+    const identityKey = `${normalizeConsentIdentity(player.firstName)}::${normalizeConsentIdentity(player.lastName)}`;
+    const existing = uniquePlayers.get(identityKey);
+
+    // Si une personne possède plusieurs fiches, on conserve en priorité celle qui a
+    // un consentement V19 afin que son statut réel pilote le compteur.
+    if (!existing || (!existing.imageConsents[0] && player.imageConsents[0])) {
+      uniquePlayers.set(identityKey, player);
+    }
+  }
+
+  const counts = Array.from(uniquePlayers.values()).reduce(
     (acc, player) => {
       const state = getImageConsentState(player.imageConsents[0], player.photoConsent, isMinorTeam(player.team));
       acc[state] += 1;
@@ -232,7 +246,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                   : "border-white/10 bg-white/5"
               }`}
             >
-              <div className="text-3xl font-black text-white">{players.length}</div>
+              <div className="text-3xl font-black text-white">{uniquePlayers.size}</div>
               <div className="mt-1 text-sm font-bold">Tous les joueurs</div>
               <div className="mt-2 text-xs font-semibold text-neutral-400 group-hover:text-neutral-200">Afficher tout</div>
             </Link>
