@@ -30,9 +30,19 @@ function digitalLabel(status: string) {
   return "Numérique : en attente";
 }
 
-export default async function AdminImageConsentPage() {
+type PageProps = {
+  searchParams?: Promise<{ status?: string }>;
+};
+
+export default async function AdminImageConsentPage({ searchParams }: PageProps) {
   await requireRole(["admin"]);
   const season = CURRENT_FOOTBALL_SEASON;
+  const resolvedSearchParams = await searchParams;
+  const requestedStatus = resolvedSearchParams?.status;
+  const activeStatus =
+    requestedStatus === "granted" || requestedStatus === "pending" || requestedStatus === "refused"
+      ? requestedStatus
+      : "all";
 
   async function updatePaperStatus(formData: FormData) {
     "use server";
@@ -183,8 +193,16 @@ export default async function AdminImageConsentPage() {
     { granted: 0, pending: 0, refused: 0 },
   );
 
+  const filteredPlayers =
+    activeStatus === "all"
+      ? players
+      : players.filter(
+          (player) =>
+            getImageConsentState(player.imageConsents[0], player.photoConsent) === activeStatus,
+        );
+
   const playersByTeam = new Map<string, typeof players>();
-  for (const player of players) {
+  for (const player of filteredPlayers) {
     const key = player.team || "Sans équipe";
     playersByTeam.set(key, [...(playersByTeam.get(key) || []), player]);
   }
@@ -203,10 +221,62 @@ export default async function AdminImageConsentPage() {
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-neutral-300">
             Registre opérationnel des autorisations. Pour les mineurs, le statut vert exige la confirmation numérique et le document papier enregistré comme reçu.
           </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-emerald-500/15 p-4"><div className="text-3xl font-black text-emerald-300">{counts.granted}</div><div className="text-sm font-bold">🟢 Autorisés</div></div>
-            <div className="rounded-2xl bg-amber-500/15 p-4"><div className="text-3xl font-black text-amber-300">{counts.pending}</div><div className="text-sm font-bold">🟠 En attente</div></div>
-            <div className="rounded-2xl bg-red-500/15 p-4"><div className="text-3xl font-black text-red-300">{counts.refused}</div><div className="text-sm font-bold">🔴 Refusés</div></div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Link
+              href="/admin/droit-image"
+              aria-current={activeStatus === "all" ? "page" : undefined}
+              className={`group rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/70 ${
+                activeStatus === "all"
+                  ? "border-white/70 bg-white/15 ring-1 ring-white/40"
+                  : "border-white/10 bg-white/5"
+              }`}
+            >
+              <div className="text-3xl font-black text-white">{players.length}</div>
+              <div className="mt-1 text-sm font-bold">Tous les joueurs</div>
+              <div className="mt-2 text-xs font-semibold text-neutral-400 group-hover:text-neutral-200">Afficher tout</div>
+            </Link>
+
+            <Link
+              href="/admin/droit-image?status=granted"
+              aria-current={activeStatus === "granted" ? "page" : undefined}
+              className={`group rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-300 ${
+                activeStatus === "granted"
+                  ? "border-emerald-300 bg-emerald-500/25 ring-1 ring-emerald-300/60"
+                  : "border-emerald-500/20 bg-emerald-500/15"
+              }`}
+            >
+              <div className="text-3xl font-black text-emerald-300">{counts.granted}</div>
+              <div className="mt-1 text-sm font-bold">🟢 Autorisés</div>
+              <div className="mt-2 text-xs font-semibold text-emerald-200/70 group-hover:text-emerald-100">Filtrer les autorisés</div>
+            </Link>
+
+            <Link
+              href="/admin/droit-image?status=pending"
+              aria-current={activeStatus === "pending" ? "page" : undefined}
+              className={`group rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:bg-amber-500/25 focus:outline-none focus:ring-2 focus:ring-amber-300 ${
+                activeStatus === "pending"
+                  ? "border-amber-300 bg-amber-500/25 ring-1 ring-amber-300/60"
+                  : "border-amber-500/20 bg-amber-500/15"
+              }`}
+            >
+              <div className="text-3xl font-black text-amber-300">{counts.pending}</div>
+              <div className="mt-1 text-sm font-bold">🟠 En attente</div>
+              <div className="mt-2 text-xs font-semibold text-amber-200/70 group-hover:text-amber-100">Filtrer les attentes</div>
+            </Link>
+
+            <Link
+              href="/admin/droit-image?status=refused"
+              aria-current={activeStatus === "refused" ? "page" : undefined}
+              className={`group rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:bg-red-500/25 focus:outline-none focus:ring-2 focus:ring-red-300 ${
+                activeStatus === "refused"
+                  ? "border-red-300 bg-red-500/25 ring-1 ring-red-300/60"
+                  : "border-red-500/20 bg-red-500/15"
+              }`}
+            >
+              <div className="text-3xl font-black text-red-300">{counts.refused}</div>
+              <div className="mt-1 text-sm font-bold">🔴 Refusés</div>
+              <div className="mt-2 text-xs font-semibold text-red-200/70 group-hover:text-red-100">Filtrer les refusés</div>
+            </Link>
           </div>
         </section>
 
@@ -241,6 +311,13 @@ export default async function AdminImageConsentPage() {
         ) : null}
 
         <section className="mt-7 space-y-6">
+          {filteredPlayers.length === 0 ? (
+            <div className="rounded-[2rem] border border-dashed border-neutral-300 bg-white p-8 text-center shadow-sm">
+              <div className="text-lg font-black text-neutral-950">Aucun joueur dans ce filtre</div>
+              <p className="mt-2 text-sm text-neutral-500">Choisis une autre carte pour afficher les joueurs correspondants.</p>
+              <Link href="/admin/droit-image" className="mt-4 inline-flex rounded-xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white">Afficher tous les joueurs</Link>
+            </div>
+          ) : null}
           {[...playersByTeam.entries()].map(([team, teamPlayers]) => (
             <div key={team} className="rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-sm sm:p-6">
               <div className="flex items-center justify-between gap-3">
