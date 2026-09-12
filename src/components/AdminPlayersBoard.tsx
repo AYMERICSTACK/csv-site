@@ -139,10 +139,9 @@ export default function AdminPlayersBoard({
               className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-300"
             />
 
-            <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
-              <input type="checkbox" name="photoConsent" />
-              Photo autorisée
-            </label>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              Autorisation pilotée par le registre « Droit à l’image »
+            </div>
           </div>
 
           <button className="mt-5 rounded-xl bg-csv-black px-5 py-3 text-sm font-bold text-white transition hover:opacity-90">
@@ -340,14 +339,9 @@ export default function AdminPlayersBoard({
                     </div>
 
                     <div className="mt-2 flex flex-wrap gap-3">
-                      <label className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700">
-                        <input
-                          type="checkbox"
-                          name="photoConsent"
-                          defaultChecked={player.photoConsent}
-                        />
-                        Autorisation photo
-                      </label>
+                      <span className="text-xs font-bold text-neutral-500">
+                        Autorisation pilotée par le registre droit à l’image
+                      </span>
 
                       <label className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700">
                         <input

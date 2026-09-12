@@ -37,7 +37,6 @@ async function createPlayer(formData: FormData) {
   const category = String(formData.get("category") || "").trim();
   const season = String(formData.get("season") || CURRENT_FOOTBALL_SEASON).trim();
   const photoFile = formData.get("photoFile") as File | null;
-  const photoConsent = formData.get("photoConsent") === "on";
 
   if (!firstName || !lastName) return;
 
@@ -53,7 +52,7 @@ async function createPlayer(formData: FormData) {
       team: team || null,
       category: category || null,
       photoUrl,
-      photoConsent,
+      photoConsent: false,
       stats: {
         create: {
           season,
@@ -86,7 +85,6 @@ async function updatePlayer(formData: FormData) {
 
   const goals = Number(formData.get("goals") || 0);
   const assists = Number(formData.get("assists") || 0);
-  const photoConsent = formData.get("photoConsent") === "on";
   const isActive = formData.get("isActive") === "on";
 
   if (!id || !firstName || !lastName) return;
@@ -106,7 +104,6 @@ async function updatePlayer(formData: FormData) {
       team: team || null,
       category: category || null,
       photoUrl,
-      photoConsent,
       isActive,
     },
   });

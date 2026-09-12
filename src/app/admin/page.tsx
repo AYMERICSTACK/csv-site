@@ -75,6 +75,14 @@ const priorityCards: DashboardCard[] = [
 
 const administrationCards: DashboardCard[] = [
   {
+    title: "Droit à l’image",
+    description: "Suivre les autorisations numériques et les validations papier par joueur.",
+    href: "/admin/droit-image",
+    eyebrow: "Autorisations",
+    icon: ShieldCheck,
+    tone: "manage",
+  },
+  {
     title: "Demandes d’accès",
     description: "Valider les inscriptions internes et activer les comptes.",
     href: "/admin/demandes",

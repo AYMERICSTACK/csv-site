@@ -380,6 +380,8 @@ model Player {
 
   stats          PlayerStat[]
   matchEvents    MatchEvent[]
+  imageConsents  PlayerImageConsent[]
+  imageConsentSubmissions ImageConsentSubmission[]
 
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -439,4 +441,50 @@ model FffWeekendAdminRecap {
   updatedAt    DateTime @updatedAt
 
   @@index([weekendStart])
+}
+
+model PlayerImageConsent {
+  id                    String    @id @default(cuid())
+  playerId              String
+  season                String
+  isMinor               Boolean?
+  paperStatus           String    @default("pending")
+  paperReceivedAt       DateTime?
+  digitalStatus         String    @default("pending")
+  digitalRespondentName String?
+  digitalRespondentRole String?
+  digitalRespondentEmail String?
+  digitalSubmittedAt    DateTime?
+  policyVersion         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, season])
+  @@index([season, digitalStatus])
+  @@index([season, paperStatus])
+}
+
+model ImageConsentSubmission {
+  id             String   @id @default(cuid())
+  playerId       String?
+  season         String
+  playerFirstName String
+  playerLastName String
+  team           String
+  isMinor        Boolean
+  choice         String
+  respondentName String
+  respondentRole String
+  respondentEmail String?
+  policyVersion  String
+  policyText     String
+  matched        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  player Player? @relation(fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@index([season, matched])
+  @@index([playerId, createdAt])
 }

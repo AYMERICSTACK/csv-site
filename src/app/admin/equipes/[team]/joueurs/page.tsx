@@ -13,6 +13,7 @@ import PlayerPhotoInput from "@/components/PlayerPhotoInput";
 import MobileCreatePanel from "@/components/MobileCreatePanel";
 import PlayerSaveState from "@/components/PlayerSaveState";
 import PlayerRosterSearch from "@/components/PlayerRosterSearch";
+import { getImageConsentState, consentStateLabel } from "@/lib/image-consent";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -105,7 +106,6 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
     const positionSide = String(formData.get("positionSide") || "").trim();
     const sortOrder = parseSortOrder(formData.get("sortOrder"));
     const photoFile = formData.get("photoFile") as File | null;
-    const photoConsent = formData.get("photoConsent") === "on";
 
     if (!firstName || !lastName) return;
 
@@ -124,7 +124,7 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
         positionSide: positionSide || null,
         sortOrder,
         photoUrl,
-        photoConsent,
+        photoConsent: false,
         isActive: true,
         stats: {
           create: {
@@ -162,7 +162,6 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
       formData.get("currentPhotoUrl") || "",
     ).trim();
     const photoFile = formData.get("photoFile") as File | null;
-    const photoConsent = formData.get("photoConsent") === "on";
     const isActive = formData.get("isActive") === "on";
 
     if (!id || !firstName || !lastName) return;
@@ -190,7 +189,6 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
         positionSide: positionSide || null,
         sortOrder,
         photoUrl: uploadedPhotoUrl || currentPhotoUrl || null,
-        photoConsent,
         isActive,
       },
     });
@@ -236,6 +234,10 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
     },
     include: {
       stats: {
+        where: { season },
+        take: 1,
+      },
+      imageConsents: {
         where: { season },
         take: 1,
       },
@@ -287,8 +289,7 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-600">
-                Ajoutez les joueurs du groupe, gérez les photos et
-                l’autorisation d’affichage.
+                Ajoutez les joueurs du groupe et gérez les photos. Le droit à l’image est désormais suivi séparément et affiché par statut.
               </p>
             </div>
 
@@ -374,14 +375,13 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
                   />
                 </label>
 
-                <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
-                  <input type="checkbox" name="photoConsent" />
-                  Photo autorisée
-                </label>
               </div>
 
               <div className="mt-4">
                 <PlayerPhotoInput />
+                <p className="mt-2 text-xs font-semibold text-neutral-500">
+                  L’autorisation d’affichage n’est plus modifiable manuellement : elle est pilotée par le registre du droit à l’image.
+                </p>
               </div>
 
               <button className="w-full rounded-xl bg-csv-black px-5 py-3 text-sm font-bold text-white transition hover:opacity-90 sm:w-auto">
@@ -413,6 +413,8 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
           <div className="mt-5 grid gap-3 sm:gap-4">
             {players.map((player) => {
               const stat = player.stats[0];
+              const imageConsent = player.imageConsents[0];
+              const consentState = getImageConsentState(imageConsent, player.photoConsent);
 
               return (
                 <form
@@ -446,6 +448,22 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
                     </div>
 
                     <div>
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                          consentState === "granted"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : consentState === "refused"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-amber-100 text-amber-800"
+                        }`}>
+                          {consentState === "granted" ? "🟢" : consentState === "refused" ? "🔴" : "🟠"} Droit à l’image : {consentStateLabel(consentState)}
+                        </span>
+                        {imageConsent?.isMinor === true ? (
+                          <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
+                            Papier : {imageConsent.paperStatus === "received" ? "reçu" : imageConsent.paperStatus === "refused" ? "refusé" : "à vérifier"}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <input
                           name="firstName"
@@ -519,15 +537,6 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-4">
-                        <label className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700">
-                          <input
-                            type="checkbox"
-                            name="photoConsent"
-                            defaultChecked={player.photoConsent}
-                          />
-                          Autorisation photo
-                        </label>
-
                         <label className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700">
                           <input
                             type="checkbox"
