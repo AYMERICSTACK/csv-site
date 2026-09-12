@@ -144,7 +144,7 @@ export default function AdminMatchesBoard({
   const filteredMatches = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return matches.filter((match) => {
+    const filtered = matches.filter((match) => {
       const matchesTab =
         activeTab === "all" ||
         (activeTab === "upcoming" && isUpcoming(match)) ||
@@ -165,6 +165,26 @@ export default function AdminMatchesBoard({
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery);
+    });
+
+    return filtered.sort((a, b) => {
+      const aTime = new Date(a.matchDate).getTime();
+      const bTime = new Date(b.matchDate).getTime();
+
+      // Dans l'onglet Tous, on affiche d'abord les rencontres encore à venir
+      // (de la plus proche à la plus lointaine), puis l'historique du plus
+      // récent au plus ancien.
+      if (activeTab === "all") {
+        const aUpcoming = isUpcoming(a);
+        const bUpcoming = isUpcoming(b);
+
+        if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+        return aUpcoming ? aTime - bTime : bTime - aTime;
+      }
+
+      // À venir : prochain match en premier. Historique : plus récent en premier.
+      if (activeTab === "upcoming") return aTime - bTime;
+      return bTime - aTime;
     });
   }, [activeTab, competitionTab, matches, query]);
 
