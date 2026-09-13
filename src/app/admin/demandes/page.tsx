@@ -13,6 +13,7 @@ import {
   Mail,
   Phone,
   ShieldCheck,
+  Send,
   Trash2,
   Users,
 } from "lucide-react";
@@ -86,6 +87,55 @@ async function activateUser(formData: FormData) {
       userId,
     });
   }
+
+  revalidatePath("/admin/demandes");
+}
+
+async function resendActivationEmail(formData: FormData) {
+  "use server";
+
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    redirect("/admin/login");
+  }
+
+  const currentUser = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
+
+  if (!currentUser || currentUser.role !== "admin") {
+    redirect("/admin");
+  }
+
+  const userId = String(formData.get("userId") || "").trim();
+
+  if (!userId) {
+    throw new Error("Utilisateur manquant.");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true, isActive: true, role: true },
+  });
+
+  if (!user || user.role !== "member") {
+    throw new Error("Utilisateur introuvable.");
+  }
+
+  if (!user.isActive) {
+    throw new Error("Ce compte n’est pas encore actif.");
+  }
+
+  console.info("[access-activation] Renvoi manuel de l’email d’activation.", {
+    userId,
+  });
+
+  await sendAccessApprovedNotification({
+    userEmail: user.email,
+    userName: user.name || user.email,
+  });
 
   revalidatePath("/admin/demandes");
 }
@@ -170,6 +220,23 @@ export default async function AdminDemandesPage() {
           },
         },
       },
+    },
+  });
+
+  const activeUsers = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      role: "member",
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take: 30,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      updatedAt: true,
     },
   });
 
@@ -329,6 +396,58 @@ export default async function AdminDemandesPage() {
                           </form>
                         </div>
                       </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-neutral-900">
+                    Comptes actifs récents
+                  </h2>
+                  <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                    Tu peux renvoyer l’email d’activation sans modifier le compte ni son accès.
+                  </p>
+                </div>
+              </div>
+
+              {activeUsers.length === 0 ? (
+                <div className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-sm text-neutral-600">
+                  Aucun compte membre actif pour le moment.
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {activeUsers.map((user) => (
+                    <article
+                      key={user.id}
+                      className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-extrabold text-neutral-900">
+                          {user.name}
+                        </div>
+                        <div className="mt-1 flex items-center gap-1 text-sm text-neutral-600">
+                          <Mail size={14} />
+                          <span className="truncate">{user.email}</span>
+                        </div>
+                      </div>
+
+                      <form action={resendActivationEmail}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:border-neutral-400 hover:bg-neutral-100 sm:w-auto"
+                        >
+                          <Send size={14} />
+                          Renvoyer l’email
+                        </button>
+                      </form>
                     </article>
                   ))}
                 </div>
