@@ -6,6 +6,7 @@ import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sendAccessApprovedNotification } from "@/lib/access-request-email";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -42,12 +43,33 @@ async function activateUser(formData: FormData) {
     throw new Error("Utilisateur manquant.");
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true, isActive: true },
+  });
+
+  if (!user) {
+    throw new Error("Utilisateur introuvable.");
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       isActive: true,
     },
   });
+
+  if (!user.isActive) {
+    try {
+      await sendAccessApprovedNotification({
+        userEmail: user.email,
+        userName: user.name || user.email,
+      });
+    } catch (mailError) {
+      // Le compte reste activé même si l’envoi de l’email échoue.
+      console.error("Erreur email validation accès :", mailError);
+    }
+  }
 
   revalidatePath("/admin/demandes");
 }

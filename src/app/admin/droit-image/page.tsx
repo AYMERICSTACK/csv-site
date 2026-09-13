@@ -301,7 +301,17 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
             <p className="mt-1 text-sm text-amber-800">Le nom/prénom/équipe n’a pas permis de retrouver un joueur unique. Choisis la bonne fiche.</p>
             <div className="mt-5 space-y-3">
               {unmatched.map((submission) => {
-                const teamPlayers = players.filter((player) => player.team === submission.team);
+                const candidatePlayers = [...players].sort((a, b) => {
+                  const aSameTeam = a.team === submission.team ? 0 : 1;
+                  const bSameTeam = b.team === submission.team ? 0 : 1;
+                  if (aSameTeam !== bSameTeam) return aSameTeam - bSameTeam;
+
+                  return `${a.lastName} ${a.firstName} ${a.team}`.localeCompare(
+                    `${b.lastName} ${b.firstName} ${b.team}`,
+                    "fr",
+                    { sensitivity: "base" },
+                  );
+                });
                 return (
                   <form key={submission.id} action={linkSubmission} className="rounded-2xl border border-amber-200 bg-white p-4">
                     <input type="hidden" name="submissionId" value={submission.id} />
@@ -313,7 +323,11 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                       <div className="flex min-w-0 gap-2">
                         <select name="playerId" required defaultValue="" className="min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm">
                           <option value="" disabled>Choisir le joueur</option>
-                          {teamPlayers.map((player) => <option key={player.id} value={player.id}>{player.firstName} {player.lastName}</option>)}
+                          {candidatePlayers.map((player) => (
+                            <option key={player.id} value={player.id}>
+                              {player.firstName} {player.lastName} — {player.team}
+                            </option>
+                          ))}
                         </select>
                         <button className="rounded-xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white">Rattacher</button>
                       </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { sendAccessRequestAdminNotification } from "@/lib/access-request-email";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
       },
       select: {
         id: true,
+        name: true,
       },
     });
 
@@ -86,6 +88,25 @@ export async function POST(request: Request) {
         email: true,
       },
     });
+
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: "admin", isActive: true },
+        select: { email: true },
+      });
+
+      await sendAccessRequestAdminNotification({
+        adminEmails: admins.map((admin) => admin.email).filter(Boolean),
+        requesterName: name,
+        requesterEmail: email,
+        requesterPhone: phone || null,
+        commissionNames: commissions.map((commission) => commission.name),
+        signupNote: signupNote || null,
+      });
+    } catch (mailError) {
+      // La demande est déjà enregistrée : une panne email ne doit pas faire échouer l’inscription.
+      console.error("Erreur notification admin demande d’accès :", mailError);
+    }
 
     return NextResponse.json({
       success: true,
