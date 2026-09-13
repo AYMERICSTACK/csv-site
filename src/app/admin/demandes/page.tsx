@@ -60,15 +60,31 @@ async function activateUser(formData: FormData) {
   });
 
   if (!user.isActive) {
+    console.info("[access-activation] Compte activé, envoi de la notification email.", {
+      userId,
+    });
+
     try {
-      await sendAccessApprovedNotification({
+      const emailSent = await sendAccessApprovedNotification({
         userEmail: user.email,
         userName: user.name || user.email,
       });
+
+      console.info("[access-activation] Résultat notification email.", {
+        userId,
+        emailSent,
+      });
     } catch (mailError) {
       // Le compte reste activé même si l’envoi de l’email échoue.
-      console.error("Erreur email validation accès :", mailError);
+      console.error("[access-activation] Erreur email validation accès :", {
+        userId,
+        error: mailError,
+      });
     }
+  } else {
+    console.info("[access-activation] Compte déjà actif : aucun nouvel email envoyé.", {
+      userId,
+    });
   }
 
   revalidatePath("/admin/demandes");

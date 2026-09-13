@@ -1,4 +1,4 @@
-import { resend } from "@/lib/resend";
+import { Resend } from "resend";
 
 function escapeHtml(value: string) {
   return value
@@ -13,8 +13,18 @@ function siteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL || "https://www.csviriat-foot.fr").replace(/\/$/, "");
 }
 
-function fromEmail() {
-  return process.env.RESEND_FROM_EMAIL?.trim() || null;
+function getMailConfig() {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.RESEND_FROM_EMAIL?.trim();
+
+  if (!apiKey || !from) {
+    return null;
+  }
+
+  return {
+    mailer: new Resend(apiKey),
+    from,
+  };
 }
 
 export async function sendAccessRequestAdminNotification({
@@ -32,20 +42,23 @@ export async function sendAccessRequestAdminNotification({
   commissionNames: string[];
   signupNote?: string | null;
 }) {
-  const from = fromEmail();
-  if (!resend || !from || adminEmails.length === 0) {
-    console.warn("Notification demande d’accès non envoyée : Resend, expéditeur ou destinataire admin manquant.");
-    return;
+  const config = getMailConfig();
+  const recipients = [...new Set(adminEmails.map((email) => email.trim()).filter(Boolean))];
+
+  if (!config || recipients.length === 0) {
+    console.warn(
+      "[access-email] Notification demande d’accès non envoyée : configuration Resend ou destinataire admin manquant.",
+    );
+    return false;
   }
 
-  const mailer = resend;
   const adminUrl = `${siteUrl()}/admin/demandes`;
   const commissions = commissionNames.length ? commissionNames.join(", ") : "Aucune commission";
 
   await Promise.all(
-    [...new Set(adminEmails)].map(async (to) => {
-      const result = await mailer.emails.send({
-        from,
+    recipients.map(async (to) => {
+      const result = await config.mailer.emails.send({
+        from: config.from,
         to,
         subject: `Nouvelle demande d’accès — ${requesterName}`,
         html: `
@@ -65,10 +78,17 @@ export async function sendAccessRequestAdminNotification({
       });
 
       if (result.error) {
+        console.error("[access-email] Resend a refusé la notification admin :", result.error);
         throw new Error(result.error.message || "Erreur Resend lors de la notification admin.");
       }
+
+      console.info("[access-email] Notification admin envoyée.", {
+        resendId: result.data?.id ?? null,
+      });
     }),
   );
+
+  return true;
 }
 
 export async function sendAccessApprovedNotification({
@@ -78,17 +98,28 @@ export async function sendAccessApprovedNotification({
   userEmail: string;
   userName: string;
 }) {
-  const from = fromEmail();
-  if (!resend || !from) {
-    console.warn("Email d’activation non envoyé : Resend ou expéditeur manquant.");
-    return;
+  const config = getMailConfig();
+
+  if (!config) {
+    console.warn(
+      "[access-email] Email d’activation non envoyé : RESEND_API_KEY ou RESEND_FROM_EMAIL manquant.",
+    );
+    return false;
   }
 
-  const mailer = resend;
+  const recipient = userEmail.trim();
+  if (!recipient) {
+    console.warn("[access-email] Email d’activation non envoyé : destinataire vide.");
+    return false;
+  }
+
   const loginUrl = `${siteUrl()}/admin/login`;
-  const result = await mailer.emails.send({
-    from,
-    to: userEmail,
+
+  console.info("[access-email] Tentative d’envoi de l’email d’activation.");
+
+  const result = await config.mailer.emails.send({
+    from: config.from,
+    to: [recipient],
     subject: "Ton accès CS Viriat est validé",
     html: `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717;max-width:640px;margin:0 auto;padding:24px">
@@ -102,6 +133,13 @@ export async function sendAccessApprovedNotification({
   });
 
   if (result.error) {
+    console.error("[access-email] Resend a refusé l’email d’activation :", result.error);
     throw new Error(result.error.message || "Erreur Resend lors de l’email d’activation.");
   }
+
+  console.info("[access-email] Email d’activation envoyé.", {
+    resendId: result.data?.id ?? null,
+  });
+
+  return true;
 }
