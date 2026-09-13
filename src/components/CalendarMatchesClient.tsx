@@ -15,6 +15,8 @@ type MatchItem = {
   status: string;
   scoreTeam: number | null;
   scoreOpponent: number | null;
+  penaltyScoreTeam: number | null;
+  penaltyScoreOpponent: number | null;
   scorers: string | null;
   competitionKey: string;
   competitionLabel: string;
@@ -271,21 +273,30 @@ function formatStatus(status: string) {
   }
 }
 
-function getResultLabel(scoreTeam: number, scoreOpponent: number) {
-  if (scoreTeam > scoreOpponent) return "Victoire";
-  if (scoreTeam < scoreOpponent) return "Défaite";
+function getResultOutcome(match: MatchItem) {
+  if (match.scoreTeam === null || match.scoreOpponent === null) return 0;
+  if (match.scoreTeam > match.scoreOpponent) return 1;
+  if (match.scoreTeam < match.scoreOpponent) return -1;
+
+  if (match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null) {
+    if (match.penaltyScoreTeam > match.penaltyScoreOpponent) return 1;
+    if (match.penaltyScoreTeam < match.penaltyScoreOpponent) return -1;
+  }
+
+  return 0;
+}
+
+function getResultLabel(match: MatchItem) {
+  const outcome = getResultOutcome(match);
+  if (outcome > 0) return "Victoire";
+  if (outcome < 0) return "Défaite";
   return "Nul";
 }
 
-function getResultBadgeClasses(scoreTeam: number, scoreOpponent: number) {
-  if (scoreTeam > scoreOpponent) {
-    return "border border-green-300 bg-green-100 text-green-800";
-  }
-
-  if (scoreTeam < scoreOpponent) {
-    return "border border-red-300 bg-red-100 text-red-800";
-  }
-
+function getResultBadgeClasses(match: MatchItem) {
+  const outcome = getResultOutcome(match);
+  if (outcome > 0) return "border border-green-300 bg-green-100 text-green-800";
+  if (outcome < 0) return "border border-red-300 bg-red-100 text-red-800";
   return "border border-orange-300 bg-orange-100 text-orange-800";
 }
 
@@ -408,6 +419,9 @@ function ResultCard({ match }: { match: MatchItem }) {
 
   const leftScore = match.isHome ? match.scoreTeam : match.scoreOpponent;
   const rightScore = match.isHome ? match.scoreOpponent : match.scoreTeam;
+  const hasPenalties = match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null;
+  const leftPenalty = match.isHome ? match.penaltyScoreTeam : match.penaltyScoreOpponent;
+  const rightPenalty = match.isHome ? match.penaltyScoreOpponent : match.penaltyScoreTeam;
 
   const leftLabel = match.isHome ? "CSV" : "ADV";
   const rightLabel = match.isHome ? "ADV" : "CSV";
@@ -444,12 +458,9 @@ function ResultCard({ match }: { match: MatchItem }) {
           </div>
 
           <div
-            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getResultBadgeClasses(
-              match.scoreTeam,
-              match.scoreOpponent,
-            )}`}
+            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getResultBadgeClasses(match)}`}
           >
-            {getResultLabel(match.scoreTeam, match.scoreOpponent)}
+            {getResultLabel(match)}
           </div>
         </div>
 
@@ -463,8 +474,15 @@ function ResultCard({ match }: { match: MatchItem }) {
             </div>
           </div>
 
-          <div className="inline-flex min-w-[84px] items-center justify-center rounded-2xl border border-orange-500 bg-orange-500 px-3 py-2 text-lg font-extrabold tracking-tight text-white shadow-[0_12px_24px_-14px_rgba(255,122,0,0.9)]">
-            {leftScore} - {rightScore}
+          <div className="flex min-w-[84px] flex-col items-center gap-1">
+            <div className="inline-flex items-center justify-center rounded-2xl border border-orange-500 bg-orange-500 px-3 py-2 text-lg font-extrabold tracking-tight text-white shadow-[0_12px_24px_-14px_rgba(255,122,0,0.9)]">
+              {leftScore} - {rightScore}
+            </div>
+            {hasPenalties ? (
+              <div className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-orange-300">
+                TAB {leftPenalty} - {rightPenalty}
+              </div>
+            ) : null}
           </div>
 
           <div className="min-w-0 text-left">

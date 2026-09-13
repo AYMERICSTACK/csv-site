@@ -69,6 +69,8 @@ export default async function HomeWeekendMatches() {
       status: true,
       scoreTeam: true,
       scoreOpponent: true,
+      penaltyScoreTeam: true,
+      penaltyScoreOpponent: true,
       scorers: true,
       competitionKey: true,
       competitionLabel: true,

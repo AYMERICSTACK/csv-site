@@ -15,6 +15,8 @@ type HomeMatch = {
   status: string;
   scoreTeam: number | null;
   scoreOpponent: number | null;
+  penaltyScoreTeam: number | null;
+  penaltyScoreOpponent: number | null;
   scorers: string | null;
   competitionKey: string;
   competitionLabel: string;
@@ -104,15 +106,30 @@ function formatStatus(status: string) {
   }
 }
 
-function getResultLabel(scoreTeam: number, scoreOpponent: number) {
-  if (scoreTeam > scoreOpponent) return "Victoire";
-  if (scoreTeam < scoreOpponent) return "Défaite";
+function getResultOutcome(match: HomeMatch) {
+  if (match.scoreTeam === null || match.scoreOpponent === null) return 0;
+  if (match.scoreTeam > match.scoreOpponent) return 1;
+  if (match.scoreTeam < match.scoreOpponent) return -1;
+
+  if (match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null) {
+    if (match.penaltyScoreTeam > match.penaltyScoreOpponent) return 1;
+    if (match.penaltyScoreTeam < match.penaltyScoreOpponent) return -1;
+  }
+
+  return 0;
+}
+
+function getResultLabel(match: HomeMatch) {
+  const outcome = getResultOutcome(match);
+  if (outcome > 0) return "Victoire";
+  if (outcome < 0) return "Défaite";
   return "Nul";
 }
 
-function getResultBadgeClasses(scoreTeam: number, scoreOpponent: number) {
-  if (scoreTeam > scoreOpponent) return "border border-green-300 bg-green-100 text-green-800";
-  if (scoreTeam < scoreOpponent) return "border border-red-300 bg-red-100 text-red-800";
+function getResultBadgeClasses(match: HomeMatch) {
+  const outcome = getResultOutcome(match);
+  if (outcome > 0) return "border border-green-300 bg-green-100 text-green-800";
+  if (outcome < 0) return "border border-red-300 bg-red-100 text-red-800";
   return "border border-orange-300 bg-orange-100 text-orange-800";
 }
 
@@ -157,6 +174,9 @@ function ResultCard({ match }: { match: HomeMatch }) {
   const rightTeam = match.isHome ? match.opponent : match.team;
   const leftScore = match.isHome ? match.scoreTeam : match.scoreOpponent;
   const rightScore = match.isHome ? match.scoreOpponent : match.scoreTeam;
+  const hasPenalties = match.penaltyScoreTeam !== null && match.penaltyScoreOpponent !== null;
+  const leftPenalty = match.isHome ? match.penaltyScoreTeam : match.penaltyScoreOpponent;
+  const rightPenalty = match.isHome ? match.penaltyScoreOpponent : match.penaltyScoreTeam;
 
   return (
     <article className="group relative overflow-hidden rounded-[1.4rem] border border-neutral-800 bg-neutral-950 p-4 text-white shadow-[0_18px_45px_-28px_rgba(0,0,0,0.72)] transition hover:-translate-y-0.5 hover:border-orange-500/60">
@@ -171,12 +191,17 @@ function ResultCard({ match }: { match: HomeMatch }) {
             </div>
             <h3 className="mt-2 text-base font-extrabold leading-tight sm:text-lg">{leftTeam} <span className="text-white/30">vs</span> {rightTeam}</h3>
           </div>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getResultBadgeClasses(match.scoreTeam, match.scoreOpponent)}`}>{getResultLabel(match.scoreTeam, match.scoreOpponent)}</span>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${getResultBadgeClasses(match)}`}>{getResultLabel(match)}</span>
         </div>
 
         <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[1.15rem] border border-orange-500/15 bg-white/[0.03] px-3 py-3">
           <div className="min-w-0 text-right text-sm font-extrabold">{leftTeam}</div>
-          <div className="rounded-2xl border border-orange-500 bg-orange-500 px-3 py-2 text-lg font-extrabold">{leftScore} - {rightScore}</div>
+          <div className="flex flex-col items-center gap-1">
+            <div className="rounded-2xl border border-orange-500 bg-orange-500 px-3 py-2 text-lg font-extrabold">{leftScore} - {rightScore}</div>
+            {hasPenalties ? (
+              <div className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-orange-300">TAB {leftPenalty} - {rightPenalty}</div>
+            ) : null}
+          </div>
           <div className="min-w-0 text-left text-sm font-extrabold">{rightTeam}</div>
         </div>
 
