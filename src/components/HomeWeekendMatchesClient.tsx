@@ -184,6 +184,13 @@ function ResultCard({ match }: { match: HomeMatch }) {
           <span className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80"><Clock3 size={14} className="text-orange-400" />{formatDate(match.matchDate)}</span>
           <span className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-white/80"><MapPin size={14} className="text-orange-400" />{match.location}</span>
         </div>
+
+        {match.scorers?.trim() ? (
+          <div className="mt-3 rounded-[1.05rem] border border-orange-500/20 bg-orange-500/[0.07] px-3.5 py-3">
+            <div className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-orange-300">⚽ Buteurs</div>
+            <p className="mt-1 text-sm font-bold leading-relaxed text-white">{match.scorers}</p>
+          </div>
+        ) : null}
       </div>
     </article>
   );
