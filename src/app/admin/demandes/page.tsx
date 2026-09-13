@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
+import ResendActivationEmailForm, {
+  type ResendActivationEmailState,
+} from "@/components/ResendActivationEmailForm";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendAccessApprovedNotification } from "@/lib/access-request-email";
@@ -13,7 +16,6 @@ import {
   Mail,
   Phone,
   ShieldCheck,
-  Send,
   Trash2,
   Users,
 } from "lucide-react";
@@ -91,7 +93,10 @@ async function activateUser(formData: FormData) {
   revalidatePath("/admin/demandes");
 }
 
-async function resendActivationEmail(formData: FormData) {
+async function resendActivationEmail(
+  _previousState: ResendActivationEmailState,
+  formData: FormData,
+): Promise<ResendActivationEmailState> {
   "use server";
 
   const session = await auth();
@@ -112,7 +117,7 @@ async function resendActivationEmail(formData: FormData) {
   const userId = String(formData.get("userId") || "").trim();
 
   if (!userId) {
-    throw new Error("Utilisateur manquant.");
+    return { status: "error", message: "Utilisateur manquant." };
   }
 
   const user = await prisma.user.findUnique({
@@ -121,23 +126,44 @@ async function resendActivationEmail(formData: FormData) {
   });
 
   if (!user || user.role !== "member") {
-    throw new Error("Utilisateur introuvable.");
+    return { status: "error", message: "Utilisateur introuvable." };
   }
 
   if (!user.isActive) {
-    throw new Error("Ce compte n’est pas encore actif.");
+    return { status: "error", message: "Ce compte n’est pas encore actif." };
   }
 
   console.info("[access-activation] Renvoi manuel de l’email d’activation.", {
     userId,
   });
 
-  await sendAccessApprovedNotification({
-    userEmail: user.email,
-    userName: user.name || user.email,
-  });
+  try {
+    const emailSent = await sendAccessApprovedNotification({
+      userEmail: user.email,
+      userName: user.name || user.email,
+    });
 
-  revalidatePath("/admin/demandes");
+    if (!emailSent) {
+      return {
+        status: "error",
+        message: "L’email n’a pas pu être envoyé. Vérifie les logs Resend.",
+      };
+    }
+
+    revalidatePath("/admin/demandes");
+
+    return { status: "success", message: "Email envoyé." };
+  } catch (error) {
+    console.error("[access-activation] Échec du renvoi manuel de l’email :", {
+      userId,
+      error,
+    });
+
+    return {
+      status: "error",
+      message: "Échec de l’envoi. Tu peux réessayer.",
+    };
+  }
 }
 
 async function deletePendingUser(formData: FormData) {
@@ -438,16 +464,10 @@ export default async function AdminDemandesPage() {
                         </div>
                       </div>
 
-                      <form action={resendActivationEmail}>
-                        <input type="hidden" name="userId" value={user.id} />
-                        <button
-                          type="submit"
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:border-neutral-400 hover:bg-neutral-100 sm:w-auto"
-                        >
-                          <Send size={14} />
-                          Renvoyer l’email
-                        </button>
-                      </form>
+                      <ResendActivationEmailForm
+                        userId={user.id}
+                        action={resendActivationEmail}
+                      />
                     </article>
                   ))}
                 </div>
