@@ -9,7 +9,9 @@ type PlayerPhotoInputProps = {
   compact?: boolean;
 };
 
-const MAX_PHOTO_SIZE = 3 * 1024 * 1024;
+const MAX_UPLOAD_SIZE = 3 * 1024 * 1024;
+const MAX_SOURCE_SIZE = 20 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 2048;
 const SUPPORTED_PHOTO_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -75,7 +77,49 @@ export default function PlayerPhotoInput({
     }
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function compressPhoto(source: File) {
+    const bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
+    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close();
+      throw new Error("canvas-unavailable");
+    }
+
+    // Les photos de joueurs n'ont pas besoin de transparence. Un fond blanc évite
+    // qu'un PNG transparent devienne noir lors de la conversion en JPEG.
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    let quality = 0.86;
+    let blob: Blob | null = null;
+    do {
+      blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality),
+      );
+      quality -= 0.08;
+    } while (blob && blob.size > MAX_UPLOAD_SIZE && quality >= 0.5);
+
+    if (!blob || blob.size > MAX_UPLOAD_SIZE) {
+      throw new Error("compression-failed");
+    }
+
+    const baseName = source.name.replace(/\.[^.]+$/, "") || "photo-joueur";
+    return new File([blob], `${baseName}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selectedFile = event.target.files?.[0] || null;
     setMessage(null);
 
@@ -91,14 +135,37 @@ export default function PlayerPhotoInput({
       return;
     }
 
-    if (selectedFile.size > MAX_PHOTO_SIZE) {
-      setMessage("La photo est trop lourde. Taille maximale : 3 Mo.");
+    if (selectedFile.size > MAX_SOURCE_SIZE) {
+      setMessage("La photo d'origine est trop lourde (20 Mo maximum).");
       event.target.value = "";
       setFile(null);
       return;
     }
 
-    setFile(selectedFile);
+    // Même les photos déjà légères passent par cette étape : on réduit les très
+    // grandes résolutions de téléphone et on garantit une requête largement sous
+    // la limite du serveur.
+    setMessage("Optimisation de la photo en cours…");
+
+    try {
+      const optimizedFile = await compressPhoto(selectedFile);
+      const transfer = new DataTransfer();
+      transfer.items.add(optimizedFile);
+      event.target.files = transfer.files;
+      setFile(optimizedFile);
+
+      if (optimizedFile.size < selectedFile.size) {
+        const originalMb = (selectedFile.size / 1024 / 1024).toFixed(1);
+        const optimizedMb = (optimizedFile.size / 1024 / 1024).toFixed(1);
+        setMessage(`Photo optimisée automatiquement : ${originalMb} Mo → ${optimizedMb} Mo.`);
+      } else {
+        setMessage(null);
+      }
+    } catch {
+      event.target.value = "";
+      setFile(null);
+      setMessage("Impossible d'optimiser cette photo. Essayez une autre photo JPG, PNG ou WEBP.");
+    }
   }
 
   return (
@@ -134,7 +201,7 @@ export default function PlayerPhotoInput({
           type="file"
           accept="image/png,image/jpeg,image/webp"
           className="hidden"
-          onChange={handleFileChange}
+          onChange={(event) => void handleFileChange(event)}
         />
       </label>
 
@@ -148,7 +215,7 @@ export default function PlayerPhotoInput({
           Retirer la photo sélectionnée
         </button>
       ) : (
-        <p className="text-xs text-neutral-500">PNG, JPG ou WEBP · 3 Mo max.</p>
+        <p className="text-xs text-neutral-500">PNG, JPG ou WEBP · compression automatique avant envoi.</p>
       )}
 
       {message ? (
