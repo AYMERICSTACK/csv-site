@@ -2,7 +2,7 @@ import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import { prisma } from "@/lib/prisma";
 import CalendarMatchesClient from "@/components/CalendarMatchesClient";
-
+import { parseParisDateTime } from "@/lib/paris-datetime";
 
 function getDefaultCalendarView() {
   const weekday = new Intl.DateTimeFormat("en-US", {
@@ -17,15 +17,48 @@ function getDefaultCalendarView() {
 
 function getRecentResultsRange() {
   const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
 
-  const start = new Date(now);
-  start.setDate(now.getDate() - 7);
-  start.setHours(0, 0, 0, 0);
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
 
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
+  const today = new Date(Date.UTC(values.year, values.month - 1, values.day));
+  const dayOfWeek = today.getUTCDay();
 
-  return { start, end };
+  // Vendredi à dimanche : résultats du week-end en cours.
+  // Lundi à jeudi : résultats du week-end qui vient de se terminer.
+  const daysFromFriday =
+    dayOfWeek === 5
+      ? 0
+      : dayOfWeek === 6
+        ? -1
+        : dayOfWeek === 0
+          ? -2
+          : -(dayOfWeek + 2);
+
+  const friday = new Date(today);
+  friday.setUTCDate(today.getUTCDate() + daysFromFriday);
+
+  const monday = new Date(friday);
+  monday.setUTCDate(friday.getUTCDate() + 3);
+
+  const formatDate = (date: Date) =>
+    `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(
+      date.getUTCDate(),
+    ).padStart(2, "0")}`;
+
+  return {
+    start: parseParisDateTime(`${formatDate(friday)}T00:00`),
+    end: parseParisDateTime(`${formatDate(monday)}T00:00`),
+  };
 }
 
 export default async function CalendrierPage() {
@@ -40,7 +73,7 @@ export default async function CalendrierPage() {
         status: "finished",
         matchDate: {
           gte: recentRange.start,
-          lte: recentRange.end,
+          lt: recentRange.end,
         },
       },
       orderBy: {

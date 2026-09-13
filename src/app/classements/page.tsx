@@ -40,8 +40,12 @@ function getParisWeekendRanges(now: Date) {
   const friday = new Date(today);
   friday.setUTCDate(today.getUTCDate() + daysUntilFriday);
 
-  const previousFriday = new Date(friday);
-  previousFriday.setUTCDate(friday.getUTCDate() - 7);
+  const resultsFriday = new Date(friday);
+  // Du vendredi au dimanche, les résultats affichés sont ceux du week-end
+  // en cours. Du lundi au jeudi, on garde le week-end qui vient de finir.
+  if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+    resultsFriday.setUTCDate(friday.getUTCDate() - 7);
+  }
 
   const formatDate = (date: Date) =>
     `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(
@@ -60,7 +64,7 @@ function getParisWeekendRanges(now: Date) {
 
   return {
     upcomingWeekend: range(friday),
-    previousWeekend: range(previousFriday),
+    resultsWeekend: range(resultsFriday),
   };
 }
 
@@ -82,7 +86,7 @@ export default async function ClassementsPage() {
   const season = CURRENT_FOOTBALL_SEASON;
   const { start, end } = getFootballSeasonDateRange(season);
   const now = new Date();
-  const { upcomingWeekend, previousWeekend } = getParisWeekendRanges(now);
+  const { upcomingWeekend, resultsWeekend } = getParisWeekendRanges(now);
 
   const [players, teamSettings, seasonMatches] = await Promise.all([
     prisma.player.findMany({
@@ -152,8 +156,8 @@ export default async function ClassementsPage() {
   const recentResults = completedMatches
     .filter(
       (match) =>
-        match.matchDate >= previousWeekend.start &&
-        match.matchDate < previousWeekend.end,
+        match.matchDate >= resultsWeekend.start &&
+        match.matchDate < resultsWeekend.end,
     )
     .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime())
     .map((match) => ({
