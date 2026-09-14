@@ -4,6 +4,7 @@ import Container from "@/components/Container";
 import PublicRankingsBoard from "@/components/PublicRankingsBoard";
 import { prisma } from "@/lib/prisma";
 import { parseParisDateTime } from "@/lib/paris-datetime";
+import { buildSharedPhotoMap, playerIdentityKey } from "@/lib/player-photo-sync";
 import {
   CURRENT_FOOTBALL_SEASON,
   getFootballSeasonDateRange,
@@ -115,13 +116,15 @@ export default async function ClassementsPage() {
     }),
   ]);
 
+  const sharedPhotos = buildSharedPhotoMap(players);
+
   const formattedPlayers = players.map((player) => ({
     id: player.id,
     firstName: player.firstName,
     lastName: player.lastName,
     team: player.team,
     category: player.category,
-    photoUrl: player.photoUrl,
+    photoUrl: sharedPhotos.get(playerIdentityKey(player.firstName, player.lastName)) || null,
     photoConsent: player.photoConsent,
     goals: player.stats[0]?.goals || 0,
     assists: player.stats[0]?.assists || 0,

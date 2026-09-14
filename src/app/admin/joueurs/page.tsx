@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import AdminPlayersBoard from "@/components/AdminPlayersBoard";
+import { syncPlayerPhotoByIdentity } from "@/lib/player-photo-sync";
 
 async function uploadPlayerPhoto(file: File, playerName: string) {
   if (!file || file.size === 0) return null;
@@ -63,6 +64,10 @@ async function createPlayer(formData: FormData) {
     },
   });
 
+  if (photoUrl) {
+    await syncPlayerPhotoByIdentity(firstName, lastName, photoUrl);
+  }
+
   revalidatePath("/admin/joueurs");
   revalidatePath("/admin/equipes");
 }
@@ -107,6 +112,10 @@ async function updatePlayer(formData: FormData) {
       isActive,
     },
   });
+
+  if (uploadedPhotoUrl) {
+    await syncPlayerPhotoByIdentity(firstName, lastName, uploadedPhotoUrl);
+  }
 
   if (statId) {
     await prisma.playerStat.update({

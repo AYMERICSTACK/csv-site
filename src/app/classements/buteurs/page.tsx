@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import Container from "@/components/Container";
+import { buildSharedPhotoMap, playerIdentityKey } from "@/lib/player-photo-sync";
 
 type PageProps = {
   searchParams: Promise<{
@@ -36,6 +37,7 @@ export default async function ClassementButeursPage({
   ];
 
   const activeCategory = categorie || "Toutes";
+  const sharedPhotos = buildSharedPhotoMap(players);
 
   const scorers = players
     .map((player) => ({
@@ -44,6 +46,8 @@ export default async function ClassementButeursPage({
       lastName: player.lastName,
       team: player.team,
       category: player.category,
+      photoUrl: sharedPhotos.get(playerIdentityKey(player.firstName, player.lastName)) || null,
+      photoConsent: player.photoConsent,
       goals: player.stats.reduce((total, stat) => total + (stat.goals || 0), 0),
     }))
     .filter((player) => player.goals > 0)
@@ -116,9 +120,22 @@ export default async function ClassementButeursPage({
                 className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
-                    #{index + 1}
-                  </div>
+                  {player.photoConsent && player.photoUrl ? (
+                    <div className="relative shrink-0">
+                      <img
+                        src={player.photoUrl}
+                        alt={`${player.firstName} ${player.lastName}`}
+                        className="h-11 w-11 rounded-2xl object-cover"
+                      />
+                      <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
+                        #{index + 1}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
+                      #{index + 1}
+                    </div>
+                  )}
 
                   <div>
                     <div className="font-bold text-neutral-950">

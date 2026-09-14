@@ -14,6 +14,7 @@ import MobileCreatePanel from "@/components/MobileCreatePanel";
 import PlayerSaveState from "@/components/PlayerSaveState";
 import PlayerRosterSearch from "@/components/PlayerRosterSearch";
 import { getImageConsentState, consentStateLabel, isMinorTeam } from "@/lib/image-consent";
+import { syncPlayerPhotoByIdentity } from "@/lib/player-photo-sync";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -136,6 +137,10 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
       },
     });
 
+    if (photoUrl) {
+      await syncPlayerPhotoByIdentity(firstName, lastName, photoUrl);
+    }
+
     revalidatePath(`/admin/equipes/${teamSlug}`);
     revalidatePath(`/admin/equipes/${teamSlug}/joueurs`);
     revalidatePath("/admin/equipes");
@@ -192,6 +197,10 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
         isActive,
       },
     });
+
+    if (uploadedPhotoUrl) {
+      await syncPlayerPhotoByIdentity(firstName, lastName, uploadedPhotoUrl);
+    }
 
     revalidatePath(`/admin/equipes/${teamSlug}`);
     revalidatePath(`/admin/equipes/${teamSlug}/joueurs`);

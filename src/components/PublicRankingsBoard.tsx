@@ -599,9 +599,22 @@ export default function PublicRankingsBoard({
                 className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
-                    #{index + 1}
-                  </div>
+                  {player.photoConsent && player.photoUrl ? (
+                    <div className="relative shrink-0">
+                      <img
+                        src={player.photoUrl}
+                        alt={`${player.firstName} ${player.lastName}`}
+                        className="h-11 w-11 rounded-2xl object-cover"
+                      />
+                      <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
+                        #{index + 1}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
+                      #{index + 1}
+                    </div>
+                  )}
 
                   <div>
                     <div className="font-bold text-neutral-950">
@@ -664,9 +677,22 @@ export default function PublicRankingsBoard({
                 className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
-                    #{index + 1}
-                  </div>
+                  {player.photoConsent && player.photoUrl ? (
+                    <div className="relative shrink-0">
+                      <img
+                        src={player.photoUrl}
+                        alt={`${player.firstName} ${player.lastName}`}
+                        className="h-11 w-11 rounded-2xl object-cover"
+                      />
+                      <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
+                        #{index + 1}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
+                      #{index + 1}
+                    </div>
+                  )}
 
                   <div>
                     <div className="font-bold text-neutral-950">
