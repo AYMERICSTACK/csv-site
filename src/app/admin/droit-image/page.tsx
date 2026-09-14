@@ -4,6 +4,7 @@ import Container from "@/components/Container";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
+import { comparePlayerNames, formatPlayerName } from "@/lib/person-select";
 import {
   consentStateLabel,
   getImageConsentState,
@@ -306,11 +307,11 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                   const bSameTeam = b.team === submission.team ? 0 : 1;
                   if (aSameTeam !== bSameTeam) return aSameTeam - bSameTeam;
 
-                  return `${a.lastName} ${a.firstName} ${a.team}`.localeCompare(
-                    `${b.lastName} ${b.firstName} ${b.team}`,
-                    "fr",
-                    { sensitivity: "base" },
-                  );
+                  const nameOrder = comparePlayerNames(a, b);
+                  if (nameOrder !== 0) return nameOrder;
+                  return String(a.team || "").localeCompare(String(b.team || ""), "fr", {
+                    sensitivity: "base",
+                  });
                 });
                 return (
                   <form key={submission.id} action={linkSubmission} className="rounded-2xl border border-amber-200 bg-white p-4">
@@ -325,7 +326,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                           <option value="" disabled>Choisir le joueur</option>
                           {candidatePlayers.map((player) => (
                             <option key={player.id} value={player.id}>
-                              {player.firstName} {player.lastName} — {player.team}
+                              {formatPlayerName(player.firstName, player.lastName)} — {player.team}
                             </option>
                           ))}
                         </select>

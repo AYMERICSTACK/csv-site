@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Trash2, Plus, CalendarDays } from "lucide-react";
+import { loosePersonIdentityKey } from "@/lib/person-select";
 
 type Group = {
   id: string;
@@ -21,6 +22,7 @@ type StaffMember = {
 
 type StaffDirectoryEntry = {
   name: string;
+  label: string;
 };
 
 type EditableStaffMember = StaffMember & {
@@ -62,15 +64,20 @@ export default function TeamForm({
   defaultValues,
 }: TeamFormProps) {
   const [staff, setStaff] = useState<EditableStaffMember[]>(() => {
-    const withSource = (member: StaffMember): EditableStaffMember => ({
-      ...member,
-      nameSource:
-        member.name && staffDirectory.some((entry) => entry.name === member.name)
-          ? "known"
-          : member.name
-            ? "custom"
-            : "known",
-    });
+    const withSource = (member: StaffMember): EditableStaffMember => {
+      const matchingEntry = member.name
+        ? staffDirectory.find(
+            (entry) =>
+              loosePersonIdentityKey(entry.name) === loosePersonIdentityKey(member.name),
+          )
+        : undefined;
+
+      return {
+        ...member,
+        name: matchingEntry?.name || member.name,
+        nameSource: matchingEntry ? "known" : member.name ? "custom" : "known",
+      };
+    };
 
     if (defaultValues?.staff?.length) return defaultValues.staff.map(withSource);
     if (defaultValues?.coach) {
@@ -227,7 +234,7 @@ export default function TeamForm({
                       <option value="">Choisir une personne</option>
                       {staffDirectory.map((entry) => (
                         <option key={entry.name} value={entry.name}>
-                          {entry.name}
+                          {entry.label}
                         </option>
                       ))}
                       <option value="__other__">Autre personne…</option>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { OWN_GOAL_VALUE } from "@/lib/own-goals";
+import { comparePlayerNames, formatPlayerName } from "@/lib/person-select";
 
 type PlayerOption = {
   id: string;
@@ -49,13 +50,21 @@ function PlayerSelect({
 
   const filteredPlayers = useMemo(() => {
     const normalizedQuery = normalize(query);
-    if (!normalizedQuery) return players;
+    const matchingPlayers = normalizedQuery
+      ? players.filter((player) =>
+          normalize(
+            `${player.lastName} ${player.firstName} ${player.firstName} ${player.lastName} ${player.team || ""} ${player.category || ""}`,
+          ).includes(normalizedQuery),
+        )
+      : [...players];
 
-    return players.filter((player) =>
-      normalize(
-        `${player.lastName} ${player.firstName} ${player.firstName} ${player.lastName} ${player.team || ""} ${player.category || ""}`,
-      ).includes(normalizedQuery),
-    );
+    return matchingPlayers.sort((a, b) => {
+      const nameOrder = comparePlayerNames(a, b);
+      if (nameOrder !== 0) return nameOrder;
+      return String(a.team || "").localeCompare(String(b.team || ""), "fr", {
+        sensitivity: "base",
+      });
+    });
   }, [players, query]);
 
   return (
@@ -82,7 +91,7 @@ function PlayerSelect({
 
         {filteredPlayers.map((player) => (
           <option key={player.id} value={player.id}>
-            {player.lastName.toUpperCase()} {player.firstName}
+            {formatPlayerName(player.firstName, player.lastName)}
             {player.category ? ` — ${player.category}` : ""}
             {player.team ? ` / ${player.team}` : ""}
           </option>

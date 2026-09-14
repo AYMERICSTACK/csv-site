@@ -6,6 +6,7 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 import TeamForm from "@/components/TeamForm";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { buildStaffDirectory } from "@/lib/person-select";
 
 function parseSchedules(value: string) {
   return value
@@ -78,15 +79,9 @@ export default async function NewEquipePage() {
     }),
   ]);
 
-  const staffDirectory = Array.from(
-    new Set(
-      [...activeUsers, ...publishedStaff]
-        .map((person) => person.name.trim())
-        .filter(Boolean),
-    ),
-  )
-    .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
-    .map((name) => ({ name }));
+  const staffDirectory = buildStaffDirectory(
+    [...activeUsers, ...publishedStaff].map((person) => person.name),
+  );
 
   async function createTeam(formData: FormData) {
     "use server";
