@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -721,12 +722,7 @@ export default async function AdminEquipeDetailPage({
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="submit"
-                    className="inline-flex flex-1 items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-black text-white transition hover:bg-orange-600"
-                  >
-                    Enregistrer
-                  </button>
+                  <FormSubmitButton idleLabel="Enregistrer" className="inline-flex flex-1 items-center justify-center rounded-xl bg-csv-orange px-4 py-3 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-wait disabled:opacity-70" />
 
                   {teamSetting?.fffUrl ? (
                     <a

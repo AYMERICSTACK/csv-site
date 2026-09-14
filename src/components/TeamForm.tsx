@@ -1,5 +1,7 @@
 "use client";
 
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Trash2, Plus, CalendarDays } from "lucide-react";
@@ -406,11 +408,13 @@ export default function TeamForm({
         </div>
 
         <div className="flex flex-wrap gap-3 pt-2">
-          <button type="submit" className="btn-primary">
-            {mode === "create"
-              ? "Créer l’équipe"
-              : "Enregistrer les modifications"}
-          </button>
+          <FormSubmitButton
+            idleLabel={mode === "create" ? "Créer l’équipe" : "Enregistrer les modifications"}
+            pendingLabel={mode === "create" ? "Création en cours…" : "Enregistrement en cours…"}
+            successLabel={mode === "create" ? "Équipe créée ✓" : "Enregistré ✓"}
+            successTitle={mode === "create" ? "Équipe créée" : "Enregistrement validé"}
+            className="btn-primary disabled:cursor-wait disabled:opacity-70"
+          />
 
           <Link href="/espace-educateurs/equipes" className="btn-secondary">
             Retour

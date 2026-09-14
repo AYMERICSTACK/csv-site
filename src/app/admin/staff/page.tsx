@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -366,10 +367,7 @@ export default async function AdminStaffPage() {
             </div>
 
             <div className="flex items-end xl:col-span-6">
-              <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-neutral-800 md:w-auto">
-                <Plus className="h-4 w-4" />
-                Ajouter le membre
-              </button>
+              <FormSubmitButton idleLabel="Ajouter le membre" pendingLabel="Ajout en cours…" successLabel="Membre ajouté ✓" successTitle="Membre ajouté" icon={<Plus className="h-4 w-4" />} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-neutral-800 disabled:cursor-wait disabled:opacity-70 md:w-auto" />
             </div>
           </form>
         </section>
@@ -559,19 +557,13 @@ export default async function AdminStaffPage() {
                       </div>
 
                       <div className="flex flex-col gap-3 xl:col-span-6 xl:flex-row xl:items-end xl:justify-between">
-                        <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-neutral-800">
-                          <Save className="h-4 w-4" />
-                          Enregistrer
-                        </button>
+                        <FormSubmitButton idleLabel="Enregistrer" icon={<Save className="h-4 w-4" />} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-wait disabled:opacity-70" />
                       </div>
                     </form>
 
                     <form action={deleteStaffMember} className="mt-3 flex justify-end border-t border-neutral-100 pt-3">
                       <input type="hidden" name="id" value={member.id} />
-                      <button className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-extrabold text-red-700 transition hover:bg-red-100">
-                        <Trash2 className="h-4 w-4" />
-                        Supprimer
-                      </button>
+                      <FormSubmitButton idleLabel="Supprimer" pendingLabel="Suppression…" successLabel="Supprimé ✓" loadingTitle="Suppression en cours" successTitle="Suppression validée" icon={<Trash2 className="h-4 w-4" />} className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-extrabold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-70" />
                     </form>
                   </div>
                 ))}

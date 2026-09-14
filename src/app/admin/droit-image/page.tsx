@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import Container from "@/components/Container";
@@ -330,7 +331,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                             </option>
                           ))}
                         </select>
-                        <button className="rounded-xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white">Rattacher</button>
+                        <FormSubmitButton idleLabel="Rattacher" pendingLabel="Rattachement…" successLabel="Rattaché ✓" loadingTitle="Rattachement en cours" successTitle="Joueur rattaché" className="rounded-xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70" />
                       </div>
                     </div>
                   </form>
@@ -383,7 +384,7 @@ export default async function AdminImageConsentPage({ searchParams }: PageProps)
                               <option value="received">Papier reçu</option>
                               <option value="refused">Refus papier</option>
                             </select>
-                            <button className="rounded-xl bg-csv-orange px-4 py-2 text-sm font-bold text-white">Enregistrer</button>
+                            <FormSubmitButton idleLabel="Enregistrer" className="rounded-xl bg-csv-orange px-4 py-2 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70" />
                           </form>
                         ) : (
                           <span className="rounded-xl bg-neutral-100 px-3 py-2 text-xs font-bold text-neutral-500">Papier non requis si majeur</span>

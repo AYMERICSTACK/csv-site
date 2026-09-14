@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { OWN_GOAL_VALUE, parseGoalPlayerIds, buildGoalEvents, buildScorersText } from "@/lib/own-goals";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -283,9 +284,7 @@ export default async function QuickResultPage({ params }: PageProps) {
               <div className="flex gap-2"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>À l’enregistrement, le match passe automatiquement en <strong>Terminé</strong>. En coupe, une défaite retire automatiquement cette compétition des prochains matchs de l’équipe.</span></div>
             </div>
 
-            <button className="mt-5 w-full rounded-2xl bg-orange-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400">
-              Enregistrer le résultat
-            </button>
+            <FormSubmitButton idleLabel="Enregistrer le résultat" className="mt-5 w-full rounded-2xl bg-orange-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-wait disabled:opacity-70" />
           </section>
 
           <section className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
@@ -308,9 +307,7 @@ export default async function QuickResultPage({ params }: PageProps) {
               />
             </div>
 
-            <button className="mt-6 w-full rounded-2xl bg-orange-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 xl:hidden">
-              Enregistrer le résultat
-            </button>
+            <FormSubmitButton idleLabel="Enregistrer le résultat" className="mt-6 w-full rounded-2xl bg-orange-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-wait disabled:opacity-70 xl:hidden" />
           </section>
         </form>
       </div>

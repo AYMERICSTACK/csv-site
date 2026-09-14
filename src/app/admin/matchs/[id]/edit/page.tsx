@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { OWN_GOAL_VALUE, parseGoalPlayerIds, buildGoalEvents, buildScorersText } from "@/lib/own-goals";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -501,9 +502,7 @@ export default async function EditMatchPage({ params }: PageProps) {
                 </div>
 
                 <div className="mt-6 grid gap-3">
-                  <button className="rounded-xl bg-csv-orange px-5 py-3 text-sm font-black text-white transition hover:opacity-90">
-                    Enregistrer
-                  </button>
+                  <FormSubmitButton idleLabel="Enregistrer" className="rounded-xl bg-csv-orange px-5 py-3 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-wait disabled:opacity-70" />
 
                   <a
                     href={backHref}

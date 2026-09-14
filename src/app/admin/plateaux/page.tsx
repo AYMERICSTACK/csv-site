@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { requireRole } from "@/lib/auth-guard";
 import Container from "@/components/Container";
 import Link from "next/link";
@@ -66,7 +67,7 @@ export default async function AdminPlateauxPage() {
                   <Link href={`/admin/plateaux/${plateau.id}/edit`} className="flex-1 rounded-xl bg-neutral-950 px-4 py-3 text-center text-sm font-black text-white">Gérer</Link>
                   <form action={deletePlateau}>
                     <input type="hidden" name="id" value={plateau.id}/>
-                    <button className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700">Supprimer</button>
+                    <FormSubmitButton idleLabel="Supprimer" pendingLabel="Suppression…" successLabel="Supprimé ✓" loadingTitle="Suppression en cours" successTitle="Suppression validée" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700 disabled:cursor-wait disabled:opacity-70" />
                   </form>
                 </div>
               </article>

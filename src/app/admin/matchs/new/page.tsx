@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { requireRole } from "@/lib/auth-guard";
 import { auth } from "@/auth";
 import Container from "@/components/Container";
@@ -246,13 +247,7 @@ export default async function NewMatchPage({
                 Annuler
               </Link>
 
-              <button
-                type="submit"
-                className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400"
-              >
-                <CheckCircle2 size={18} />
-                Créer le match
-              </button>
+              <FormSubmitButton idleLabel="Créer le match" pendingLabel="Création en cours…" successLabel="Match créé ✓" successTitle="Match créé" icon={<CheckCircle2 size={18} />} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 disabled:cursor-wait disabled:opacity-70" />
             </div>
           </div>
         </form>

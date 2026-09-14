@@ -1,3 +1,4 @@
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { requireRole } from "@/lib/auth-guard";
 import Container from "@/components/Container";
 import Link from "next/link";
@@ -165,7 +166,7 @@ export default async function EditPlateauPage({ params }: { params: Promise<{ id
             </section>
           ) : null}
 
-          <button type="submit" className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white md:w-auto"><Save size={18}/> Enregistrer</button>
+          <FormSubmitButton idleLabel="Enregistrer" icon={<Save size={18} />} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-70 md:w-auto" />
         </form>
       </div>
     </Container>
