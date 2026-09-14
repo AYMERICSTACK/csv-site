@@ -62,6 +62,8 @@ type SeasonResult = {
   isHome: boolean;
   scoreTeam: number | null;
   scoreOpponent: number | null;
+  penaltyScoreTeam: number | null;
+  penaltyScoreOpponent: number | null;
 };
 
 type UpcomingSeasonMatch = {
@@ -154,6 +156,43 @@ function formatSeasonMatchDate(value: string) {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   });
+}
+
+
+function getSeasonResultOutcome(match: SeasonResult) {
+  const teamScore = match.scoreTeam ?? 0;
+  const opponentScore = match.scoreOpponent ?? 0;
+
+  if (teamScore > opponentScore) return "win" as const;
+  if (teamScore < opponentScore) return "loss" as const;
+
+  if (
+    match.penaltyScoreTeam !== null &&
+    match.penaltyScoreOpponent !== null &&
+    match.penaltyScoreTeam !== match.penaltyScoreOpponent
+  ) {
+    return match.penaltyScoreTeam > match.penaltyScoreOpponent
+      ? ("win" as const)
+      : ("loss" as const);
+  }
+
+  return "draw" as const;
+}
+
+function ResultBadge({ outcome }: { outcome: "win" | "draw" | "loss" }) {
+  const styles = {
+    win: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    draw: "border-neutral-200 bg-white text-neutral-600",
+    loss: "border-red-200 bg-red-50 text-red-700",
+  }[outcome];
+
+  const label = { win: "Victoire", draw: "Nul", loss: "Défaite" }[outcome];
+
+  return (
+    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${styles}`}>
+      {label}
+    </span>
+  );
 }
 
 function SeasonMatchTeams({
@@ -426,6 +465,7 @@ export default function PublicRankingsBoard({
                 const rightScore = match.isHome
                   ? match.scoreOpponent
                   : match.scoreTeam;
+                const outcome = getSeasonResultOutcome(match);
 
                 return (
                   <article
@@ -458,8 +498,11 @@ export default function PublicRankingsBoard({
                           </span>
                         </div>
                       </div>
-                      <div className="shrink-0 rounded-2xl bg-neutral-950 px-4 py-2 text-xl font-black text-white">
-                        {leftScore} - {rightScore}
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <ResultBadge outcome={outcome} />
+                        <div className="rounded-2xl bg-neutral-950 px-4 py-2 text-xl font-black text-white">
+                          {leftScore} - {rightScore}
+                        </div>
                       </div>
                     </div>
                   </article>

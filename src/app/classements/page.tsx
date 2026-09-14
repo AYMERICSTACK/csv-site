@@ -173,6 +173,8 @@ export default async function ClassementsPage() {
       isHome: match.isHome,
       scoreTeam: match.scoreTeam,
       scoreOpponent: match.scoreOpponent,
+      penaltyScoreTeam: match.penaltyScoreTeam,
+      penaltyScoreOpponent: match.penaltyScoreOpponent,
     }));
 
   const upcomingMatches = seasonMatches
