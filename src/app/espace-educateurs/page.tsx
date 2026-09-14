@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugifyTeam } from "@/lib/teams";
+import { formatLoosePersonName } from "@/lib/person-select";
 import FffMatchdayStatusClient from "./FffMatchdayStatusClient";
 import {
   CURRENT_FOOTBALL_SEASON,
@@ -200,7 +201,7 @@ export default async function EspaceEducateursPage() {
                     {favoriteTeam.category}
                   </h2>
                   <p className="mt-1 text-sm font-medium text-neutral-600">
-                    Coach : {favoriteTeam.coach || "À renseigner"}
+                    Coach : {favoriteTeam.coach ? formatLoosePersonName(favoriteTeam.coach) : "À renseigner"}
                   </p>
                   <Link
                     href="/admin/equipes"

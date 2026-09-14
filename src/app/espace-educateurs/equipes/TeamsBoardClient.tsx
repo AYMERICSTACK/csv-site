@@ -134,7 +134,7 @@ function TeamCard({
                   </div>
                 ))
               ) : (
-                <div className="truncate font-semibold">{team.coach}</div>
+                <div className="truncate font-semibold">{formatLoosePersonName(team.coach)}</div>
               )}
             </div>
           </div>

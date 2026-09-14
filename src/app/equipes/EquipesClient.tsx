@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import Container from "@/components/Container";
+import { formatLoosePersonName } from "@/lib/person-select";
 
 type TeamSchedule = {
   id: string;
@@ -164,14 +165,14 @@ export default function EquipesClient({ groups }: EquipesClientProps) {
                                     <span className="font-semibold text-neutral-800">
                                       {member.role} :
                                     </span>{" "}
-                                    {member.name}
+                                    {formatLoosePersonName(member.name)}
                                   </div>
                                 ))
                               ) : (
                                 <div>
                                   Responsable :{" "}
                                   <span className="font-semibold text-neutral-800">
-                                    {team.coach}
+                                    {formatLoosePersonName(team.coach)}
                                   </span>
                                 </div>
                               )}

@@ -8,6 +8,7 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { prisma } from "@/lib/prisma";
 import { isUserRole, type UserRole } from "@/lib/roles";
 import { slugifyTeam } from "@/lib/teams";
+import { formatLoosePersonName } from "@/lib/person-select";
 import {
   ArrowRight,
   Beer,
@@ -444,7 +445,7 @@ export default async function EspaceClubPage() {
                 </h2>
 
                 <p className="mt-1 text-sm font-medium text-neutral-600">
-                  Coach : {favoriteTeam.coach || "À renseigner"}
+                  Coach : {favoriteTeam.coach ? formatLoosePersonName(favoriteTeam.coach) : "À renseigner"}
                 </p>
               </div>
 

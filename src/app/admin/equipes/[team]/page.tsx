@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
 import { didTeamLoseKnockoutMatch, getCompetitionLabel } from "@/lib/competitions";
+import { formatLoosePersonName } from "@/lib/person-select";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -384,12 +385,12 @@ export default async function AdminEquipeDetailPage({
                       key={member.id}
                       className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700"
                     >
-                      <strong>{member.role}</strong> · {member.name}
+                      <strong>{member.role}</strong> · {formatLoosePersonName(member.name)}
                     </span>
                   ))
                 ) : (
                   <span className="text-sm font-semibold text-neutral-700">
-                    Responsable : {editableTeam?.coach || "À renseigner"}
+                    Responsable : {editableTeam?.coach ? formatLoosePersonName(editableTeam.coach) : "À renseigner"}
                   </span>
                 )}
               </div>

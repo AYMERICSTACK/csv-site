@@ -11,13 +11,17 @@ export function normalizePersonToken(value: string | null | undefined) {
 function titleCaseWord(value: string) {
   return value
     .toLocaleLowerCase("fr-FR")
-    .replace(/(^|[-'’\s])([a-zà-öø-ÿ])/g, (_, prefix: string, letter: string) =>
-      `${prefix}${letter.toLocaleUpperCase("fr-FR")}`,
+    .replace(
+      /(^|[-'’\s])([a-zà-öø-ÿ])/g,
+      (_, prefix: string, letter: string) =>
+        `${prefix}${letter.toLocaleUpperCase("fr-FR")}`,
     );
 }
 
 export function formatPlayerName(firstName: string, lastName: string) {
-  const familyName = String(lastName || "").trim().toLocaleUpperCase("fr-FR");
+  const familyName = String(lastName || "")
+    .trim()
+    .toLocaleUpperCase("fr-FR");
   const givenName = String(firstName || "").trim()
     ? titleCaseWord(String(firstName).trim())
     : "";
@@ -76,9 +80,26 @@ function isLowerWord(value: string) {
  * formatter detects explicit casing signals (including "Nom prénom") and
  * normalizes the visible label to "NOM Prénom" without changing stored data.
  */
-export function formatLoosePersonName(name: string) {
-  const raw = String(name || "").trim().replace(/\s+/g, " ");
-  if (!raw || raw.includes("@")) return raw;
+export function formatLoosePersonName(name: string): string {
+  const raw = String(name || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (
+    !raw ||
+    raw.includes("@") ||
+    raw.toLocaleLowerCase("fr-FR") === "à renseigner"
+  ) {
+    return raw;
+  }
+
+  // Some historical rows contain several coaches in a single value. Format
+  // each person independently and keep the separator intact.
+  if (raw.includes("/")) {
+    return raw
+      .split("/")
+      .map((part) => formatLoosePersonName(part.trim()))
+      .join(" / ");
+  }
 
   const parts = raw.split(" ").filter(Boolean);
   if (parts.length === 1) return parts[0].toLocaleUpperCase("fr-FR");
@@ -90,9 +111,17 @@ export function formatLoosePersonName(name: string) {
   let givenParts: string[];
 
   if (firstUpper && !lastUpper) {
-    familyParts = [parts[0]];
-    givenParts = parts.slice(1);
-  } else if (startsWithUppercase(parts[0]) && isLowerWord(parts[parts.length - 1])) {
+    const leadingFamilyParts = parts.filter(
+      (part, index) =>
+        index === 0 || parts.slice(0, index + 1).every(isUpperWord),
+    );
+    const familyLength = leadingFamilyParts.length;
+    familyParts = parts.slice(0, familyLength);
+    givenParts = parts.slice(familyLength);
+  } else if (
+    startsWithUppercase(parts[0]) &&
+    isLowerWord(parts[parts.length - 1])
+  ) {
     // Some active users entered their account as "Nom prénom" (for example
     // "Grenier lilian"). Preserve that explicit casing signal instead of
     // blindly treating the last token as the family name.
@@ -120,6 +149,21 @@ export function loosePersonSortKey(name: string) {
   return normalizePersonToken(formatLoosePersonName(name));
 }
 
+function loosePersonSourceScore(name: string) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return 0;
+
+  // A source already written as NOM Prénom is the strongest signal we have.
+  // This is especially useful when User.name and TeamStaffMember.name contain
+  // the same person using different historical conventions.
+  if (isUpperWord(parts[0]) && !parts.every(isUpperWord)) return 3;
+  if (parts.some(isUpperWord)) return 2;
+  return 1;
+}
+
 export type StaffDirectoryEntry = {
   name: string;
   label: string;
@@ -129,7 +173,9 @@ export function buildStaffDirectory(names: string[]): StaffDirectoryEntry[] {
   const byIdentity = new Map<string, StaffDirectoryEntry>();
 
   for (const rawName of names) {
-    const name = String(rawName || "").trim().replace(/\s+/g, " ");
+    const name = String(rawName || "")
+      .trim()
+      .replace(/\s+/g, " ");
     if (!name || name.includes("@")) continue;
 
     const key = loosePersonIdentityKey(name);
@@ -138,15 +184,27 @@ export function buildStaffDirectory(names: string[]): StaffDirectoryEntry[] {
     const candidate = { name, label: formatLoosePersonName(name) };
     const current = byIdentity.get(key);
 
-    // Prefer the source spelling that already makes the family name explicit.
-    if (!current || candidate.label < current.label) {
+    // Prefer a source spelling that already makes the family name explicit
+    // (for example "PONT Pierre") over an ambiguous "Pont Pierre" variant.
+    const candidateScore = loosePersonSourceScore(name);
+    const currentScore = current ? loosePersonSourceScore(current.name) : -1;
+
+    if (
+      !current ||
+      candidateScore > currentScore ||
+      (candidateScore === currentScore && candidate.label < current.label)
+    ) {
       byIdentity.set(key, candidate);
     }
   }
 
   return [...byIdentity.values()].sort((a, b) =>
-    normalizePersonToken(a.label).localeCompare(normalizePersonToken(b.label), "fr", {
-      sensitivity: "base",
-    }),
+    normalizePersonToken(a.label).localeCompare(
+      normalizePersonToken(b.label),
+      "fr",
+      {
+        sensitivity: "base",
+      },
+    ),
   );
 }

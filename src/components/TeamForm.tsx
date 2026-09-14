@@ -147,9 +147,23 @@ export default function TeamForm({
   const serializedStaff = useMemo(() => {
     return staff
       .filter((member) => member.role.trim() && member.name.trim())
-      .map((member) => `${member.role.trim()}|${member.name.trim()}`)
+      .map((member) => {
+        const directoryEntry =
+          member.nameSource === "known"
+            ? staffDirectory.find(
+                (entry) =>
+                  loosePersonIdentityKey(entry.name) ===
+                  loosePersonIdentityKey(member.name),
+              )
+            : undefined;
+
+        // Known people are stored with the same canonical NOM Prénom label that
+        // is shown in the selector. Custom entries remain untouched.
+        const storedName = directoryEntry?.label || member.name.trim();
+        return `${member.role.trim()}|${storedName}`;
+      })
       .join("\n");
-  }, [staff]);
+  }, [staff, staffDirectory]);
 
   const serializedSchedules = useMemo(() => {
     return slots
@@ -247,7 +261,7 @@ export default function TeamForm({
                         value={member.name}
                         onChange={(e) => updateStaffMember(index, "name", e.target.value)}
                         className="input mt-2 bg-white"
-                        placeholder="Nom et prénom"
+                        placeholder="Ex : DUPONT Jean"
                         autoFocus
                       />
                     ) : null}
