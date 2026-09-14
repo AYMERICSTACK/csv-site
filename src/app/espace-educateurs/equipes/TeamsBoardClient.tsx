@@ -18,6 +18,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { formatLoosePersonName } from "@/lib/person-select";
 
 type TeamSchedule = {
   id: string;
@@ -129,7 +130,7 @@ function TeamCard({
               {team.staff?.length ? (
                 team.staff.map((member) => (
                   <div key={member.id} className="truncate">
-                    <span className="font-semibold">{member.role} :</span> {member.name}
+                    <span className="font-semibold">{member.role} :</span> {formatLoosePersonName(member.name)}
                   </div>
                 ))
               ) : (

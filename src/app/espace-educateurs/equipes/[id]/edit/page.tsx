@@ -6,7 +6,7 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 import TeamForm from "@/components/TeamForm";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
-import { buildStaffDirectory } from "@/lib/person-select";
+import { buildStaffDirectory, formatLoosePersonName } from "@/lib/person-select";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -301,7 +301,7 @@ export default async function EditEquipePage({ params }: PageProps) {
                       {team.staff.map((member) => (
                         <div key={member.id}>
                           <span className="font-semibold">{member.role} :</span>{" "}
-                          {member.name}
+                          {formatLoosePersonName(member.name)}
                         </div>
                       ))}
                     </div>
