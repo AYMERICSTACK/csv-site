@@ -96,6 +96,29 @@ export default async function EditEquipePage({ params }: PageProps) {
     },
   });
 
+  const [activeUsers, publishedStaff] = await Promise.all([
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.staffMember.findMany({
+      where: { isPublished: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const staffDirectory = Array.from(
+    new Set(
+      [...activeUsers, ...publishedStaff]
+        .map((person) => person.name.trim())
+        .filter(Boolean),
+    ),
+  )
+    .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
+    .map((name) => ({ name }));
+
   async function updateTeam(formData: FormData) {
     "use server";
 
@@ -253,6 +276,7 @@ export default async function EditEquipePage({ params }: PageProps) {
             mode="edit"
             action={updateTeam}
             groups={groups}
+            staffDirectory={staffDirectory}
             defaultValues={{
               id: team.id,
               category: team.category,

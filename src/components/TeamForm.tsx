@@ -19,10 +19,19 @@ type StaffMember = {
   name: string;
 };
 
+type StaffDirectoryEntry = {
+  name: string;
+};
+
+type EditableStaffMember = StaffMember & {
+  nameSource: "known" | "custom";
+};
+
 type TeamFormProps = {
   mode: "create" | "edit";
   action: (formData: FormData) => void;
   groups: Group[];
+  staffDirectory?: StaffDirectoryEntry[];
   defaultValues?: {
     id?: string;
     category?: string;
@@ -49,14 +58,25 @@ export default function TeamForm({
   mode,
   action,
   groups,
+  staffDirectory = [],
   defaultValues,
 }: TeamFormProps) {
-  const [staff, setStaff] = useState<StaffMember[]>(() => {
-    if (defaultValues?.staff?.length) return defaultValues.staff;
+  const [staff, setStaff] = useState<EditableStaffMember[]>(() => {
+    const withSource = (member: StaffMember): EditableStaffMember => ({
+      ...member,
+      nameSource:
+        member.name && staffDirectory.some((entry) => entry.name === member.name)
+          ? "known"
+          : member.name
+            ? "custom"
+            : "known",
+    });
+
+    if (defaultValues?.staff?.length) return defaultValues.staff.map(withSource);
     if (defaultValues?.coach) {
-      return [{ role: "Entraîneur principal", name: defaultValues.coach }];
+      return [withSource({ role: "Entraîneur principal", name: defaultValues.coach })];
     }
-    return [{ role: "Entraîneur principal", name: "" }];
+    return [{ role: "Entraîneur principal", name: "", nameSource: "known" }];
   });
 
   const [slots, setSlots] = useState<Schedule[]>(() => {
@@ -68,7 +88,7 @@ export default function TeamForm({
   });
 
   function addStaffMember() {
-    setStaff((prev) => [...prev, { role: "Adjoint", name: "" }]);
+    setStaff((prev) => [...prev, { role: "Adjoint", name: "", nameSource: "known" }]);
   }
 
   function removeStaffMember(index: number) {
@@ -76,13 +96,25 @@ export default function TeamForm({
       const next = prev.filter((_, i) => i !== index);
       return next.length > 0
         ? next
-        : [{ role: "Entraîneur principal", name: "" }];
+        : [{ role: "Entraîneur principal", name: "", nameSource: "known" }];
     });
   }
 
   function updateStaffMember(index: number, field: "role" | "name", value: string) {
     setStaff((prev) =>
       prev.map((member, i) => (i === index ? { ...member, [field]: value } : member)),
+    );
+  }
+
+  function updateStaffNameSource(index: number, value: string) {
+    setStaff((prev) =>
+      prev.map((member, i) => {
+        if (i !== index) return member;
+        if (value === "__other__") {
+          return { ...member, name: "", nameSource: "custom" };
+        }
+        return { ...member, name: value, nameSource: "known" };
+      }),
     );
   }
 
@@ -187,12 +219,29 @@ export default function TeamForm({
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
                       Nom
                     </label>
-                    <input
-                      value={member.name}
-                      onChange={(e) => updateStaffMember(index, "name", e.target.value)}
+                    <select
+                      value={member.nameSource === "custom" ? "__other__" : member.name}
+                      onChange={(e) => updateStaffNameSource(index, e.target.value)}
                       className="input bg-white"
-                      placeholder="Ex : Jean Dupont"
-                    />
+                    >
+                      <option value="">Choisir une personne</option>
+                      {staffDirectory.map((entry) => (
+                        <option key={entry.name} value={entry.name}>
+                          {entry.name}
+                        </option>
+                      ))}
+                      <option value="__other__">Autre personne…</option>
+                    </select>
+
+                    {member.nameSource === "custom" ? (
+                      <input
+                        value={member.name}
+                        onChange={(e) => updateStaffMember(index, "name", e.target.value)}
+                        className="input mt-2 bg-white"
+                        placeholder="Nom et prénom"
+                        autoFocus
+                      />
+                    ) : null}
                   </div>
 
                   <button
@@ -229,7 +278,7 @@ export default function TeamForm({
           </button>
 
           <p className="mt-3 text-xs leading-relaxed text-neutral-500">
-            Le premier membre est utilisé comme responsable principal dans les anciens affichages du site.
+            Sélectionne une personne déjà connue du club ou choisis « Autre personne » si elle n’a pas encore de compte. Le premier membre reste utilisé comme responsable principal dans les anciens affichages du site.
           </p>
         </div>
 

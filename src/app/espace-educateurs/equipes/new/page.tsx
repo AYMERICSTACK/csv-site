@@ -65,6 +65,29 @@ export default async function NewEquipePage() {
     },
   });
 
+  const [activeUsers, publishedStaff] = await Promise.all([
+    prisma.user.findMany({
+      where: { isActive: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.staffMember.findMany({
+      where: { isPublished: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const staffDirectory = Array.from(
+    new Set(
+      [...activeUsers, ...publishedStaff]
+        .map((person) => person.name.trim())
+        .filter(Boolean),
+    ),
+  )
+    .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
+    .map((name) => ({ name }));
+
   async function createTeam(formData: FormData) {
     "use server";
 
@@ -247,7 +270,12 @@ export default async function NewEquipePage() {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <TeamForm mode="create" action={createTeam} groups={groups} />
+          <TeamForm
+            mode="create"
+            action={createTeam}
+            groups={groups}
+            staffDirectory={staffDirectory}
+          />
 
           <div className="space-y-6">
             <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
