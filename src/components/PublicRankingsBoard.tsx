@@ -87,6 +87,15 @@ type Props = {
   upcomingMatches: UpcomingSeasonMatch[];
 };
 
+type MainTab = "overview" | "results" | "stats" | "rankings";
+
+const MAIN_TABS: Array<{ id: MainTab; label: string }> = [
+  { id: "overview", label: "Vue d’ensemble" },
+  { id: "results", label: "Résultats" },
+  { id: "stats", label: "Buteurs / Passeurs" },
+  { id: "rankings", label: "Classements FFF" },
+];
+
 function RankingPreview({
   state,
   hasUrl,
@@ -126,7 +135,6 @@ function RankingPreview({
         <span>Équipe</span>
         <span className="text-right">Pts</span>
       </div>
-
       <div className="divide-y divide-neutral-100">
         {state.rows.map((row) => (
           <div
@@ -158,7 +166,6 @@ function formatSeasonMatchDate(value: string) {
   });
 }
 
-
 function getSeasonResultOutcome(match: SeasonResult) {
   const teamScore = match.scoreTeam ?? 0;
   const opponentScore = match.scoreOpponent ?? 0;
@@ -185,7 +192,6 @@ function ResultBadge({ outcome }: { outcome: "win" | "draw" | "loss" }) {
     draw: "border-neutral-200 bg-white text-neutral-600",
     loss: "border-red-200 bg-red-50 text-red-700",
   }[outcome];
-
   const label = { win: "Victoire", draw: "Nul", loss: "Défaite" }[outcome];
 
   return (
@@ -213,6 +219,138 @@ function SeasonMatchTeams({
   );
 }
 
+function ResultCard({ match }: { match: SeasonResult }) {
+  const leftScore = match.isHome ? match.scoreTeam : match.scoreOpponent;
+  const rightScore = match.isHome ? match.scoreOpponent : match.scoreTeam;
+  const leftPenalty = match.isHome
+    ? match.penaltyScoreTeam
+    : match.penaltyScoreOpponent;
+  const rightPenalty = match.isHome
+    ? match.penaltyScoreOpponent
+    : match.penaltyScoreTeam;
+  const hasPenalties = leftPenalty !== null && rightPenalty !== null;
+
+  return (
+    <article className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap gap-2">
+            <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700">
+              {match.team}
+            </span>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-neutral-500 ring-1 ring-neutral-200">
+              {match.isHome ? "Domicile" : "Extérieur"}
+            </span>
+          </div>
+          <SeasonMatchTeams team={match.team} opponent={match.opponent} isHome={match.isHome} />
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-neutral-500">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
+              {formatSeasonMatchDate(match.matchDate)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-orange-500" />
+              {match.location}
+            </span>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <ResultBadge outcome={getSeasonResultOutcome(match)} />
+          <div className="rounded-2xl bg-neutral-950 px-4 py-2 text-xl font-black text-white">
+            {leftScore} - {rightScore}
+            {hasPenalties && (
+              <div className="mt-0.5 text-center text-[10px] font-black uppercase tracking-wide text-orange-300">
+                TAB {leftPenalty} - {rightPenalty}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function UpcomingCard({ match }: { match: UpcomingSeasonMatch }) {
+  return (
+    <article className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap gap-2">
+            <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+              {match.team}
+            </span>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-neutral-500 ring-1 ring-orange-100">
+              {match.isHome ? "Domicile" : "Extérieur"}
+            </span>
+          </div>
+          <SeasonMatchTeams team={match.team} opponent={match.opponent} isHome={match.isHome} />
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-neutral-500">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
+              {formatSeasonMatchDate(match.matchDate)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-orange-500" />
+              {match.location}
+            </span>
+          </div>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-orange-700 ring-1 ring-orange-200">
+          {match.status === "postponed" ? "Reporté" : "Programmé"}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function PlayerRankingCard({
+  player,
+  index,
+  stat,
+}: {
+  player: Player;
+  index: number;
+  stat: "goals" | "assists";
+}) {
+  const value = stat === "goals" ? player.goals : player.assists;
+  const accent = stat === "goals" ? "text-orange-600" : "text-sky-600";
+
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4">
+      <div className="flex min-w-0 items-center gap-4">
+        {player.photoConsent && player.photoUrl ? (
+          <div className="relative shrink-0">
+            <img
+              src={player.photoUrl}
+              alt={`${player.firstName} ${player.lastName}`}
+              className="h-11 w-11 rounded-2xl object-cover"
+            />
+            <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
+              #{index + 1}
+            </span>
+          </div>
+        ) : (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
+            #{index + 1}
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="truncate font-bold text-neutral-950">
+            {player.firstName} {player.lastName}
+          </div>
+          <div className="text-sm text-neutral-500">{player.team}</div>
+        </div>
+      </div>
+      <div className="ml-4 text-right">
+        <div className={`text-2xl font-black ${accent}`}>{value}</div>
+        <div className="text-xs uppercase tracking-wide text-neutral-400">
+          {stat === "goals" ? "buts" : "passes"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PublicRankingsBoard({
   season,
   players,
@@ -222,82 +360,44 @@ export default function PublicRankingsBoard({
   recentResults,
   upcomingMatches,
 }: Props) {
-  const [selectedRankingCategory, setSelectedRankingCategory] =
-    useState("Toutes");
+  const [activeTab, setActiveTab] = useState<MainTab>("overview");
   const [selectedStatsCategory, setSelectedStatsCategory] = useState("Toutes");
-  const [showAllRankings, setShowAllRankings] = useState(false);
-  const [rankingPreviews, setRankingPreviews] = useState<
-    Record<string, RankingPreviewState>
-  >({});
+  const [selectedRankingCategory, setSelectedRankingCategory] = useState("Toutes");
+  const [selectedRankingTeam, setSelectedRankingTeam] = useState(
+    officialTeamRankings[0]?.label || "",
+  );
+  const [rankingPreviews, setRankingPreviews] = useState<Record<string, RankingPreviewState>>({});
 
   useEffect(() => {
-    officialTeamRankings.forEach((team) => {
-      if (!team.url) {
-        return;
-      }
-
-      setRankingPreviews((current) => {
-        if (current[team.label]?.status) {
-          return current;
-        }
-
-        return {
-          ...current,
-          [team.label]: { status: "loading", rows: [] },
-        };
-      });
-
-      fetch(`/api/fff-ranking?url=${encodeURIComponent(team.url)}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Classement indisponible");
-          }
-
-          return response.json();
-        })
-        .then((data: { rows?: RankingPreviewLine[] }) => {
-          setRankingPreviews((current) => ({
-            ...current,
-            [team.label]: {
-              status: "success",
-              rows: data.rows || [],
-            },
-          }));
-        })
-        .catch(() => {
-          setRankingPreviews((current) => ({
-            ...current,
-            [team.label]: { status: "error", rows: [] },
-          }));
-        });
-    });
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab") as MainTab | null;
+    if (requestedTab && MAIN_TABS.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+    const requestedTeam = params.get("team");
+    if (requestedTeam && officialTeamRankings.some((team) => team.label === requestedTeam)) {
+      setSelectedRankingTeam(requestedTeam);
+    }
   }, [officialTeamRankings]);
 
+  const changeTab = (tab: MainTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", tab);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  };
+
   const rankingCategories = useMemo(() => {
-    const values = new Set<string>();
-
-    officialTeamRankings.forEach((team) => {
-      if (team.category) {
-        values.add(team.category);
-      }
-    });
-
+    const values = new Set(officialTeamRankings.map((team) => team.category).filter(Boolean));
     return ["Toutes", ...Array.from(values)];
   }, [officialTeamRankings]);
 
   const statsCategories = useMemo(() => {
     const values = new Set<string>();
-
     players.forEach((player) => {
-      if (player.category) {
-        values.add(player.category);
-      }
-
-      if (player.team) {
-        values.add(player.team);
-      }
+      if (player.category) values.add(player.category);
+      if (player.team) values.add(player.team);
     });
-
     return ["Toutes", ...Array.from(values)];
   }, [players]);
 
@@ -306,558 +406,315 @@ export default function PublicRankingsBoard({
       ? players
       : players.filter(
           (player) =>
-            player.category === selectedStatsCategory ||
-            player.team === selectedStatsCategory,
+            player.category === selectedStatsCategory || player.team === selectedStatsCategory,
         );
 
   const topScorers = [...filteredPlayers]
     .filter((player) => player.goals > 0)
     .sort((a, b) => b.goals - a.goals)
-    .slice(0, 5);
-
+    .slice(0, 10);
   const topAssists = [...filteredPlayers]
     .filter((player) => player.assists > 0)
     .sort((a, b) => b.assists - a.assists)
-    .slice(0, 5);
+    .slice(0, 10);
 
-  const filteredOfficialTeamRankings =
-    selectedRankingCategory === "Toutes"
-      ? officialTeamRankings
-      : officialTeamRankings.filter(
-          (team) => team.category === selectedRankingCategory,
-        );
+  const filteredOfficialTeamRankings = useMemo(
+    () =>
+      selectedRankingCategory === "Toutes"
+        ? officialTeamRankings
+        : officialTeamRankings.filter((team) => team.category === selectedRankingCategory),
+    [officialTeamRankings, selectedRankingCategory],
+  );
 
-  const visibleOfficialTeamRankings =
-    selectedRankingCategory === "Toutes" && !showAllRankings
-      ? filteredOfficialTeamRankings.slice(0, 6)
-      : filteredOfficialTeamRankings;
+  useEffect(() => {
+    if (
+      !filteredOfficialTeamRankings.some((team) => team.label === selectedRankingTeam)
+    ) {
+      setSelectedRankingTeam(filteredOfficialTeamRankings[0]?.label || "");
+    }
+  }, [filteredOfficialTeamRankings, selectedRankingTeam]);
+
+  const selectedRanking = officialTeamRankings.find(
+    (team) => team.label === selectedRankingTeam,
+  );
+
+  useEffect(() => {
+    if (activeTab !== "rankings" || !selectedRanking?.url) return;
+    if (rankingPreviews[selectedRanking.label]?.status) return;
+
+    const label = selectedRanking.label;
+    const url = selectedRanking.url;
+    setRankingPreviews((current) => ({
+      ...current,
+      [label]: { status: "loading", rows: [] },
+    }));
+
+    fetch(`/api/fff-ranking?url=${encodeURIComponent(url)}`)
+      .then((response) => {
+        if (!response.ok) throw new Error("Classement indisponible");
+        return response.json();
+      })
+      .then((data: { rows?: RankingPreviewLine[] }) => {
+        setRankingPreviews((current) => ({
+          ...current,
+          [label]: { status: "success", rows: data.rows || [] },
+        }));
+      })
+      .catch(() => {
+        setRankingPreviews((current) => ({
+          ...current,
+          [label]: { status: "error", rows: [] },
+        }));
+      });
+  }, [activeTab, selectedRanking, rankingPreviews]);
 
   return (
-    <div className="space-y-10">
-      <section className="overflow-hidden rounded-[2rem] bg-neutral-950 px-6 py-10 text-white shadow-2xl md:px-10">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+    <div className="space-y-7">
+      <section className="overflow-hidden rounded-[2rem] bg-neutral-950 px-6 py-8 text-white shadow-2xl md:px-10 md:py-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">
               Saison {season}
             </span>
-
-            <h1 className="mt-5 text-4xl font-black tracking-tight md:text-5xl">
-              Saison {season}
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-300">
-              Résultats, prochains matchs, chiffres clés, buteurs, passeurs et
-              classements officiels : toute la saison du CS Viriat au même endroit.
+            <h1 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">Le club en chiffres</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-300 md:text-base">
+              Résultats, statistiques individuelles et classements officiels, sans avoir à parcourir toute la page.
             </p>
           </div>
-
           <Link
             href={fffClubUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-400"
+            className="inline-flex w-fit items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-400"
           >
-            Site officiel FFF
-            <ExternalLink className="h-4 w-4" />
+            Site officiel FFF <ExternalLink className="h-4 w-4" />
           </Link>
         </div>
       </section>
 
-      <section className="space-y-6">
-        <div>
-          <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">
-            Le club en chiffres
-          </div>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-neutral-950">
-            Saison {season}
-          </h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
-              Matchs joués
-            </div>
-            <div className="mt-3 text-4xl font-black text-neutral-950">
-              {seasonSummary.played}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
-              <span className="rounded-full bg-green-50 px-2.5 py-1 text-green-700">
-                {seasonSummary.wins} V
-              </span>
-              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-neutral-600">
-                {seasonSummary.draws} N
-              </span>
-              <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">
-                {seasonSummary.losses} D
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
-              Buts marqués
-            </div>
-            <div className="mt-3 text-4xl font-black text-orange-600">
-              {seasonSummary.goalsFor}
-            </div>
-            <div className="mt-3 text-sm font-semibold text-neutral-500">
-              {seasonSummary.played
-                ? `${(seasonSummary.goalsFor / seasonSummary.played).toFixed(1)} par match`
-                : "La saison démarre"}
-            </div>
-          </div>
-
-          <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-black uppercase tracking-wide text-neutral-400">
-              Buts encaissés
-            </div>
-            <div className="mt-3 text-4xl font-black text-neutral-950">
-              {seasonSummary.goalsAgainst}
-            </div>
-            <div className="mt-3 text-sm font-semibold text-neutral-500">
-              Différence {seasonSummary.goalsFor - seasonSummary.goalsAgainst >= 0 ? "+" : ""}
-              {seasonSummary.goalsFor - seasonSummary.goalsAgainst}
-            </div>
-          </div>
-
-          <div className="rounded-[1.6rem] border border-orange-200 bg-orange-50 p-5">
-            <div className="text-xs font-black uppercase tracking-wide text-orange-600">
-              À suivre
-            </div>
-            <div className="mt-3 text-4xl font-black text-neutral-950">
-              {upcomingMatches.length}
-            </div>
-            <div className="mt-3 text-sm font-semibold text-neutral-600">
-              prochain{upcomingMatches.length > 1 ? "s" : ""} match
-              {upcomingMatches.length > 1 ? "s" : ""} affiché
-              {upcomingMatches.length > 1 ? "s" : ""}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
-                Dernières rencontres
-              </div>
-              <h2 className="mt-2 text-2xl font-black text-neutral-950">
-                Résultats du dernier week-end
-              </h2>
-            </div>
-            <Link
-              href="/calendrier"
-              className="text-sm font-black text-orange-600 transition hover:text-orange-700"
+      <nav className="sticky top-20 z-20 rounded-[1.5rem] border border-neutral-200 bg-white/95 p-2 shadow-lg backdrop-blur">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
+          {MAIN_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => changeTab(tab.id)}
+              className={`min-w-max rounded-2xl px-4 py-3 text-sm font-black transition md:min-w-0 ${
+                activeTab === tab.id
+                  ? "bg-neutral-950 text-white shadow-md"
+                  : "bg-neutral-50 text-neutral-600 hover:bg-orange-50 hover:text-orange-700"
+              }`}
             >
-              Tout voir →
-            </Link>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {recentResults.length ? (
-              recentResults.map((match) => {
-                const leftScore = match.isHome
-                  ? match.scoreTeam
-                  : match.scoreOpponent;
-                const rightScore = match.isHome
-                  ? match.scoreOpponent
-                  : match.scoreTeam;
-                const outcome = getSeasonResultOutcome(match);
-
-                return (
-                  <article
-                    key={match.id}
-                    className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="mb-2 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700">
-                            {match.team}
-                          </span>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-neutral-500 ring-1 ring-neutral-200">
-                            {match.isHome ? "Domicile" : "Extérieur"}
-                          </span>
-                        </div>
-                        <SeasonMatchTeams
-                          team={match.team}
-                          opponent={match.opponent}
-                          isHome={match.isHome}
-                        />
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-neutral-500">
-                          <span className="inline-flex items-center gap-1.5">
-                            <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
-                            {formatSeasonMatchDate(match.matchDate)}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 text-orange-500" />
-                            {match.location}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-2">
-                        <ResultBadge outcome={outcome} />
-                        <div className="rounded-2xl bg-neutral-950 px-4 py-2 text-xl font-black text-white">
-                          {leftScore} - {rightScore}
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })
-            ) : (
-              <div className="rounded-2xl border border-dashed border-neutral-200 p-7 text-center text-sm font-semibold text-neutral-500">
-                Aucun résultat enregistré le week-end dernier.
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
-                À venir
-              </div>
-              <h2 className="mt-2 text-2xl font-black text-neutral-950">
-                Prochains matchs du week-end
-              </h2>
-            </div>
-            <Link
-              href="/calendrier"
-              className="text-sm font-black text-orange-600 transition hover:text-orange-700"
-            >
-              Calendrier →
-            </Link>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {upcomingMatches.length ? (
-              upcomingMatches.map((match) => (
-                <article
-                  key={match.id}
-                  className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="mb-2 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white">
-                          {match.team}
-                        </span>
-                        <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-neutral-500 ring-1 ring-orange-100">
-                          {match.isHome ? "Domicile" : "Extérieur"}
-                        </span>
-                      </div>
-                      <SeasonMatchTeams
-                        team={match.team}
-                        opponent={match.opponent}
-                        isHome={match.isHome}
-                      />
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-neutral-500">
-                        <span className="inline-flex items-center gap-1.5">
-                          <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
-                          {formatSeasonMatchDate(match.matchDate)}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-orange-500" />
-                          {match.location}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-orange-700 ring-1 ring-orange-200">
-                      {match.status === "postponed" ? "Reporté" : "Programmé"}
-                    </span>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-7 text-center text-sm font-semibold text-neutral-500">
-                Aucun match programmé ce week-end.
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
-              Leaders de la saison
-            </div>
-            <h2 className="mt-2 text-2xl font-black text-neutral-950">
-              Buteurs / passeurs
-            </h2>
-
-            <p className="mt-1 text-sm text-neutral-500">
-              Les joueurs les plus décisifs, avec un filtre par catégorie ou par équipe.
-            </p>
-          </div>
-
-          <select
-            value={selectedStatsCategory}
-            onChange={(event) => setSelectedStatsCategory(event.target.value)}
-            className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-700 outline-none transition focus:border-orange-400"
-          >
-            {statsCategories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      <div className="grid gap-8 xl:grid-cols-2">
-        <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-orange-100 p-3 text-orange-600">
-              <Goal className="h-5 w-5" />
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-black text-neutral-950">
-                Meilleurs buteurs
-              </h2>
-
-              <p className="text-sm text-neutral-500">Top scoreurs du club</p>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {topScorers.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 px-5 py-8 text-center">
-                <div className="text-sm font-black text-neutral-900">La saison démarre</div>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Le premier buteur apparaîtra ici dès qu’un résultat sera renseigné.
-                </p>
-              </div>
-            )}
-            {topScorers.map((player, index) => (
-              <div
-                key={player.id}
-                className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4"
-              >
-                <div className="flex items-center gap-4">
-                  {player.photoConsent && player.photoUrl ? (
-                    <div className="relative shrink-0">
-                      <img
-                        src={player.photoUrl}
-                        alt={`${player.firstName} ${player.lastName}`}
-                        className="h-11 w-11 rounded-2xl object-cover"
-                      />
-                      <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
-                        #{index + 1}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
-                      #{index + 1}
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="font-bold text-neutral-950">
-                      {player.firstName} {player.lastName}
-                    </div>
-
-                    <div className="text-sm text-neutral-500">
-                      {player.team}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-2xl font-black text-orange-600">
-                    {player.goals}
-                  </div>
-
-                  <div className="text-xs uppercase tracking-wide text-neutral-400">
-                    buts
-                  </div>
-                </div>
-              </div>
-            ))}
-            <Link
-              href="/classements/buteurs"
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 transition hover:bg-orange-100"
-            >
-              Voir tous les buteurs
-            </Link>
-          </div>
-        </section>
-
-        <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-sky-100 p-3 text-sky-600">
-              <Trophy className="h-5 w-5" />
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-black text-neutral-950">
-                Meilleurs passeurs
-              </h2>
-
-              <p className="text-sm text-neutral-500">Top passeurs du club</p>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {topAssists.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 px-5 py-8 text-center">
-                <div className="text-sm font-black text-neutral-900">Aucune passe décisive pour l’instant</div>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Le classement se remplira automatiquement au fil des matchs.
-                </p>
-              </div>
-            )}
-            {topAssists.map((player, index) => (
-              <div
-                key={player.id}
-                className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4"
-              >
-                <div className="flex items-center gap-4">
-                  {player.photoConsent && player.photoUrl ? (
-                    <div className="relative shrink-0">
-                      <img
-                        src={player.photoUrl}
-                        alt={`${player.firstName} ${player.lastName}`}
-                        className="h-11 w-11 rounded-2xl object-cover"
-                      />
-                      <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
-                        #{index + 1}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
-                      #{index + 1}
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="font-bold text-neutral-950">
-                      {player.firstName} {player.lastName}
-                    </div>
-
-                    <div className="text-sm text-neutral-500">
-                      {player.team}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-2xl font-black text-sky-600">
-                    {player.assists}
-                  </div>
-
-                  <div className="text-xs uppercase tracking-wide text-neutral-400">
-                    passes
-                  </div>
-                </div>
-              </div>
-            ))}
-            <Link
-              href="/classements/passeurs"
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100"
-            >
-              Voir tous les passeurs
-            </Link>
-          </div>
-        </section>
-      </div>
-
-      <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-black text-neutral-950">
-              Classements FFF
-            </h2>
-
-            <p className="mt-1 text-sm text-neutral-500">
-              Les classements officiels restent accessibles sans prendre toute la place sur la page.
-            </p>
-          </div>
-
-          <select
-            value={selectedRankingCategory}
-            onChange={(event) => setSelectedRankingCategory(event.target.value)}
-            className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-700 outline-none transition focus:border-orange-400"
-          >
-            {rankingCategories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {visibleOfficialTeamRankings.map((team) => (
-            <article
-              key={team.label}
-              className="group rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5 transition hover:-translate-y-1 hover:border-orange-200 hover:bg-white hover:shadow-xl"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700">
-                    {team.category}
-                  </span>
-
-                  <h3 className="mt-4 text-2xl font-black text-neutral-950">
-                    {team.label}
-                  </h3>
-
-                  <p className="mt-2 text-sm text-neutral-500">{team.level}</p>
-                </div>
-
-                <a
-                  href={team.url || fffClubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Voir le classement FFF ${team.label}`}
-                  className="rounded-2xl bg-white p-3 text-neutral-950 shadow-sm ring-1 ring-neutral-200 transition hover:bg-neutral-950 hover:text-white"
-                >
-                  <ExternalLink className="h-5 w-5" />
-                </a>
-              </div>
-
-              <RankingPreview
-                state={rankingPreviews[team.label]}
-                hasUrl={Boolean(team.url)}
-              />
-
-              <a
-                href={team.url || fffClubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 inline-flex items-center gap-2 text-sm font-black text-orange-600 transition hover:text-orange-700"
-              >
-                Voir le classement FFF
-                <ChevronRight className="h-4 w-4" />
-              </a>
-            </article>
+              {tab.label}
+            </button>
           ))}
         </div>
+      </nav>
 
-        {selectedRankingCategory === "Toutes" &&
-          filteredOfficialTeamRankings.length > 6 && (
-            <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowAllRankings((current) => !current)}
-                className="rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-3 text-sm font-black text-neutral-800 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
-              >
-                {showAllRankings
-                  ? "Réduire les classements"
-                  : `Voir toutes les équipes (${filteredOfficialTeamRankings.length})`}
-              </button>
+      {activeTab === "overview" && (
+        <div className="space-y-7">
+          <section className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-black uppercase tracking-wide text-neutral-400">Matchs joués</div>
+                <div className="mt-3 text-4xl font-black text-neutral-950">{seasonSummary.played}</div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-black">
+                  <span className="rounded-full bg-green-50 px-2.5 py-1 text-green-700">{seasonSummary.wins} V</span>
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-neutral-600">{seasonSummary.draws} N</span>
+                  <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">{seasonSummary.losses} D</span>
+                </div>
+              </div>
+              <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-black uppercase tracking-wide text-neutral-400">Buts marqués</div>
+                <div className="mt-3 text-4xl font-black text-orange-600">{seasonSummary.goalsFor}</div>
+                <div className="mt-3 text-sm font-semibold text-neutral-500">
+                  {seasonSummary.played ? `${(seasonSummary.goalsFor / seasonSummary.played).toFixed(1)} par match` : "La saison démarre"}
+                </div>
+              </div>
+              <div className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-black uppercase tracking-wide text-neutral-400">Buts encaissés</div>
+                <div className="mt-3 text-4xl font-black text-neutral-950">{seasonSummary.goalsAgainst}</div>
+                <div className="mt-3 text-sm font-semibold text-neutral-500">
+                  Différence {seasonSummary.goalsFor - seasonSummary.goalsAgainst >= 0 ? "+" : ""}{seasonSummary.goalsFor - seasonSummary.goalsAgainst}
+                </div>
+              </div>
+              <div className="rounded-[1.6rem] border border-orange-200 bg-orange-50 p-5">
+                <div className="text-xs font-black uppercase tracking-wide text-orange-600">À suivre</div>
+                <div className="mt-3 text-4xl font-black text-neutral-950">{upcomingMatches.length}</div>
+                <div className="mt-3 text-sm font-semibold text-neutral-600">match{upcomingMatches.length > 1 ? "s" : ""} du week-end</div>
+              </div>
             </div>
-          )}
-      </section>
+          </section>
 
+          <div className="grid gap-6 xl:grid-cols-2">
+            <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">En bref</div>
+                  <h2 className="mt-2 text-2xl font-black text-neutral-950">Derniers résultats</h2>
+                </div>
+                <button type="button" onClick={() => changeTab("results")} className="text-sm font-black text-orange-600">Tout voir →</button>
+              </div>
+              <div className="mt-5 space-y-3">
+                {recentResults.slice(0, 3).map((match) => <ResultCard key={match.id} match={match} />)}
+                {!recentResults.length && <div className="rounded-2xl border border-dashed border-neutral-200 p-6 text-center text-sm text-neutral-500">Aucun résultat sur le week-end.</div>}
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">À venir</div>
+                  <h2 className="mt-2 text-2xl font-black text-neutral-950">Prochains matchs</h2>
+                </div>
+                <button type="button" onClick={() => changeTab("results")} className="text-sm font-black text-orange-600">Tout voir →</button>
+              </div>
+              <div className="mt-5 space-y-3">
+                {upcomingMatches.slice(0, 3).map((match) => <UpcomingCard key={match.id} match={match} />)}
+                {!upcomingMatches.length && <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-6 text-center text-sm text-neutral-500">Aucun match programmé ce week-end.</div>}
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <button type="button" onClick={() => changeTab("stats")} className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 text-left shadow-sm transition hover:border-orange-200 hover:shadow-md">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Statistiques joueurs</div>
+              <div className="mt-2 text-xl font-black text-neutral-950">Voir les buteurs et passeurs →</div>
+            </button>
+            <button type="button" onClick={() => changeTab("rankings")} className="rounded-[1.6rem] border border-neutral-200 bg-white p-5 text-left shadow-sm transition hover:border-orange-200 hover:shadow-md">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Compétitions</div>
+              <div className="mt-2 text-xl font-black text-neutral-950">Consulter un classement FFF →</div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "results" && (
+        <div className="grid gap-6 xl:grid-cols-2">
+          <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Week-end</div>
+                <h2 className="mt-2 text-2xl font-black text-neutral-950">Résultats</h2>
+              </div>
+              <Link href="/calendrier" className="text-sm font-black text-orange-600">Calendrier →</Link>
+            </div>
+            <div className="mt-6 space-y-3">
+              {recentResults.map((match) => <ResultCard key={match.id} match={match} />)}
+              {!recentResults.length && <div className="rounded-2xl border border-dashed border-neutral-200 p-7 text-center text-sm font-semibold text-neutral-500">Aucun résultat enregistré ce week-end.</div>}
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">À venir</div>
+                <h2 className="mt-2 text-2xl font-black text-neutral-950">Prochains matchs</h2>
+              </div>
+              <Link href="/calendrier" className="text-sm font-black text-orange-600">Calendrier →</Link>
+            </div>
+            <div className="mt-6 space-y-3">
+              {upcomingMatches.map((match) => <UpcomingCard key={match.id} match={match} />)}
+              {!upcomingMatches.length && <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-7 text-center text-sm font-semibold text-neutral-500">Aucun match programmé ce week-end.</div>}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {activeTab === "stats" && (
+        <div className="space-y-6">
+          <section className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Leaders de la saison</div>
+                <h2 className="mt-2 text-2xl font-black text-neutral-950">Buteurs / passeurs</h2>
+              </div>
+              <select value={selectedStatsCategory} onChange={(event) => setSelectedStatsCategory(event.target.value)} className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-700 outline-none transition focus:border-orange-400">
+                {statsCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </div>
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-orange-100 p-3 text-orange-600"><Goal className="h-5 w-5" /></div>
+                <div><h2 className="text-2xl font-black text-neutral-950">Meilleurs buteurs</h2><p className="text-sm text-neutral-500">Top scoreurs du club</p></div>
+              </div>
+              <div className="mt-6 space-y-3">
+                {topScorers.map((player, index) => <PlayerRankingCard key={player.id} player={player} index={index} stat="goals" />)}
+                {!topScorers.length && <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 px-5 py-8 text-center text-sm text-neutral-500">Aucun buteur pour ce filtre.</div>}
+                <Link href="/classements/buteurs" className="inline-flex w-full items-center justify-center rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-orange-700 transition hover:bg-orange-100">Voir tous les buteurs</Link>
+              </div>
+            </section>
+
+            <section className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-sky-100 p-3 text-sky-600"><Trophy className="h-5 w-5" /></div>
+                <div><h2 className="text-2xl font-black text-neutral-950">Meilleurs passeurs</h2><p className="text-sm text-neutral-500">Top passeurs du club</p></div>
+              </div>
+              <div className="mt-6 space-y-3">
+                {topAssists.map((player, index) => <PlayerRankingCard key={player.id} player={player} index={index} stat="assists" />)}
+                {!topAssists.length && <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 px-5 py-8 text-center text-sm text-neutral-500">Aucune passe décisive pour ce filtre.</div>}
+                <Link href="/classements/passeurs" className="inline-flex w-full items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100">Voir tous les passeurs</Link>
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "rankings" && (
+        <section className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Compétitions officielles</div>
+              <h2 className="mt-2 text-2xl font-black text-neutral-950">Classements FFF</h2>
+              <p className="mt-1 text-sm text-neutral-500">Choisis une équipe : un seul classement est chargé et affiché à la fois.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {rankingCategories.map((category) => (
+                <button key={category} type="button" onClick={() => setSelectedRankingCategory(category)} className={`rounded-full px-4 py-2 text-xs font-black transition ${selectedRankingCategory === category ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-orange-50 hover:text-orange-700"}`}>{category}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-2 overflow-x-auto pb-2">
+            {filteredOfficialTeamRankings.map((team) => (
+              <button
+                key={team.label}
+                type="button"
+                onClick={() => {
+                  setSelectedRankingTeam(team.label);
+                  const params = new URLSearchParams(window.location.search);
+                  params.set("tab", "rankings");
+                  params.set("team", team.label);
+                  window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+                }}
+                className={`min-w-max rounded-2xl border px-4 py-3 text-sm font-black transition ${selectedRankingTeam === team.label ? "border-orange-500 bg-orange-500 text-white" : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-orange-200 hover:bg-orange-50"}`}
+              >
+                {team.label}
+              </button>
+            ))}
+          </div>
+
+          {selectedRanking ? (
+            <article className="mt-5 rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5 md:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700">{selectedRanking.category}</span>
+                  <h3 className="mt-4 text-3xl font-black text-neutral-950">{selectedRanking.label}</h3>
+                  <p className="mt-2 text-sm text-neutral-500">{selectedRanking.level}</p>
+                </div>
+                <a href={selectedRanking.url || fffClubUrl} target="_blank" rel="noreferrer" aria-label={`Voir le classement FFF ${selectedRanking.label}`} className="rounded-2xl bg-white p-3 text-neutral-950 shadow-sm ring-1 ring-neutral-200 transition hover:bg-neutral-950 hover:text-white"><ExternalLink className="h-5 w-5" /></a>
+              </div>
+              <RankingPreview state={rankingPreviews[selectedRanking.label]} hasUrl={Boolean(selectedRanking.url)} />
+              <a href={selectedRanking.url || fffClubUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-black text-orange-600 transition hover:text-orange-700">Voir le classement FFF <ChevronRight className="h-4 w-4" /></a>
+            </article>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-neutral-200 p-8 text-center text-sm text-neutral-500">Aucune équipe disponible dans ce filtre.</div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
