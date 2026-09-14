@@ -57,10 +57,24 @@ function isUpperWord(value: string) {
   return Boolean(letters) && letters === letters.toLocaleUpperCase("fr-FR");
 }
 
+function startsWithUppercase(value: string) {
+  const firstLetter = value.match(/[A-Za-zÀ-ÖØ-öø-ÿ]/)?.[0] || "";
+  return (
+    Boolean(firstLetter) &&
+    firstLetter === firstLetter.toLocaleUpperCase("fr-FR") &&
+    firstLetter !== firstLetter.toLocaleLowerCase("fr-FR")
+  );
+}
+
+function isLowerWord(value: string) {
+  const letters = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
+  return Boolean(letters) && letters === letters.toLocaleLowerCase("fr-FR");
+}
+
 /**
- * User.name is historically stored as "Prénom Nom" while some legacy staff
- * rows are already "NOM Prénom". This formatter detects the obvious legacy
- * cases, then falls back to Prénom Nom -> NOM Prénom.
+ * User/StaffMember.name contains a mix of historical conventions. This
+ * formatter detects explicit casing signals (including "Nom prénom") and
+ * normalizes the visible label to "NOM Prénom" without changing stored data.
  */
 export function formatLoosePersonName(name: string) {
   const raw = String(name || "").trim().replace(/\s+/g, " ");
@@ -76,6 +90,12 @@ export function formatLoosePersonName(name: string) {
   let givenParts: string[];
 
   if (firstUpper && !lastUpper) {
+    familyParts = [parts[0]];
+    givenParts = parts.slice(1);
+  } else if (startsWithUppercase(parts[0]) && isLowerWord(parts[parts.length - 1])) {
+    // Some active users entered their account as "Nom prénom" (for example
+    // "Grenier lilian"). Preserve that explicit casing signal instead of
+    // blindly treating the last token as the family name.
     familyParts = [parts[0]];
     givenParts = parts.slice(1);
   } else if (!firstUpper && lastUpper) {
