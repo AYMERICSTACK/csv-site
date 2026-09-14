@@ -23,6 +23,9 @@ export default async function EquipesPage() {
               sortOrder: "asc",
             },
           },
+          staff: {
+            orderBy: { sortOrder: "asc" },
+          },
         },
       },
     },

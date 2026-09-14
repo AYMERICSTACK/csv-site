@@ -11,10 +11,17 @@ type TeamSchedule = {
   time: string;
 };
 
+type TeamStaffMember = {
+  id: string;
+  role: string;
+  name: string;
+};
+
 type Team = {
   id: string;
   category: string;
   coach: string;
+  staff: TeamStaffMember[];
   schedules: TeamSchedule[];
 };
 
@@ -150,11 +157,24 @@ export default function EquipesClient({ groups }: EquipesClientProps) {
                             <div className="text-lg font-extrabold text-neutral-900">
                               {team.category}
                             </div>
-                            <div className="mt-1 text-sm text-neutral-600">
-                              Responsable :{" "}
-                              <span className="font-semibold text-neutral-800">
-                                {team.coach}
-                              </span>
+                            <div className="mt-2 space-y-1 text-sm text-neutral-600">
+                              {team.staff?.length ? (
+                                team.staff.map((member) => (
+                                  <div key={member.id}>
+                                    <span className="font-semibold text-neutral-800">
+                                      {member.role} :
+                                    </span>{" "}
+                                    {member.name}
+                                  </div>
+                                ))
+                              ) : (
+                                <div>
+                                  Responsable :{" "}
+                                  <span className="font-semibold text-neutral-800">
+                                    {team.coach}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
 

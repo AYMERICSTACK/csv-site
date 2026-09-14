@@ -47,6 +47,24 @@ function parseSchedules(value: string) {
     });
 }
 
+function parseStaff(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const separatorIndex = line.indexOf("|");
+      const role = separatorIndex >= 0 ? line.slice(0, separatorIndex).trim() : "";
+      const name = separatorIndex >= 0 ? line.slice(separatorIndex + 1).trim() : "";
+
+      if (!role || !name) {
+        throw new Error(`Membre du staff ${index + 1} incomplet.`);
+      }
+
+      return { role, name, sortOrder: index };
+    });
+}
+
 export default async function EditEquipePage({ params }: PageProps) {
   await requireRole(["admin", "educateurs"]);
   const { id } = await params;
@@ -56,6 +74,11 @@ export default async function EditEquipePage({ params }: PageProps) {
     include: {
       group: true,
       schedules: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+      staff: {
         orderBy: {
           sortOrder: "asc",
         },
@@ -80,7 +103,7 @@ export default async function EditEquipePage({ params }: PageProps) {
 
     const id = String(formData.get("id") || "").trim();
     const category = String(formData.get("category") || "").trim();
-    const coach = String(formData.get("coach") || "").trim();
+    const staffValue = String(formData.get("staff") || "").trim();
     const groupId = String(formData.get("groupId") || "").trim();
     const sortOrderValue = String(formData.get("sortOrder") || "0").trim();
     const isPublishedValue = String(
@@ -94,10 +117,6 @@ export default async function EditEquipePage({ params }: PageProps) {
 
     if (!category) {
       throw new Error("La catégorie est obligatoire.");
-    }
-
-    if (!coach) {
-      throw new Error("Le responsable est obligatoire.");
     }
 
     if (!groupId) {
@@ -126,12 +145,17 @@ export default async function EditEquipePage({ params }: PageProps) {
     const parsedSchedules = schedulesValue
       ? parseSchedules(schedulesValue)
       : [];
+    const parsedStaff = staffValue ? parseStaff(staffValue) : [];
+
+    if (parsedStaff.length === 0) {
+      throw new Error("Ajoute au moins un membre du staff.");
+    }
 
     await prisma.team.update({
       where: { id },
       data: {
         category,
-        coach,
+        coach: parsedStaff[0].name,
         groupId,
         sortOrder,
         isPublished: isPublishedValue === "true",
@@ -140,6 +164,19 @@ export default async function EditEquipePage({ params }: PageProps) {
 
     await prisma.teamSchedule.deleteMany({
       where: { teamId: id },
+    });
+
+    await prisma.teamStaffMember.deleteMany({
+      where: { teamId: id },
+    });
+
+    await prisma.teamStaffMember.createMany({
+      data: parsedStaff.map((member) => ({
+        teamId: id,
+        role: member.role,
+        name: member.name,
+        sortOrder: member.sortOrder,
+      })),
     });
 
     if (parsedSchedules.length > 0) {
@@ -220,6 +257,7 @@ export default async function EditEquipePage({ params }: PageProps) {
               id: team.id,
               category: team.category,
               coach: team.coach,
+              staff: team.staff.map((member) => ({ role: member.role, name: member.name })),
               groupId: team.groupId,
               sortOrder: team.sortOrder,
               isPublished: team.isPublished,
@@ -239,11 +277,14 @@ export default async function EditEquipePage({ params }: PageProps) {
                     <div className="text-lg font-extrabold text-neutral-900">
                       {team.category}
                     </div>
-                    <div className="mt-1 text-sm text-neutral-600">
-                      Responsable :{" "}
-                      <span className="font-semibold text-neutral-800">
-                        {team.coach}
-                      </span>
+                    <div className="mt-2 space-y-1 text-sm text-neutral-600">
+                      <div className="font-semibold text-neutral-800">Staff</div>
+                      {team.staff.map((member) => (
+                        <div key={member.id}>
+                          <span className="font-semibold">{member.role} :</span>{" "}
+                          {member.name}
+                        </div>
+                      ))}
                     </div>
                     <div className="mt-2 text-sm text-neutral-600">
                       Groupe :{" "}

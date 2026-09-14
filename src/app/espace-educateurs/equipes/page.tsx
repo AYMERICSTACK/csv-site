@@ -23,6 +23,9 @@ export default async function EspaceEducateursEquipesPage() {
               sortOrder: "asc",
             },
           },
+          staff: {
+            orderBy: { sortOrder: "asc" },
+          },
         },
       },
     },

@@ -25,10 +25,17 @@ type TeamSchedule = {
   time: string;
 };
 
+type TeamStaffMember = {
+  id: string;
+  role: string;
+  name: string;
+};
+
 type Team = {
   id: string;
   category: string;
   coach: string;
+  staff: TeamStaffMember[];
   sortOrder: number;
   isPublished: boolean;
   schedules: TeamSchedule[];
@@ -116,10 +123,18 @@ function TeamCard({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs font-bold uppercase tracking-wide text-neutral-400">
-              Responsable
+              Staff
             </div>
-            <div className="truncate text-sm font-semibold text-neutral-800">
-              {team.coach}
+            <div className="mt-1 space-y-0.5 text-sm text-neutral-800">
+              {team.staff?.length ? (
+                team.staff.map((member) => (
+                  <div key={member.id} className="truncate">
+                    <span className="font-semibold">{member.role} :</span> {member.name}
+                  </div>
+                ))
+              ) : (
+                <div className="truncate font-semibold">{team.coach}</div>
+              )}
             </div>
           </div>
 

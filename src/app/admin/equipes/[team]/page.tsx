@@ -268,6 +268,10 @@ export default async function AdminEquipeDetailPage({
     select: {
       id: true,
       coach: true,
+      staff: {
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, role: true, name: true },
+      },
     },
   });
 
@@ -372,9 +376,22 @@ export default async function AdminEquipeDetailPage({
                 derniers matchs de cette équipe.
               </p>
 
-              <p className="mt-3 text-sm font-semibold text-neutral-700">
-                Responsable : {editableTeam?.coach || "À renseigner"}
-              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {editableTeam?.staff?.length ? (
+                  editableTeam.staff.map((member) => (
+                    <span
+                      key={member.id}
+                      className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700"
+                    >
+                      <strong>{member.role}</strong> · {member.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm font-semibold text-neutral-700">
+                    Responsable : {editableTeam?.coach || "À renseigner"}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -383,7 +400,7 @@ export default async function AdminEquipeDetailPage({
                   href={`/espace-educateurs/equipes/${editableTeam.id}/edit`}
                   className="col-span-2 inline-flex items-center justify-center rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-700 transition hover:bg-orange-100 sm:col-span-1 sm:py-2"
                 >
-                  Infos & responsable
+                  Infos & staff
                 </Link>
               ) : null}
 

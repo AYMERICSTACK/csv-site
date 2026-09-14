@@ -14,6 +14,11 @@ type Schedule = {
   time: string;
 };
 
+type StaffMember = {
+  role: string;
+  name: string;
+};
+
 type TeamFormProps = {
   mode: "create" | "edit";
   action: (formData: FormData) => void;
@@ -22,6 +27,7 @@ type TeamFormProps = {
     id?: string;
     category?: string;
     coach?: string;
+    staff?: StaffMember[];
     groupId?: string;
     sortOrder?: number;
     isPublished?: boolean;
@@ -45,6 +51,14 @@ export default function TeamForm({
   groups,
   defaultValues,
 }: TeamFormProps) {
+  const [staff, setStaff] = useState<StaffMember[]>(() => {
+    if (defaultValues?.staff?.length) return defaultValues.staff;
+    if (defaultValues?.coach) {
+      return [{ role: "Entraîneur principal", name: defaultValues.coach }];
+    }
+    return [{ role: "Entraîneur principal", name: "" }];
+  });
+
   const [slots, setSlots] = useState<Schedule[]>(() => {
     if (!defaultValues?.schedules?.length) {
       return [{ day: "Mercredi", time: "" }];
@@ -52,6 +66,25 @@ export default function TeamForm({
 
     return defaultValues.schedules;
   });
+
+  function addStaffMember() {
+    setStaff((prev) => [...prev, { role: "Adjoint", name: "" }]);
+  }
+
+  function removeStaffMember(index: number) {
+    setStaff((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      return next.length > 0
+        ? next
+        : [{ role: "Entraîneur principal", name: "" }];
+    });
+  }
+
+  function updateStaffMember(index: number, field: "role" | "name", value: string) {
+    setStaff((prev) =>
+      prev.map((member, i) => (i === index ? { ...member, [field]: value } : member)),
+    );
+  }
 
   function addSlot() {
     setSlots((prev) => [...prev, { day: "Mercredi", time: "" }]);
@@ -69,6 +102,13 @@ export default function TeamForm({
       prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)),
     );
   }
+
+  const serializedStaff = useMemo(() => {
+    return staff
+      .filter((member) => member.role.trim() && member.name.trim())
+      .map((member) => `${member.role.trim()}|${member.name.trim()}`)
+      .join("\n");
+  }, [staff]);
 
   const serializedSchedules = useMemo(() => {
     return slots
@@ -102,6 +142,7 @@ export default function TeamForm({
         )}
 
         <input type="hidden" name="schedules" value={serializedSchedules} />
+        <input type="hidden" name="staff" value={serializedStaff} />
 
         <div>
           <label className="label">Catégorie</label>
@@ -115,14 +156,81 @@ export default function TeamForm({
         </div>
 
         <div>
-          <label className="label">Responsable</label>
-          <input
-            name="coach"
-            required
-            defaultValue={defaultValues?.coach || ""}
-            className="input"
-            placeholder="Ex : Jean Dupont"
-          />
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label className="label mb-0">Staff de l’équipe</label>
+            <span className="text-xs text-neutral-400">
+              {staff.length} {staff.length > 1 ? "membres" : "membre"}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {staff.map((member, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-neutral-200 bg-neutral-50 p-3"
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                  <div className="w-full md:w-56">
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                      Rôle
+                    </label>
+                    <input
+                      list="team-staff-roles"
+                      value={member.role}
+                      onChange={(e) => updateStaffMember(index, "role", e.target.value)}
+                      className="input bg-white"
+                      placeholder="Ex : Entraîneur principal"
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                      Nom
+                    </label>
+                    <input
+                      value={member.name}
+                      onChange={(e) => updateStaffMember(index, "name", e.target.value)}
+                      className="input bg-white"
+                      placeholder="Ex : Jean Dupont"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removeStaffMember(index)}
+                    className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-200 bg-white text-red-500 transition hover:bg-red-50"
+                    aria-label={`Supprimer le membre ${index + 1}`}
+                    title="Supprimer ce membre"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <datalist id="team-staff-roles">
+            <option value="Entraîneur principal" />
+            <option value="Entraîneur adjoint" />
+            <option value="Adjoint" />
+            <option value="Entraîneur gardiens" />
+            <option value="Préparateur physique" />
+            <option value="Dirigeant" />
+            <option value="Responsable d’équipe" />
+          </datalist>
+
+          <button
+            type="button"
+            onClick={addStaffMember}
+            className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-dashed border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-700 transition hover:border-csv-orange hover:text-csv-orange"
+          >
+            <Plus size={16} />
+            Ajouter un membre du staff
+          </button>
+
+          <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+            Le premier membre est utilisé comme responsable principal dans les anciens affichages du site.
+          </p>
         </div>
 
         <div>

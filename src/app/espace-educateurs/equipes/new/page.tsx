@@ -38,6 +38,24 @@ function parseSchedules(value: string) {
     });
 }
 
+function parseStaff(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const separatorIndex = line.indexOf("|");
+      const role = separatorIndex >= 0 ? line.slice(0, separatorIndex).trim() : "";
+      const name = separatorIndex >= 0 ? line.slice(separatorIndex + 1).trim() : "";
+
+      if (!role || !name) {
+        throw new Error(`Membre du staff ${index + 1} incomplet.`);
+      }
+
+      return { role, name, sortOrder: index };
+    });
+}
+
 export default async function NewEquipePage() {
   await requireRole(["admin", "educateurs"]);
 
@@ -53,7 +71,7 @@ export default async function NewEquipePage() {
     await requireRole(["admin", "educateurs"]);
 
     const category = String(formData.get("category") || "").trim();
-    const coach = String(formData.get("coach") || "").trim();
+    const staffValue = String(formData.get("staff") || "").trim();
     const groupId = String(formData.get("groupId") || "").trim();
     const sortOrderValue = String(formData.get("sortOrder") || "0").trim();
     const isPublishedValue = String(
@@ -63,10 +81,6 @@ export default async function NewEquipePage() {
 
     if (!category) {
       throw new Error("La catégorie est obligatoire.");
-    }
-
-    if (!coach) {
-      throw new Error("Le responsable est obligatoire.");
     }
 
     if (!groupId) {
@@ -85,16 +99,32 @@ export default async function NewEquipePage() {
     }
 
     const schedules = schedulesValue ? parseSchedules(schedulesValue) : [];
+    const staff = staffValue ? parseStaff(staffValue) : [];
+
+    if (staff.length === 0) {
+      throw new Error("Ajoute au moins un membre du staff.");
+    }
 
     const team = await prisma.team.create({
       data: {
         category,
-        coach,
+        coach: staff[0].name,
         groupId,
         sortOrder,
         isPublished: isPublishedValue === "true",
       },
     });
+
+    if (staff.length > 0) {
+      await prisma.teamStaffMember.createMany({
+        data: staff.map((member) => ({
+          teamId: team.id,
+          role: member.role,
+          name: member.name,
+          sortOrder: member.sortOrder,
+        })),
+      });
+    }
 
     if (schedules.length > 0) {
       await prisma.teamSchedule.createMany({
@@ -208,7 +238,7 @@ export default async function NewEquipePage() {
             </h1>
 
             <p className="mt-3 text-base leading-relaxed text-neutral-700 md:text-lg">
-              Crée une nouvelle équipe, définis son responsable, son groupe, son
+              Crée une nouvelle équipe, définis son staff, son groupe, son
               ordre d’affichage, sa visibilité et ses créneaux.
             </p>
           </div>
@@ -236,10 +266,9 @@ export default async function NewEquipePage() {
 
                 <p>
                   <span className="font-semibold text-neutral-900">
-                    Responsable :
+                    Staff :
                   </span>{" "}
-                  indique le nom du référent principal affiché sur la page
-                  publique.
+                  ajoute l’entraîneur principal, les adjoints, dirigeants ou autres membres de l’encadrement.
                 </p>
 
                 <p>

@@ -172,9 +172,23 @@ model Team {
 
   group             TeamGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
   schedules         TeamSchedule[]
+  staff             TeamStaffMember[]
 
   favoritedByUsers  User[]         @relation("UserFavoriteTeam")
   plateaux           Plateau[]
+}
+
+model TeamStaffMember {
+  id        String   @id @default(cuid())
+  role      String
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, sortOrder])
 }
 
 model TeamSchedule {
