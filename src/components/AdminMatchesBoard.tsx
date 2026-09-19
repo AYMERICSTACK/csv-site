@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import MatchCardActions from "@/app/admin/matchs/MatchCardActions";
 import {
   CalendarDays,
@@ -13,7 +14,7 @@ import {
   Plus,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type MatchItem = {
   id: string;
@@ -42,6 +43,7 @@ type Props = {
   matches: MatchItem[];
   deleteAction: (formData: FormData) => Promise<void>;
   createHref?: string;
+  favoriteTeam?: string | null;
 };
 
 function formatDate(date: Date | string) {
@@ -126,25 +128,58 @@ export default function AdminMatchesBoard({
   matches,
   deleteAction,
   createHref,
+  favoriteTeam = null,
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedTeam = searchParams.get("team");
+  const initialTeam = requestedTeam === "all"
+    ? "all"
+    : requestedTeam && matches.some((match) => match.team === requestedTeam)
+      ? requestedTeam
+      : favoriteTeam || "all";
+
+  const [teamFilter, setTeamFilter] = useState(initialTeam);
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [query, setQuery] = useState("");
   const [competitionTab, setCompetitionTab] = useState<CompetitionTab>("all");
 
+  const teams = useMemo(
+    () => Array.from(new Set(matches.map((match) => match.team))).sort((a, b) =>
+      a.localeCompare(b, "fr", { numeric: true }),
+    ),
+    [matches],
+  );
+
+  const teamMatches = useMemo(
+    () => teamFilter === "all" ? matches : matches.filter((match) => match.team === teamFilter),
+    [matches, teamFilter],
+  );
+
+  useEffect(() => {
+    if (searchParams.get("team") === teamFilter) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("team", teamFilter);
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams, teamFilter]);
+
   const counts = useMemo(
     () => ({
-      all: matches.length,
-      upcoming: matches.filter(isUpcoming).length,
-      finished: matches.filter((match) => match.status === "finished").length,
-      cancelled: matches.filter((match) => match.status === "cancelled").length,
+      all: teamMatches.length,
+      upcoming: teamMatches.filter(isUpcoming).length,
+      finished: teamMatches.filter((match) => match.status === "finished").length,
+      cancelled: teamMatches.filter((match) => match.status === "cancelled").length,
     }),
-    [matches],
+    [teamMatches],
   );
 
   const filteredMatches = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    const filtered = matches.filter((match) => {
+    const filtered = teamMatches.filter((match) => {
       const matchesTab =
         activeTab === "all" ||
         (activeTab === "upcoming" && isUpcoming(match)) ||
@@ -186,7 +221,7 @@ export default function AdminMatchesBoard({
       if (activeTab === "upcoming") return aTime - bTime;
       return bTime - aTime;
     });
-  }, [activeTab, competitionTab, matches, query]);
+  }, [activeTab, competitionTab, query, teamMatches]);
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
     { key: "all", label: "Tous", count: counts.all },
@@ -210,7 +245,7 @@ export default function AdminMatchesBoard({
 
         <div className="flex items-center gap-2">
           <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-bold text-neutral-900">
-            {matches.length} match{matches.length > 1 ? "s" : ""}
+            {teamMatches.length} match{teamMatches.length > 1 ? "s" : ""}
           </div>
 
           {createHref ? (
@@ -225,7 +260,66 @@ export default function AdminMatchesBoard({
         </div>
       </div>
 
-      <div className="sticky top-2 z-20 mt-5 grid gap-3 rounded-[1.25rem] border border-neutral-200 bg-white/95 p-2 shadow-sm backdrop-blur lg:grid-cols-[1fr_auto]">
+      <div className="mt-5 rounded-[1.25rem] border border-orange-200 bg-orange-50/70 p-3 md:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-xs font-black uppercase tracking-wide text-orange-700">
+              {favoriteTeam && teamFilter === favoriteTeam ? "⭐ Mes matchs" : "Filtrer par équipe"}
+            </div>
+            <div className="mt-1 text-lg font-black text-neutral-950">
+              {teamFilter === "all" ? "Tous les matchs du club" : teamFilter}
+            </div>
+            <p className="mt-1 text-xs font-semibold text-neutral-600">
+              {teamFilter === "all"
+                ? "Toutes les équipes sont affichées."
+                : `${teamMatches.length} match${teamMatches.length > 1 ? "s" : ""} pour cette équipe.`}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {favoriteTeam ? (
+              <button
+                type="button"
+                onClick={() => setTeamFilter(favoriteTeam)}
+                className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${
+                  teamFilter === favoriteTeam
+                    ? "bg-orange-500 text-white shadow-sm"
+                    : "border border-orange-200 bg-white text-orange-700 hover:bg-orange-100"
+                }`}
+              >
+                ⭐ Mon équipe ({favoriteTeam})
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setTeamFilter("all")}
+              className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${
+                teamFilter === "all"
+                  ? "bg-neutral-950 text-white shadow-sm"
+                  : "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-100"
+              }`}
+            >
+              Tous les matchs
+            </button>
+
+            <label className="sr-only" htmlFor="team-filter">Choisir une équipe</label>
+            <select
+              id="team-filter"
+              value={teamFilter}
+              onChange={(event) => setTeamFilter(event.target.value)}
+              className="min-h-11 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-bold text-neutral-800 outline-none transition focus:border-orange-300"
+            >
+              <option value="all">Toutes les équipes</option>
+              {teams.map((team) => (
+                <option key={team} value={team}>{team}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky top-2 z-20 mt-3 grid gap-3 rounded-[1.25rem] border border-neutral-200 bg-white/95 p-2 shadow-sm backdrop-blur lg:grid-cols-[1fr_auto]">
         <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 focus-within:border-orange-300 focus-within:bg-white">
           <Search size={16} className="text-neutral-400" />
           <input

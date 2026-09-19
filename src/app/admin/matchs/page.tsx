@@ -214,7 +214,7 @@ export default async function AdminMatchsPage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-neutral-600">
-                    Les matchs de cette équipe sont affichés en priorité.
+                    Cette équipe est affichée automatiquement dans « Mes matchs ».
                   </p>
                 </div>
 
@@ -241,6 +241,7 @@ export default async function AdminMatchsPage() {
             matches={serializedMatches}
             deleteAction={deleteMatch}
             createHref="/admin/matchs/new?noFavorite=1"
+            favoriteTeam={favoriteTeam?.category ?? null}
           />
         </div>
 
