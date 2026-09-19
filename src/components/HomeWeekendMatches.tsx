@@ -3,13 +3,34 @@ import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import HomeWeekendMatchesClient from "@/components/HomeWeekendMatchesClient";
 import { prisma } from "@/lib/prisma";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 
 type WeekendWindow = { start: Date; end: Date };
 
+function getParisCalendarDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  return { year: Number(values.year), month: Number(values.month), day: Number(values.day) };
+}
+
+function addCalendarDays(year: number, month: number, day: number, amount: number) {
+  const date = new Date(Date.UTC(year, month - 1, day + amount));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
+}
+
+function localDateTime(parts: { year: number; month: number; day: number }, time: string) {
+  return parseParisDateTime(`${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}T${time}`);
+}
+
 function getHomeWeekendWindow(): WeekendWindow {
-  const now = new Date();
-  const day = now.getDay();
-  const friday = new Date(now);
+  const parisToday = getParisCalendarDate();
+  const weekday = new Date(Date.UTC(parisToday.year, parisToday.month - 1, parisToday.day)).getUTCDay();
 
   const offsetToFriday: Record<number, number> = {
     0: -2,
@@ -21,18 +42,16 @@ function getHomeWeekendWindow(): WeekendWindow {
     6: -1,
   };
 
-  friday.setDate(now.getDate() + offsetToFriday[day]);
-  friday.setHours(0, 0, 0, 0);
-
-  const sunday = new Date(friday);
-  sunday.setDate(friday.getDate() + 2);
-  sunday.setHours(23, 59, 59, 999);
-
-  return { start: friday, end: sunday };
+  const friday = addCalendarDays(parisToday.year, parisToday.month, parisToday.day, offsetToFriday[weekday]);
+  const monday = addCalendarDays(friday.year, friday.month, friday.day, 3);
+  const start = localDateTime(friday, "00:00");
+  const end = new Date(localDateTime(monday, "00:00").getTime() - 1);
+  return { start, end };
 }
 
 function getWeekendContent() {
-  const day = new Date().getDay();
+  const parisToday = getParisCalendarDate();
+  const day = new Date(Date.UTC(parisToday.year, parisToday.month - 1, parisToday.day)).getUTCDay();
 
   if ([4, 5, 6, 0].includes(day)) {
     return {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasCurrentUserRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 import {
   extractAccessiblePdfText,
   parseProgramTokens,
@@ -9,6 +10,21 @@ import {
 
 function norm(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+
+function sameStringList(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => norm(value) === norm(right[index] || ""));
+}
+
+function sameMinute(left: Date, rightLocal: string) {
+  try {
+    const right = parseParisDateTime(rightLocal);
+    return Math.abs(left.getTime() - right.getTime()) < 60 * 1000;
+  } catch {
+    return false;
+  }
 }
 
 function opponentSimilarity(a: string, b: string) {
@@ -98,7 +114,7 @@ export async function POST(request: Request) {
 
   let plateaux: Array<Record<string, unknown>> = [];
   if (plateauDrafts.length) {
-    const dates = plateauDrafts.map((item) => new Date(item.eventDate));
+    const dates = plateauDrafts.map((item) => parseParisDateTime(item.eventDate));
     const minDate = new Date(Math.min(...dates.map((date) => date.getTime())) - 8 * 60 * 60 * 1000);
     const maxDate = new Date(Math.max(...dates.map((date) => date.getTime())) + 8 * 60 * 60 * 1000);
     const existing = await prisma.plateau.findMany({
@@ -116,7 +132,7 @@ export async function POST(request: Request) {
     });
 
     plateaux = plateauDrafts.map((draft) => {
-      const target = new Date(draft.eventDate).getTime();
+      const target = parseParisDateTime(draft.eventDate).getTime();
       const sameTeamNearby = existing.filter(
         (item) => item.team.category === draft.team && Math.abs(item.eventDate.getTime() - target) <= 4 * 60 * 60 * 1000,
       );
@@ -128,17 +144,36 @@ export async function POST(request: Request) {
           ? sameTeamNearby[0]
           : undefined);
 
-      if (!found) return { ...draft, existingPlateau: null };
+      if (!found) return { ...draft, existingPlateau: null, needsUpdate: false };
+
+      const existingParticipants = found.participants.map((item) => item.name);
+      const existingOpponents = found.games.map((item) => item.opponent);
+      const draftHasUsefulLocation = norm(draft.location) !== norm("À confirmer") && Boolean(draft.location.trim());
+      const needsUpdate =
+        !sameMinute(found.eventDate, draft.eventDate) ||
+        norm(found.title || "") !== norm(draft.title) ||
+        found.format !== draft.format ||
+        (draft.format === "festival"
+          ? !sameStringList(existingParticipants, draft.participants)
+          : !sameStringList(existingOpponents, draft.opponents)) ||
+        (draftHasUsefulLocation && norm(found.location) !== norm(draft.location));
+
       return {
         ...draft,
-        eventDate: found.eventDate.toISOString().slice(0, 16),
-        location: found.location,
-        format: found.format,
-        title: found.title || draft.title,
-        participants: found.participants.map((item) => item.name),
-        opponents: found.games.map((item) => item.opponent),
-        warning: undefined,
-        existingPlateau: { id: found.id, eventDate: found.eventDate.toISOString() },
+        // Le PDF reste la source de vérité pour la date/heure et les clubs.
+        // Si le PDF ne permet pas de déduire le lieu, on conserve le lieu déjà
+        // connu en base au lieu de le remplacer par « À confirmer ».
+        location: draftHasUsefulLocation ? draft.location : found.location,
+        warning: needsUpdate
+          ? "Ce plateau existe déjà, mais le programme contient des informations différentes : vérifie puis mets-le à jour."
+          : undefined,
+        existingPlateau: {
+          id: found.id,
+          eventDate: found.eventDate.toISOString(),
+          location: found.location,
+          title: found.title,
+        },
+        needsUpdate,
       };
     });
   }

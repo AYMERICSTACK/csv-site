@@ -1,4 +1,4 @@
-export const revalidate = 900;
+export const revalidate = 60;
 
 import HomeHero from "@/components/HomeHero";
 import Container from "@/components/Container";

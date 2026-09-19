@@ -33,9 +33,10 @@ type PlateauRow = {
   title: string;
   confidence: string;
   warning?: string;
-  existingPlateau: null | { id: string; eventDate: string };
+  existingPlateau: null | { id: string; eventDate: string; location?: string; title?: string | null };
+  needsUpdate?: boolean;
   selected?: boolean;
-  state?: "idle" | "creating" | "created" | "error";
+  state?: "idle" | "creating" | "created" | "updated" | "error";
   error?: string;
 };
 
@@ -76,7 +77,11 @@ export default function MatchProgramImporter() {
       const data = await readJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Analyse impossible.");
       setMatchRows((data.matches || []).map((row: MatchRow) => ({ ...row, selected: !row.existingMatch, state: "idle" })));
-      setPlateauRows((data.plateaux || []).map((row: PlateauRow) => ({ ...row, selected: !row.existingPlateau, state: "idle" })));
+      setPlateauRows((data.plateaux || []).map((row: PlateauRow) => ({
+        ...row,
+        selected: !row.existingPlateau || Boolean(row.needsUpdate),
+        state: "idle",
+      })));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analyse impossible.");
     } finally {
@@ -125,7 +130,8 @@ export default function MatchProgramImporter() {
 
     for (let index = 0; index < plateauRows.length; index += 1) {
       const row = plateauRows[index];
-      if (!row.selected || row.existingPlateau || row.state === "created") continue;
+      if (!row.selected || row.state === "created" || row.state === "updated") continue;
+      if (row.existingPlateau && !row.needsUpdate) continue;
       patchPlateau(index, { state: "creating", error: "" });
       try {
         const res = await fetch("/api/admin/plateau-import/create", {
@@ -139,11 +145,12 @@ export default function MatchProgramImporter() {
             title: row.title,
             participants: row.participants,
             opponents: row.opponents,
+            existingPlateauId: row.existingPlateau?.id || undefined,
           }),
         });
         const data = await readJsonResponse(res);
         if (!res.ok) throw new Error(data.error || "Création du plateau impossible.");
-        patchPlateau(index, { state: "created", selected: false });
+        patchPlateau(index, { state: row.existingPlateau ? "updated" : "created", selected: false, needsUpdate: false });
       } catch (err) {
         patchPlateau(index, { state: "error", error: err instanceof Error ? err.message : "Erreur" });
       }
@@ -152,11 +159,12 @@ export default function MatchProgramImporter() {
 
   const existingMatches = matchRows.filter((row) => row.existingMatch).length;
   const missingMatches = matchRows.filter((row) => !row.existingMatch && row.state !== "created").length;
-  const existingPlateaux = plateauRows.filter((row) => row.existingPlateau).length;
+  const plateauxToUpdate = plateauRows.filter((row) => row.existingPlateau && row.needsUpdate && row.state !== "updated").length;
+  const existingPlateaux = plateauRows.filter((row) => row.existingPlateau && !row.needsUpdate).length;
   const missingPlateaux = plateauRows.filter((row) => !row.existingPlateau && row.state !== "created").length;
   const canCreate =
     matchRows.some((row) => row.selected && !row.existingMatch && row.state !== "created") ||
-    plateauRows.some((row) => row.selected && !row.existingPlateau && row.state !== "created");
+    plateauRows.some((row) => row.selected && (!row.existingPlateau || row.needsUpdate) && row.state !== "created" && row.state !== "updated");
 
   return (
     <div className="mt-6 space-y-5">
@@ -181,11 +189,11 @@ export default function MatchProgramImporter() {
               <h2 className="text-xl font-black">2. Vérifier le programme</h2>
               <p className="mt-1 text-sm text-neutral-500">
                 {matchRows.length ? `${matchRows.length} match(s) · ${existingMatches} déjà présent(s) · ${missingMatches} manquant(s)` : "Aucun match classique"}
-                {plateauRows.length ? ` · ${plateauRows.length} plateau(x) · ${existingPlateaux} déjà présent(s) · ${missingPlateaux} manquant(s)` : ""}
+                {plateauRows.length ? ` · ${plateauRows.length} plateau(x) · ${existingPlateaux} identique(s) · ${plateauxToUpdate} à mettre à jour · ${missingPlateaux} à créer` : ""}
               </p>
             </div>
             <button onClick={createSelected} disabled={!canCreate} className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white disabled:opacity-40">
-              Créer les éléments sélectionnés
+              Créer / mettre à jour les éléments sélectionnés
             </button>
           </div>
 
@@ -197,45 +205,47 @@ export default function MatchProgramImporter() {
               </div>
               <div className="space-y-4">
                 {plateauRows.map((row, index) => (
-                  <div key={`plateau-${row.sourceIndex}`} className={`rounded-2xl border p-4 ${row.existingPlateau || row.state === "created" ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50/40"}`}>
+                  <div key={`plateau-${row.sourceIndex}`} className={`rounded-2xl border p-4 ${row.state === "created" || row.state === "updated" || (row.existingPlateau && !row.needsUpdate) ? "border-green-200 bg-green-50" : row.existingPlateau && row.needsUpdate ? "border-orange-300 bg-orange-50" : "border-amber-200 bg-amber-50/40"}`}>
                     <div className="flex items-start gap-3">
-                      <input type="checkbox" className="mt-1 h-5 w-5" checked={Boolean(row.selected)} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { selected: event.target.checked })} />
+                      <input type="checkbox" className="mt-1 h-5 w-5" checked={Boolean(row.selected)} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { selected: event.target.checked })} />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap gap-2 text-xs font-black">
-                          {row.existingPlateau ? <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">PLATEAU DÉJÀ PRÉSENT</span> : row.state === "created" ? <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">PLATEAU CRÉÉ</span> : <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800">PLATEAU À CRÉER</span>}
+                          {row.state === "updated" ? <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">PLATEAU MIS À JOUR</span> : row.state === "created" ? <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">PLATEAU CRÉÉ</span> : row.existingPlateau && row.needsUpdate ? <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-800">PLATEAU À METTRE À JOUR</span> : row.existingPlateau ? <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">PLATEAU DÉJÀ PRÉSENT</span> : <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-800">PLATEAU À CRÉER</span>}
                           {row.warning ? <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle size={13} />{row.warning}</span> : null}
                         </div>
 
                         <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                           <label className="text-xs font-bold text-neutral-500">Équipe
-                            <select className="input mt-1" value={row.team} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { team: event.target.value })}>
+                            <select className="input mt-1" value={row.team} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { team: event.target.value })}>
                               {SCHOOL_FOOT_TEAMS.map((team) => <option key={team}>{team}</option>)}
                             </select>
                           </label>
                           <label className="text-xs font-bold text-neutral-500">Date / heure
-                            <input type="datetime-local" className="input mt-1" value={row.eventDate} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { eventDate: event.target.value })} />
+                            <input type="datetime-local" className="input mt-1" value={row.eventDate} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { eventDate: event.target.value })} />
                           </label>
                           <label className="text-xs font-bold text-neutral-500">Lieu
-                            <input className="input mt-1" value={row.location} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { location: event.target.value })} />
+                            <input className="input mt-1" value={row.location} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { location: event.target.value })} />
                           </label>
                           <label className="text-xs font-bold text-neutral-500 md:col-span-2 lg:col-span-3">Titre
-                            <input className="input mt-1" value={row.title} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { title: event.target.value })} />
+                            <input className="input mt-1" value={row.title} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { title: event.target.value })} />
                           </label>
                           {row.format === "matches" ? (
                             <label className="text-xs font-bold text-neutral-500 md:col-span-2 lg:col-span-3">Rencontres U11 <span className="font-normal">(un adversaire par ligne)</span>
-                              <textarea rows={3} className="input mt-1 min-h-24" value={row.opponents.join("\n")} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { opponents: event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean) })} />
+                              <textarea rows={3} className="input mt-1 min-h-24" value={row.opponents.join("\n")} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { opponents: event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean) })} />
                             </label>
                           ) : (
                             <label className="text-xs font-bold text-neutral-500 md:col-span-2 lg:col-span-3">Clubs participants <span className="font-normal">(un par ligne)</span>
-                              <textarea rows={3} className="input mt-1 min-h-24" value={row.participants.join("\n")} disabled={Boolean(row.existingPlateau) || row.state === "created"} onChange={(event) => patchPlateau(index, { participants: event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean) })} />
+                              <textarea rows={3} className="input mt-1 min-h-24" value={row.participants.join("\n")} disabled={(Boolean(row.existingPlateau) && !row.needsUpdate) || row.state === "created" || row.state === "updated"} onChange={(event) => patchPlateau(index, { participants: event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean) })} />
                             </label>
                           )}
                         </div>
 
-                        {row.existingPlateau ? <p className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-green-700"><CheckCircle2 size={16} /> Plateau déjà enregistré : aucune action nécessaire.</p> : null}
-                        {row.state === "creating" ? <p className="mt-3 text-sm font-bold text-orange-600">Création…</p> : null}
+                        {row.existingPlateau && !row.needsUpdate && row.state !== "updated" ? <p className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-green-700"><CheckCircle2 size={16} /> Plateau déjà enregistré et identique : aucune action nécessaire.</p> : null}
+                        {row.existingPlateau && row.needsUpdate ? <p className="mt-3 text-sm font-bold text-orange-700">Le plateau existe, mais le PDF contient des données différentes. Les champs ci-dessus correspondent au nouveau programme : vérifie-les puis laisse la case cochée pour mettre à jour l’enregistrement.</p> : null}
+                        {row.state === "creating" ? <p className="mt-3 text-sm font-bold text-orange-600">{row.existingPlateau ? "Mise à jour…" : "Création…"}</p> : null}
                         {row.state === "error" ? <p className="mt-3 text-sm font-bold text-red-600">{row.error}</p> : null}
                         {row.state === "created" ? <p className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-green-700"><CheckCircle2 size={16} /> Plateau ajouté.</p> : null}
+                        {row.state === "updated" ? <p className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-green-700"><CheckCircle2 size={16} /> Plateau mis à jour.</p> : null}
                       </div>
                     </div>
                   </div>
