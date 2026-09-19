@@ -211,14 +211,34 @@ export function parseProgramTokens(tokens: string[]): ImportedMatchDraft[] {
 }
 
 
-const SCHOOL_TEAM_RE = /^u(?:7|9|11)(?:\s+\d+)?$/i;
+const SCHOOL_TEAM_RE = /^u(7|9|11)(?:\s+(\d+)(?:\s*&\s*(\d+))?)?$/i;
 
-function normalizeSchoolTeam(value: string) {
-  const clean = normalize(value).toUpperCase();
-  if (!SCHOOL_TEAM_RE.test(clean)) return "";
-  return clean.replace(/^U(7|9|11)\s*(\d+)?$/, (_, age: string, number?: string) =>
-    number ? `U${age} ${number}` : `U${age}`,
-  );
+type SchoolTeamLabel = {
+  team: string;
+  label: string;
+};
+
+function normalizeSchoolTeam(value: string): SchoolTeamLabel | null {
+  const clean = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9&]+/g, " ")
+    .replace(/\s*&\s*/g, " & ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const match = clean.match(SCHOOL_TEAM_RE);
+  if (!match) return null;
+
+  const [, age, firstNumber, secondNumber] = match;
+  // U9 1 & 2 / U9 3 & 4 sont deux rassemblements distincts, mais ils sont
+  // tous les deux rattachés à l'équipe canonique U9 dans la base.
+  if (secondNumber) {
+    return { team: `U${age}`, label: `U${age} ${firstNumber} & ${secondNumber}` };
+  }
+
+  const label = firstNumber ? `U${age} ${firstNumber}` : `U${age}`;
+  return { team: label, label };
 }
 
 function splitSchoolOpponents(values: string[]) {
@@ -236,58 +256,83 @@ function splitSchoolOpponents(values: string[]) {
     .filter(Boolean);
 }
 
+function isSchoolProgramDecoration(value: string) {
+  const clean = normalize(value);
+  return (
+    !clean ||
+    clean === "programme week end" ||
+    clean === "ecole de foot" ||
+    clean.includes("venez encourager")
+  );
+}
+
 /**
  * Reconstruit les plateaux école de foot depuis le PDF Canva.
- * Le PDF exporte chaque carte sous la forme : clubs -> date -> équipe (U7/U9/U11).
- * Pour les U11, un libellé comme « Plaine Tonique / Manziat » devient deux rencontres
- * à l'intérieur du même plateau.
+ *
+ * Canva n'exporte pas toujours les cartes dans leur ordre visuel : le nom
+ * « CS Viriat » peut notamment être déplacé après plusieurs libellés U11.
+ * On ancre donc chaque carte sur son couple date + libellé (U9/U11), puis on
+ * prend les adversaires situés entre le libellé précédent et cette date.
+ * Cela permet de reconnaître toutes les cartes même si CSV est à gauche ou à droite.
  */
 export function parseSchoolFootPlateaux(tokens: string[]): ImportedPlateauDraft[] {
   const results: ImportedPlateauDraft[] = [];
   let previousLabelIndex = -1;
 
   for (let labelIndex = 0; labelIndex < tokens.length; labelIndex += 1) {
-    const team = normalizeSchoolTeam(tokens[labelIndex]);
-    if (!team) continue;
+    const schoolTeam = normalizeSchoolTeam(tokens[labelIndex]);
+    if (!schoolTeam) continue;
 
-    const segmentStart = previousLabelIndex + 1;
-    const segment = tokens.slice(segmentStart, labelIndex);
-    previousLabelIndex = labelIndex;
-
-    let dateOffset = -1;
-    for (let index = segment.length - 1; index >= 0; index -= 1) {
-      if (DATE_RE.test(segment[index])) {
-        dateOffset = index;
+    let dateIndex = -1;
+    for (let index = labelIndex - 1; index > previousLabelIndex; index -= 1) {
+      if (DATE_RE.test(tokens[index])) {
+        dateIndex = index;
         break;
       }
     }
-    if (dateOffset < 0) continue;
 
-    const matchDate = parseFrenchDate(segment[dateOffset]);
-    if (!matchDate) continue;
+    if (dateIndex < 0) {
+      previousLabelIndex = labelIndex;
+      continue;
+    }
 
-    const clubTokens = segment.slice(0, dateOffset).filter((value) => {
-      const clean = normalize(value);
-      return clean && clean !== "programme week end" && clean !== "ecole de foot" && !clean.includes("venez encourager");
-    });
-    if (!clubTokens.some(isCsv)) continue;
+    const matchDate = parseFrenchDate(tokens[dateIndex]);
+    if (!matchDate) {
+      previousLabelIndex = labelIndex;
+      continue;
+    }
+
+    const clubTokens = tokens
+      .slice(previousLabelIndex + 1, dateIndex)
+      .filter((value) => !DATE_RE.test(value))
+      .filter((value) => !normalizeSchoolTeam(value))
+      .filter((value) => !isSchoolProgramDecoration(value));
 
     const opponents = splitSchoolOpponents(clubTokens);
-    const isU11 = team.startsWith("U11");
+    const isU11 = schoolTeam.team.startsWith("U11");
 
     results.push({
       sourceIndex: results.length,
-      team,
+      team: schoolTeam.team,
       eventDate: matchDate,
       location: "À confirmer",
       format: isU11 ? "matches" : "festival",
       participants: isU11 ? [] : opponents,
       opponents: isU11 ? opponents : [],
-      title: isU11 ? `Plateau ${team}` : `Rassemblement ${team}`,
+      title: isU11 ? `Plateau ${schoolTeam.label}` : `Rassemblement ${schoolTeam.label}`,
       confidence: opponents.length ? "high" : "medium",
       warning: opponents.length ? undefined : "Clubs participants non déduits automatiquement : à vérifier.",
     });
+
+    previousLabelIndex = labelIndex;
   }
 
-  return results.map((item, index) => ({ ...item, sourceIndex: index }));
+  return results
+    .sort((a, b) => {
+      const ageA = Number(a.title.match(/U(\d+)/)?.[1] || 999);
+      const ageB = Number(b.title.match(/U(\d+)/)?.[1] || 999);
+      if (ageA !== ageB) return ageA - ageB;
+      return a.title.localeCompare(b.title, "fr", { numeric: true });
+    })
+    .map((item, index) => ({ ...item, sourceIndex: index }));
 }

@@ -117,9 +117,16 @@ export async function POST(request: Request) {
 
     plateaux = plateauDrafts.map((draft) => {
       const target = new Date(draft.eventDate).getTime();
-      const found = existing.find(
+      const sameTeamNearby = existing.filter(
         (item) => item.team.category === draft.team && Math.abs(item.eventDate.getTime() - target) <= 4 * 60 * 60 * 1000,
       );
+      // Deux rassemblements U9 peuvent avoir lieu le même jour (ex. « U9 1 & 2 »
+      // et « U9 3 & 4 »). Le titre permet de ne pas les confondre.
+      const found =
+        sameTeamNearby.find((item) => norm(item.title || "") === norm(draft.title)) ||
+        (sameTeamNearby.length === 1 && plateauDrafts.filter((item) => item.team === draft.team).length === 1
+          ? sameTeamNearby[0]
+          : undefined);
 
       if (!found) return { ...draft, existingPlateau: null };
       return {
