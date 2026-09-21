@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Clock3, MapPin, Trophy } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, Medal, Trophy } from "lucide-react";
 import PlateauPublicCard, { type PlateauPublicItem } from "@/components/PlateauPublicCard";
 
 type MatchItem = {
@@ -24,6 +24,7 @@ type MatchItem = {
   roundLabel: string | null;
   createdAt: string;
   updatedAt: string;
+  manOfMatch: { name: string; photoUrl: string | null } | null;
 };
 
 type FilterKey = "all" | "ecole" | "jeunes" | "seniors";
@@ -518,6 +519,22 @@ function ResultCard({ match }: { match: MatchItem }) {
           <div className="mt-3 rounded-[1rem] border border-orange-500/15 bg-orange-500/8 px-3 py-2 text-sm text-white/80">
             <span className="font-bold text-white">Buteurs :</span>{" "}
             <span className="whitespace-pre-line">{match.scorers}</span>
+          </div>
+        ) : null}
+
+        {match.manOfMatch ? (
+          <div className="mt-3 flex items-center gap-3 rounded-[1rem] border border-orange-400/25 bg-orange-500/10 p-3">
+            {match.manOfMatch.photoUrl ? (
+              <img src={match.manOfMatch.photoUrl} alt={match.manOfMatch.name} className="h-12 w-12 shrink-0 rounded-full border-2 border-orange-400 object-cover" />
+            ) : (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-orange-400/30 bg-neutral-900">
+                <Medal size={22} className="text-orange-300" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">🏅 Homme du match</div>
+              <div className="mt-0.5 truncate text-sm font-extrabold text-white">{match.manOfMatch.name}</div>
+            </div>
           </div>
         ) : null}
       </div>

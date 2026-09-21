@@ -25,11 +25,15 @@ model Match {
   competitionType      String   @default("league")
   roundLabel           String?
   scorers               String?
+  manOfMatchPlayerId    String?
   createdAt             DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   goals         MatchGoal[]
   events        MatchEvent[]
+  manOfMatch    Player?      @relation("MatchManOfMatch", fields: [manOfMatchPlayerId], references: [id], onDelete: SetNull)
+
+  @@index([manOfMatchPlayerId])
 }
 
 model User {
@@ -394,6 +398,7 @@ model Player {
 
   stats          PlayerStat[]
   matchEvents    MatchEvent[]
+  manOfMatchMatches Match[]   @relation("MatchManOfMatch")
   imageConsents  PlayerImageConsent[]
   imageConsentSubmissions ImageConsentSubmission[]
 

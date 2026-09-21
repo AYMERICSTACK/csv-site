@@ -3,6 +3,7 @@ import Badge from "@/components/Badge";
 import { prisma } from "@/lib/prisma";
 import CalendarMatchesClient from "@/components/CalendarMatchesClient";
 import { parseParisDateTime } from "@/lib/paris-datetime";
+import { formatPlayerName } from "@/lib/person-select";
 
 function getDefaultCalendarView() {
   const weekday = new Intl.DateTimeFormat("en-US", {
@@ -79,6 +80,11 @@ export default async function CalendrierPage() {
       orderBy: {
         matchDate: "desc",
       },
+      include: {
+        manOfMatch: {
+          select: { firstName: true, lastName: true, photoUrl: true, photoConsent: true },
+        },
+      },
     }),
     prisma.match.findMany({
       where: {
@@ -92,6 +98,11 @@ export default async function CalendrierPage() {
       },
       orderBy: {
         matchDate: "asc",
+      },
+      include: {
+        manOfMatch: {
+          select: { firstName: true, lastName: true, photoUrl: true, photoConsent: true },
+        },
       },
     }),
     prisma.plateau.findMany({
@@ -108,19 +119,21 @@ export default async function CalendrierPage() {
     }),
   ]);
 
-  const recentResultsSerialized = recentResults.map((match) => ({
+  const serializeMatch = (match: (typeof recentResults)[number] | (typeof upcomingMatches)[number]) => ({
     ...match,
     matchDate: match.matchDate.toISOString(),
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
-  }));
+    manOfMatch: match.manOfMatch
+      ? {
+          name: formatPlayerName(match.manOfMatch.firstName, match.manOfMatch.lastName),
+          photoUrl: match.manOfMatch.photoConsent && match.manOfMatch.photoUrl ? match.manOfMatch.photoUrl : null,
+        }
+      : null,
+  });
 
-  const upcomingMatchesSerialized = upcomingMatches.map((match) => ({
-    ...match,
-    matchDate: match.matchDate.toISOString(),
-    createdAt: match.createdAt.toISOString(),
-    updatedAt: match.updatedAt.toISOString(),
-  }));
+  const recentResultsSerialized = recentResults.map(serializeMatch);
+  const upcomingMatchesSerialized = upcomingMatches.map(serializeMatch);
 
   const upcomingPlateauxSerialized = upcomingPlateaux.map((plateau) => ({
     id: plateau.id,

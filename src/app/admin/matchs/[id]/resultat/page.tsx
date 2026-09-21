@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, MapPin, Trophy } from "lucide-react";
 import Container from "@/components/Container";
 import MatchGoalsFields from "@/components/MatchGoalsFields";
 import PenaltyFields from "@/components/PenaltyFields";
+import ManOfMatchField from "@/components/ManOfMatchField";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guard";
 import { refreshPlayerStats } from "@/lib/player-stats";
@@ -38,6 +39,7 @@ export default async function QuickResultPage({ params }: PageProps) {
   const match = await prisma.match.findUnique({ where: { id } });
   if (!match) redirect("/admin/matchs");
   const competitionKey = match.competitionKey;
+  const matchTeam = match.team;
 
   const [players, goalEvents, assistEvents] = await Promise.all([
     prisma.player.findMany({
@@ -56,6 +58,7 @@ export default async function QuickResultPage({ params }: PageProps) {
     const scoreOpponentValue = String(formData.get("scoreOpponent") || "").trim();
     const penaltyScoreTeamValue = String(formData.get("penaltyScoreTeam") || "").trim();
     const penaltyScoreOpponentValue = String(formData.get("penaltyScoreOpponent") || "").trim();
+    const manOfMatchPlayerIdValue = String(formData.get("manOfMatchPlayerId") || "").trim();
 
     if (scoreTeamValue === "" || scoreOpponentValue === "") {
       throw new Error("Renseigne les deux scores.");
@@ -109,6 +112,27 @@ export default async function QuickResultPage({ params }: PageProps) {
       throw new Error("Ce match de coupe est à égalité : renseigne la séance de tirs au but pour déterminer le qualifié.");
     }
 
+    const isManOfMatchTeam = matchTeam === "Seniors 1" || matchTeam === "Seniors 2";
+    const isVictory =
+      scoreTeam > scoreOpponent ||
+      (scoreTeam === scoreOpponent &&
+        penaltyScoreTeam !== null &&
+        penaltyScoreOpponent !== null &&
+        penaltyScoreTeam > penaltyScoreOpponent);
+
+    let manOfMatchPlayerId: string | null = null;
+    if (isManOfMatchTeam && isVictory && manOfMatchPlayerIdValue) {
+      const selectedManOfMatch = await prisma.player.findUnique({
+        where: { id: manOfMatchPlayerIdValue },
+        select: { id: true, team: true, isActive: true },
+      });
+
+      if (!selectedManOfMatch || !selectedManOfMatch.isActive || selectedManOfMatch.team !== matchTeam) {
+        throw new Error("L’homme du match sélectionné doit être un joueur actif de cette équipe.");
+      }
+      manOfMatchPlayerId = selectedManOfMatch.id;
+    }
+
     const goalPlayerIds = parseGoalPlayerIds(formData);
     const realGoalPlayerIds = goalPlayerIds.filter((id) => id !== OWN_GOAL_VALUE);
 
@@ -149,6 +173,7 @@ export default async function QuickResultPage({ params }: PageProps) {
           penaltyScoreOpponent,
           status: "finished",
           scorers: scorersText || null,
+          manOfMatchPlayerId,
         },
       });
 
@@ -279,6 +304,19 @@ export default async function QuickResultPage({ params }: PageProps) {
                 initialOpponent={match.penaltyScoreOpponent}
               />
             ) : null}
+
+            <ManOfMatchField
+              team={match.team}
+              players={players.map((player) => ({
+                id: player.id,
+                firstName: player.firstName,
+                lastName: player.lastName,
+                team: player.team,
+                photoUrl: player.photoUrl,
+                photoConsent: player.photoConsent,
+              }))}
+              initialPlayerId={match.manOfMatchPlayerId}
+            />
 
             <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
               <div className="flex gap-2"><CheckCircle2 className="mt-0.5 shrink-0" size={17} /><span>À l’enregistrement, le match passe automatiquement en <strong>Terminé</strong>. En coupe, une défaite retire automatiquement cette compétition des prochains matchs de l’équipe.</span></div>

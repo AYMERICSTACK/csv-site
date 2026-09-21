@@ -4,6 +4,7 @@ import Badge from "@/components/Badge";
 import HomeWeekendMatchesClient from "@/components/HomeWeekendMatchesClient";
 import { prisma } from "@/lib/prisma";
 import { parseParisDateTime } from "@/lib/paris-datetime";
+import { formatPlayerName } from "@/lib/person-select";
 
 type WeekendWindow = { start: Date; end: Date };
 
@@ -95,6 +96,14 @@ export default async function HomeWeekendMatches() {
       competitionLabel: true,
       competitionType: true,
       roundLabel: true,
+      manOfMatch: {
+        select: {
+          firstName: true,
+          lastName: true,
+          photoUrl: true,
+          photoConsent: true,
+        },
+      },
     },
     }),
     prisma.plateau.findMany({
@@ -116,6 +125,15 @@ export default async function HomeWeekendMatches() {
   const serialized = matches.map((match) => ({
     ...match,
     matchDate: match.matchDate.toISOString(),
+    manOfMatch: match.manOfMatch
+      ? {
+          name: formatPlayerName(match.manOfMatch.firstName, match.manOfMatch.lastName),
+          photoUrl:
+            match.manOfMatch.photoConsent && match.manOfMatch.photoUrl
+              ? match.manOfMatch.photoUrl
+              : null,
+        }
+      : null,
   }));
 
   const serializedPlateaux = plateaux.map((plateau) => ({
