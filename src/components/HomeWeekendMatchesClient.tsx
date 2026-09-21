@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, Clock3, MapPin, Medal, Trophy } from "lucide-react";
 import PlateauPublicCard, { type PlateauPublicItem } from "@/components/PlateauPublicCard";
+import PlayerPortrait from "@/components/ui/PlayerPortrait";
 
 type HomeMatch = {
   id: string;
@@ -221,7 +222,7 @@ function ResultCard({ match }: { match: HomeMatch }) {
         {match.manOfMatch ? (
           <div className="mt-3 flex items-center gap-3 rounded-[1.05rem] border border-orange-400/25 bg-orange-500/10 p-3">
             {match.manOfMatch.photoUrl ? (
-              <img src={match.manOfMatch.photoUrl} alt={match.manOfMatch.name} className="h-12 w-12 shrink-0 rounded-full border-2 border-orange-400 object-cover" />
+              <PlayerPortrait src={match.manOfMatch.photoUrl} alt={match.manOfMatch.name} className="h-12 w-12 shrink-0 rounded-full border-2 border-orange-400" />
             ) : (
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-orange-400/30 bg-neutral-900">
                 <Medal size={22} className="text-orange-300" />

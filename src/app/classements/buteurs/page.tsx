@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import Container from "@/components/Container";
+import PlayerPortrait from "@/components/ui/PlayerPortrait";
 import { buildSharedPhotoMap, playerIdentityKey } from "@/lib/player-photo-sync";
 
 type PageProps = {
@@ -122,17 +123,17 @@ export default async function ClassementButeursPage({
                 <div className="flex items-center gap-4">
                   {player.photoConsent && player.photoUrl ? (
                     <div className="relative shrink-0">
-                      <img
+                      <PlayerPortrait
                         src={player.photoUrl}
                         alt={`${player.firstName} ${player.lastName}`}
-                        className="h-11 w-11 rounded-2xl object-cover"
+                        className="h-14 w-14 rounded-2xl"
                       />
                       <span className="absolute -bottom-1 -right-1 rounded-full bg-neutral-950 px-1.5 py-0.5 text-[9px] font-black text-white">
                         #{index + 1}
                       </span>
                     </div>
                   ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-950 text-sm font-black text-white">
                       #{index + 1}
                     </div>
                   )}
