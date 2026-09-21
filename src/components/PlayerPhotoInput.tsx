@@ -11,7 +11,10 @@ type PlayerPhotoInputProps = {
 
 const MAX_UPLOAD_SIZE = 3 * 1024 * 1024;
 const MAX_SOURCE_SIZE = 20 * 1024 * 1024;
-const MAX_IMAGE_DIMENSION = 2048;
+const MAX_IMAGE_DIMENSION = 3200;
+const INITIAL_JPEG_QUALITY = 0.94;
+const MIN_JPEG_QUALITY = 0.74;
+const JPEG_QUALITY_STEP = 0.04;
 const SUPPORTED_PHOTO_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -77,7 +80,13 @@ export default function PlayerPhotoInput({
     }
   }
 
-  async function compressPhoto(source: File) {
+  async function optimizePhoto(source: File): Promise<File> {
+    // Si la photo passe déjà sous la limite, on conserve le fichier original :
+    // pas de recompression inutile, donc aucune perte supplémentaire de netteté.
+    if (source.size <= MAX_UPLOAD_SIZE) {
+      return source;
+    }
+
     const bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
     const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
@@ -96,17 +105,22 @@ export default function PlayerPhotoInput({
     // qu'un PNG transparent devienne noir lors de la conversion en JPEG.
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, width, height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
     context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
 
-    let quality = 0.86;
+    let quality = INITIAL_JPEG_QUALITY;
     let blob: Blob | null = null;
+
     do {
       blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/jpeg", quality),
       );
-      quality -= 0.08;
-    } while (blob && blob.size > MAX_UPLOAD_SIZE && quality >= 0.5);
+
+      if (!blob || blob.size <= MAX_UPLOAD_SIZE) break;
+      quality -= JPEG_QUALITY_STEP;
+    } while (quality >= MIN_JPEG_QUALITY);
 
     if (!blob || blob.size > MAX_UPLOAD_SIZE) {
       throw new Error("compression-failed");
@@ -142,24 +156,28 @@ export default function PlayerPhotoInput({
       return;
     }
 
-    // Même les photos déjà légères passent par cette étape : on réduit les très
-    // grandes résolutions de téléphone et on garantit une requête largement sous
-    // la limite du serveur.
-    setMessage("Optimisation de la photo en cours…");
+    // Les fichiers déjà sous 3 Mo sont conservés tels quels. Les photos plus
+    // lourdes sont redimensionnées/compressées avec une qualité élevée.
+    setMessage(
+      selectedFile.size <= MAX_UPLOAD_SIZE
+        ? "Photo prête à être envoyée sans recompression."
+        : "Optimisation haute qualité de la photo en cours…",
+    );
 
     try {
-      const optimizedFile = await compressPhoto(selectedFile);
+      const optimizedFile = await optimizePhoto(selectedFile);
       const transfer = new DataTransfer();
       transfer.items.add(optimizedFile);
       event.target.files = transfer.files;
       setFile(optimizedFile);
 
-      if (optimizedFile.size < selectedFile.size) {
+      if (optimizedFile === selectedFile) {
+        const sizeMb = (selectedFile.size / 1024 / 1024).toFixed(1);
+        setMessage(`Photo conservée en qualité d’origine (${sizeMb} Mo).`);
+      } else {
         const originalMb = (selectedFile.size / 1024 / 1024).toFixed(1);
         const optimizedMb = (optimizedFile.size / 1024 / 1024).toFixed(1);
-        setMessage(`Photo optimisée automatiquement : ${originalMb} Mo → ${optimizedMb} Mo.`);
-      } else {
-        setMessage(null);
+        setMessage(`Photo optimisée en haute qualité : ${originalMb} Mo → ${optimizedMb} Mo.`);
       }
     } catch {
       event.target.value = "";
@@ -215,7 +233,7 @@ export default function PlayerPhotoInput({
           Retirer la photo sélectionnée
         </button>
       ) : (
-        <p className="text-xs text-neutral-500">PNG, JPG ou WEBP · compression automatique avant envoi.</p>
+        <p className="text-xs text-neutral-500">PNG, JPG ou WEBP · qualité originale conservée sous 3 Mo, compression haute qualité au-delà.</p>
       )}
 
       {message ? (
