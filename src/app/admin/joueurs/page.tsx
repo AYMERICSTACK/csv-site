@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import AdminPlayersBoard from "@/components/AdminPlayersBoard";
+import BulkPlayerPhotoImport from "@/components/BulkPlayerPhotoImport";
 import { syncPlayerPhotoByIdentity } from "@/lib/player-photo-sync";
 
 async function uploadPlayerPhoto(file: File, playerName: string) {
@@ -185,12 +186,17 @@ export default async function AdminJoueursPage() {
   }));
 
   return (
-    <AdminPlayersBoard
+    <>
+      <div className="px-6 pt-6 md:px-8 md:pt-8">
+        <BulkPlayerPhotoImport players={formattedPlayers.map(({ id, firstName, lastName, team }) => ({ id, firstName, lastName, team }))} />
+      </div>
+      <AdminPlayersBoard
       season={season}
       players={formattedPlayers}
       createPlayer={createPlayer}
       updatePlayer={updatePlayer}
       deletePlayer={deletePlayer}
     />
+    </>
   );
 }
