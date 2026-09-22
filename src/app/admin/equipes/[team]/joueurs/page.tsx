@@ -13,6 +13,7 @@ import PlayerPhotoInput from "@/components/PlayerPhotoInput";
 import MobileCreatePanel from "@/components/MobileCreatePanel";
 import PlayerSaveState from "@/components/PlayerSaveState";
 import PlayerRosterSearch from "@/components/PlayerRosterSearch";
+import BulkPlayerPhotoImport from "@/components/BulkPlayerPhotoImport";
 import { getImageConsentState, consentStateLabel, isMinorTeam } from "@/lib/image-consent";
 import { syncPlayerPhotoByIdentity } from "@/lib/player-photo-sync";
 
@@ -237,27 +238,39 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
     revalidatePath("/classements");
   }
 
-  const players = await prisma.player.findMany({
-    where: {
-      team: teamName,
-    },
-    include: {
-      stats: {
-        where: { season },
-        take: 1,
+  const [players, bulkPhotoPlayers] = await Promise.all([
+    prisma.player.findMany({
+      where: {
+        team: teamName,
       },
-      imageConsents: {
-        where: { season },
-        take: 1,
+      include: {
+        stats: {
+          where: { season },
+          take: 1,
+        },
+        imageConsents: {
+          where: { season },
+          take: 1,
+        },
       },
-    },
-    orderBy: [
-      { isActive: "desc" },
-      { sortOrder: "asc" },
-      { lastName: "asc" },
-      { firstName: "asc" },
-    ],
-  });
+      orderBy: [
+        { isActive: "desc" },
+        { sortOrder: "asc" },
+        { lastName: "asc" },
+        { firstName: "asc" },
+      ],
+    }),
+    prisma.player.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        team: true,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+  ]);
 
   return (
     <Container>
@@ -305,6 +318,10 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
             <div className="rounded-full bg-orange-50 px-4 py-2 text-sm font-bold text-orange-700">
               {players.length} joueur(s)
             </div>
+          </div>
+
+          <div className="mt-6">
+            <BulkPlayerPhotoImport players={bulkPhotoPlayers} />
           </div>
 
           <MobileCreatePanel
