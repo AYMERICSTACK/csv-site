@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { hasCurrentUserRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { generatePlayerPortraitFromUrl } from "@/lib/player-photo-assets";
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
 
     await prisma.player.update({ where: { id: player.id }, data: { portraitUrl } });
     await syncPlayerPhotoByIdentity(player.firstName, player.lastName, player.photoUrl, portraitUrl);
+
+    // Classements is cached for five minutes. Invalidate its server-rendered
+    // player URLs when the portrait changes, rather than waiting for the TTL.
+    revalidatePath("/classements");
+    revalidatePath("/classements/buteurs");
+    revalidatePath("/calendrier");
+    revalidatePath("/");
 
     return NextResponse.json({ ok: true, portraitUrl });
   } catch (error) {

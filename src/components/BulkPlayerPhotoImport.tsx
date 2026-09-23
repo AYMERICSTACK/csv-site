@@ -74,6 +74,7 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
   const [summary, setSummary] = useState("");
   const [portraitRunning, setPortraitRunning] = useState(false);
   const [portraitSummary, setPortraitSummary] = useState("");
+  const [portraitPreviews, setPortraitPreviews] = useState<{ name: string; url: string }[]>([]);
   const playerByName = useMemo(() => {
     const map = new Map<string, PlayerOption>();
     for (const player of players) {
@@ -136,8 +137,10 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
     }
 
     setPortraitRunning(true);
+    setPortraitPreviews([]);
     let success = 0;
     let errors = 0;
+    const previews: { name: string; url: string }[] = [];
 
     for (const player of targets) {
       setPortraitSummary(`Génération des portraits HD… ${success + errors}/${targets.length}`);
@@ -148,6 +151,13 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
           body: JSON.stringify({ playerId: player.id }),
         });
         if (!response.ok) throw new Error("portrait");
+        const result = await response.json();
+        if (!result.portraitUrl) throw new Error("portrait-url");
+        const identity = normalize(`${player.firstName}${player.lastName}`);
+        if (["simondesmurs", "yanischagraoui", "eliechevillard"].includes(identity)) {
+          previews.push({ name: `${player.firstName} ${player.lastName}`, url: result.portraitUrl });
+          setPortraitPreviews([...previews]);
+        }
         success += 1;
       } catch {
         errors += 1;
@@ -155,7 +165,7 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
     }
 
     setPortraitRunning(false);
-    setPortraitSummary(`${success} portrait(s) HD généré(s)${errors ? ` · ${errors} erreur(s)` : ""}. Rechargez la page Classements pour voir le nouveau rendu.`);
+    setPortraitSummary(`${success} portrait(s) HD généré(s)${errors ? ` · ${errors} erreur(s)` : ""}. Les pages publiques sont actualisées ; rechargez Classements pour voir le résultat.`);
   }
 
   return <section className="mb-6 rounded-[2rem] border border-orange-200 bg-orange-50/40 p-5 md:p-6">
@@ -166,6 +176,7 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
         <button type="button" disabled={portraitRunning} onClick={() => void generatePortraits()} className="shrink-0 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">{portraitRunning ? "Génération…" : "Générer les portraits HD"}</button>
       </div>
       {portraitSummary ? <p className="mt-3 text-xs font-semibold text-emerald-700">{portraitSummary}</p> : null}
+      {portraitPreviews.length ? <div className="mt-4 flex flex-wrap gap-4">{portraitPreviews.map((portrait) => <div key={portrait.name} className="flex items-center gap-2 text-xs font-semibold text-neutral-700"><img src={portrait.url} alt={portrait.name} className="h-16 w-16 rounded-xl object-cover" />{portrait.name}</div>)}</div> : null}
     </div>
     <label className="mt-5 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-orange-300 bg-white px-4 py-4 text-sm font-bold text-orange-700 hover:bg-orange-50"><UploadCloud className="h-5 w-5" />Choisir toutes les photos<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={selectFiles} disabled={running} /></label>
     {summary ? <p className="mt-3 text-sm font-semibold text-neutral-700">{summary}</p> : null}
