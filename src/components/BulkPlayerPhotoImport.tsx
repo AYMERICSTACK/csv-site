@@ -124,14 +124,14 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
   async function generatePortraits() {
     const seen = new Set<string>();
     const targets = players.filter((player) => {
-      if (!player.photoUrl || player.portraitUrl) return false;
+      if (!player.photoUrl) return false;
       const identity = normalize(`${player.firstName}${player.lastName}`);
       if (seen.has(identity)) return false;
       seen.add(identity);
       return true;
     });
     if (!targets.length) {
-      setPortraitSummary("Tous les joueurs avec photo disposent déjà d’un portrait HD.");
+      setPortraitSummary("Aucun joueur avec photo source à traiter.");
       return;
     }
 
@@ -162,7 +162,7 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
     <div className="flex items-start gap-3"><div className="rounded-2xl bg-orange-600 p-3 text-white"><Images className="h-5 w-5" /></div><div><h2 className="text-lg font-extrabold text-neutral-950">Import massif des photos joueurs</h2><p className="mt-1 text-sm text-neutral-600">Sélectionnez les photos originales du lot du 19/20 septembre. Les fichiers sont associés automatiquement aux joueurs avant l’envoi.</p></div></div>
     <div className="mt-4 rounded-2xl border border-orange-200 bg-white p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><div className="font-extrabold text-neutral-950">Portraits HD automatiques</div><p className="mt-1 text-xs text-neutral-500">Crée un vrai portrait carré 800×800 à partir des photos déjà stockées, avec cadrage automatique centré sur la zone la plus importante du visage/haut du corps.</p></div>
+        <div><div className="font-extrabold text-neutral-950">Portraits HD automatiques</div><p className="mt-1 text-xs text-neutral-500">Régénère les portraits carrés 800×800 depuis les photos sources déjà stockées, y compris ceux qui existent déjà. Le cadrage géométrique privilégie le visage et les épaules des photos plein pied.</p></div>
         <button type="button" disabled={portraitRunning} onClick={() => void generatePortraits()} className="shrink-0 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">{portraitRunning ? "Génération…" : "Générer les portraits HD"}</button>
       </div>
       {portraitSummary ? <p className="mt-3 text-xs font-semibold text-emerald-700">{portraitSummary}</p> : null}
