@@ -47,7 +47,7 @@ export default async function ClassementButeursPage({
       lastName: player.lastName,
       team: player.team,
       category: player.category,
-      photoUrl: sharedPhotos.get(playerIdentityKey(player.firstName, player.lastName)) || null,
+      photoUrl: sharedPhotos.get(playerIdentityKey(player.firstName, player.lastName))?.portraitUrl || sharedPhotos.get(playerIdentityKey(player.firstName, player.lastName))?.photoUrl || null,
       photoConsent: player.photoConsent,
       goals: player.stats.reduce((total, stat) => total + (stat.goals || 0), 0),
     }))

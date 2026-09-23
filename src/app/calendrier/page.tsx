@@ -82,7 +82,7 @@ export default async function CalendrierPage() {
       },
       include: {
         manOfMatch: {
-          select: { firstName: true, lastName: true, photoUrl: true, photoConsent: true },
+          select: { firstName: true, lastName: true, photoUrl: true, portraitUrl: true, photoConsent: true },
         },
       },
     }),
@@ -101,7 +101,7 @@ export default async function CalendrierPage() {
       },
       include: {
         manOfMatch: {
-          select: { firstName: true, lastName: true, photoUrl: true, photoConsent: true },
+          select: { firstName: true, lastName: true, photoUrl: true, portraitUrl: true, photoConsent: true },
         },
       },
     }),
@@ -127,7 +127,7 @@ export default async function CalendrierPage() {
     manOfMatch: match.manOfMatch
       ? {
           name: formatPlayerName(match.manOfMatch.firstName, match.manOfMatch.lastName),
-          photoUrl: match.manOfMatch.photoConsent && match.manOfMatch.photoUrl ? match.manOfMatch.photoUrl : null,
+          photoUrl: match.manOfMatch.photoConsent && (match.manOfMatch.portraitUrl || match.manOfMatch.photoUrl) ? (match.manOfMatch.portraitUrl || match.manOfMatch.photoUrl) : null,
         }
       : null,
   });

@@ -1,32 +1,11 @@
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_FOOTBALL_SEASON } from "@/lib/football-season";
 import AdminPlayersBoard from "@/components/AdminPlayersBoard";
 import BulkPlayerPhotoImport from "@/components/BulkPlayerPhotoImport";
 import { syncPlayerPhotoByIdentity } from "@/lib/player-photo-sync";
-
-async function uploadPlayerPhoto(file: File, playerName: string) {
-  if (!file || file.size === 0) return null;
-
-  const safeName = playerName
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
-  const extension = file.name.split(".").pop() || "jpg";
-
-  const blob = await put(
-    `players/${safeName}-${Date.now()}.${extension}`,
-    file,
-    { access: "public" },
-  );
-
-  return blob.url;
-}
+import { uploadPlayerPhotoAssets } from "@/lib/player-photo-assets";
 
 async function createPlayer(formData: FormData) {
   "use server";
@@ -42,9 +21,9 @@ async function createPlayer(formData: FormData) {
 
   if (!firstName || !lastName) return;
 
-  const photoUrl =
+  const photoAssets =
     photoFile && photoFile.size > 0
-      ? await uploadPlayerPhoto(photoFile, `${firstName}-${lastName}`)
+      ? await uploadPlayerPhotoAssets(photoFile, `${firstName}-${lastName}`)
       : null;
 
   await prisma.player.create({
@@ -53,7 +32,8 @@ async function createPlayer(formData: FormData) {
       lastName,
       team: team || null,
       category: category || null,
-      photoUrl,
+      photoUrl: photoAssets?.photoUrl || null,
+      portraitUrl: photoAssets?.portraitUrl || null,
       photoConsent: false,
       stats: {
         create: {
@@ -65,8 +45,8 @@ async function createPlayer(formData: FormData) {
     },
   });
 
-  if (photoUrl) {
-    await syncPlayerPhotoByIdentity(firstName, lastName, photoUrl);
+  if (photoAssets) {
+    await syncPlayerPhotoByIdentity(firstName, lastName, photoAssets.photoUrl, photoAssets.portraitUrl);
   }
 
   revalidatePath("/admin/joueurs");
@@ -95,12 +75,12 @@ async function updatePlayer(formData: FormData) {
 
   if (!id || !firstName || !lastName) return;
 
-  const uploadedPhotoUrl =
+  const uploadedPhotoAssets =
     photoFile && photoFile.size > 0
-      ? await uploadPlayerPhoto(photoFile, `${firstName}-${lastName}`)
+      ? await uploadPlayerPhotoAssets(photoFile, `${firstName}-${lastName}`)
       : null;
 
-  const photoUrl = uploadedPhotoUrl || currentPhotoUrl || null;
+  const photoUrl = uploadedPhotoAssets?.photoUrl || currentPhotoUrl || null;
 
   await prisma.player.update({
     where: { id },
@@ -110,12 +90,13 @@ async function updatePlayer(formData: FormData) {
       team: team || null,
       category: category || null,
       photoUrl,
+      ...(uploadedPhotoAssets ? { portraitUrl: uploadedPhotoAssets.portraitUrl } : {}),
       isActive,
     },
   });
 
-  if (uploadedPhotoUrl) {
-    await syncPlayerPhotoByIdentity(firstName, lastName, uploadedPhotoUrl);
+  if (uploadedPhotoAssets) {
+    await syncPlayerPhotoByIdentity(firstName, lastName, uploadedPhotoAssets.photoUrl, uploadedPhotoAssets.portraitUrl);
   }
 
   if (statId) {
@@ -178,6 +159,7 @@ export default async function AdminJoueursPage() {
     team: player.team,
     category: player.category,
     photoUrl: player.photoUrl,
+    portraitUrl: player.portraitUrl,
     photoConsent: player.photoConsent,
     isActive: player.isActive,
     statId: player.stats[0]?.id || "",
@@ -188,7 +170,7 @@ export default async function AdminJoueursPage() {
   return (
     <>
       <div className="px-6 pt-6 md:px-8 md:pt-8">
-        <BulkPlayerPhotoImport players={formattedPlayers.map(({ id, firstName, lastName, team }) => ({ id, firstName, lastName, team }))} />
+        <BulkPlayerPhotoImport players={formattedPlayers.map(({ id, firstName, lastName, team, photoUrl, portraitUrl }) => ({ id, firstName, lastName, team, photoUrl, portraitUrl }))} />
       </div>
       <AdminPlayersBoard
       season={season}

@@ -21,6 +21,10 @@ function cropForImage(width: number, height: number): Crop {
 
   const ratio = width / height;
 
+  // Les portraits HD V19.22 sont générés en carré 800x800 : on les affiche
+  // sans zoom CSS supplémentaire afin de conserver le cadrage calculé côté serveur.
+  if (ratio >= 0.95 && ratio <= 1.05) return { zoom: 1, y: 50 };
+
   // Most club photos are portrait/full-body shots. The narrower the image,
   // the more we zoom into its upper section so the player's face stays legible
   // inside the small avatars used on rankings and match cards.

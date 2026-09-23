@@ -3,7 +3,7 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { Images, UploadCloud } from "lucide-react";
 
-type PlayerOption = { id: string; firstName: string; lastName: string; team: string | null };
+type PlayerOption = { id: string; firstName: string; lastName: string; team: string | null; photoUrl?: string | null; portraitUrl?: string | null };
 type ImportRow = { file: File; expectedName: string; player: PlayerOption | null; enabled: boolean; status: string };
 
 const PHOTO_MAP: Record<string, string> = {
@@ -21,7 +21,7 @@ const PHOTO_MAP: Record<string, string> = {
   "IMG_20260919_150417.jpg": "Eric Bonnassieux",
   "IMG_20260919_150826.jpg": "Maxime Fieujean",
   "IMG_20260919_150834.jpg": "Eduardo Alberto",
-  "IMG_20260919_150842.jpg": "Elias Mohammed",
+  "IMG_20260919_150842.jpg": "Elias Mohamed",
   "IMG_20260919_150847.jpg": "Simon Desmurs",
   "IMG_20260919_150851 (1).jpg": "Victor Michon",
   "IMG_20260919_150851.jpg": "Victor Michon",
@@ -72,6 +72,8 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [running, setRunning] = useState(false);
   const [summary, setSummary] = useState("");
+  const [portraitRunning, setPortraitRunning] = useState(false);
+  const [portraitSummary, setPortraitSummary] = useState("");
   const playerByName = useMemo(() => {
     const map = new Map<string, PlayerOption>();
     for (const player of players) {
@@ -118,8 +120,53 @@ export default function BulkPlayerPhotoImport({ players }: { players: PlayerOpti
     setSummary(`${success} photo(s) importée(s)${errors ? ` · ${errors} erreur(s)` : ""}.`);
   }
 
+
+  async function generatePortraits() {
+    const seen = new Set<string>();
+    const targets = players.filter((player) => {
+      if (!player.photoUrl || player.portraitUrl) return false;
+      const identity = normalize(`${player.firstName}${player.lastName}`);
+      if (seen.has(identity)) return false;
+      seen.add(identity);
+      return true;
+    });
+    if (!targets.length) {
+      setPortraitSummary("Tous les joueurs avec photo disposent déjà d’un portrait HD.");
+      return;
+    }
+
+    setPortraitRunning(true);
+    let success = 0;
+    let errors = 0;
+
+    for (const player of targets) {
+      setPortraitSummary(`Génération des portraits HD… ${success + errors}/${targets.length}`);
+      try {
+        const response = await fetch("/api/players/portrait", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playerId: player.id }),
+        });
+        if (!response.ok) throw new Error("portrait");
+        success += 1;
+      } catch {
+        errors += 1;
+      }
+    }
+
+    setPortraitRunning(false);
+    setPortraitSummary(`${success} portrait(s) HD généré(s)${errors ? ` · ${errors} erreur(s)` : ""}. Rechargez la page Classements pour voir le nouveau rendu.`);
+  }
+
   return <section className="mb-6 rounded-[2rem] border border-orange-200 bg-orange-50/40 p-5 md:p-6">
     <div className="flex items-start gap-3"><div className="rounded-2xl bg-orange-600 p-3 text-white"><Images className="h-5 w-5" /></div><div><h2 className="text-lg font-extrabold text-neutral-950">Import massif des photos joueurs</h2><p className="mt-1 text-sm text-neutral-600">Sélectionnez les photos originales du lot du 19/20 septembre. Les fichiers sont associés automatiquement aux joueurs avant l’envoi.</p></div></div>
+    <div className="mt-4 rounded-2xl border border-orange-200 bg-white p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><div className="font-extrabold text-neutral-950">Portraits HD automatiques</div><p className="mt-1 text-xs text-neutral-500">Crée un vrai portrait carré 800×800 à partir des photos déjà stockées, avec cadrage automatique centré sur la zone la plus importante du visage/haut du corps.</p></div>
+        <button type="button" disabled={portraitRunning} onClick={() => void generatePortraits()} className="shrink-0 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-extrabold text-white disabled:opacity-50">{portraitRunning ? "Génération…" : "Générer les portraits HD"}</button>
+      </div>
+      {portraitSummary ? <p className="mt-3 text-xs font-semibold text-emerald-700">{portraitSummary}</p> : null}
+    </div>
     <label className="mt-5 flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-orange-300 bg-white px-4 py-4 text-sm font-bold text-orange-700 hover:bg-orange-50"><UploadCloud className="h-5 w-5" />Choisir toutes les photos<input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={selectFiles} disabled={running} /></label>
     {summary ? <p className="mt-3 text-sm font-semibold text-neutral-700">{summary}</p> : null}
     {rows.length ? <div className="mt-4 max-h-96 space-y-2 overflow-auto rounded-2xl bg-white p-3">{rows.map((row, index) => <label key={`${row.file.name}-${index}`} className="flex items-center gap-3 rounded-xl border border-neutral-100 p-3 text-sm"><input type="checkbox" checked={row.enabled} disabled={!row.player || running} onChange={(e) => setRows((current) => current.map((item, idx) => idx === index ? { ...item, enabled: e.target.checked } : item))} /><div className="min-w-0 flex-1"><div className="truncate font-bold text-neutral-900">{row.expectedName}</div><div className="truncate text-xs text-neutral-500">{row.file.name}{row.player?.team ? ` · ${row.player.team}` : ""}</div></div><span className={`shrink-0 text-xs font-bold ${row.status === "Erreur" || !row.player ? "text-red-600" : "text-emerald-700"}`}>{row.status}</span></label>)}</div> : null}

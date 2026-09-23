@@ -101,6 +101,7 @@ export default async function HomeWeekendMatches() {
           firstName: true,
           lastName: true,
           photoUrl: true,
+          portraitUrl: true,
           photoConsent: true,
         },
       },
@@ -129,8 +130,8 @@ export default async function HomeWeekendMatches() {
       ? {
           name: formatPlayerName(match.manOfMatch.firstName, match.manOfMatch.lastName),
           photoUrl:
-            match.manOfMatch.photoConsent && match.manOfMatch.photoUrl
-              ? match.manOfMatch.photoUrl
+            match.manOfMatch.photoConsent && (match.manOfMatch.portraitUrl || match.manOfMatch.photoUrl)
+              ? (match.manOfMatch.portraitUrl || match.manOfMatch.photoUrl)
               : null,
         }
       : null,

@@ -392,6 +392,7 @@ model Player {
   sortOrder      Int          @default(0)
 
   photoUrl       String?
+  portraitUrl    String?
   photoConsent   Boolean      @default(false)
 
   isActive       Boolean      @default(true)

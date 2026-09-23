@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
 import Container from "@/components/Container";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +15,7 @@ import PlayerRosterSearch from "@/components/PlayerRosterSearch";
 import BulkPlayerPhotoImport from "@/components/BulkPlayerPhotoImport";
 import { getImageConsentState, consentStateLabel, isMinorTeam } from "@/lib/image-consent";
 import { syncPlayerPhotoByIdentity } from "@/lib/player-photo-sync";
+import { uploadPlayerPhotoAssets } from "@/lib/player-photo-assets";
 
 type PageProps = {
   params: Promise<{ team: string }>;
@@ -48,27 +48,6 @@ const PLAYER_POSITION_SIDES = [
 function parseSortOrder(value: FormDataEntryValue | null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-async function uploadPlayerPhoto(file: File, playerName: string) {
-  if (!file || file.size === 0) return null;
-
-  const safeName = playerName
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
-  const extension = file.name.split(".").pop() || "jpg";
-
-  const blob = await put(
-    `players/${safeName}-${Date.now()}.${extension}`,
-    file,
-    { access: "public" },
-  );
-
-  return blob.url;
 }
 
 function getCategoryFromTeam(team: string) {
@@ -111,9 +90,9 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
 
     if (!firstName || !lastName) return;
 
-    const photoUrl =
+    const photoAssets =
       photoFile && photoFile.size > 0
-        ? await uploadPlayerPhoto(photoFile, `${firstName}-${lastName}`)
+        ? await uploadPlayerPhotoAssets(photoFile, `${firstName}-${lastName}`)
         : null;
 
     await prisma.player.create({
@@ -125,7 +104,8 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
         position: position || null,
         positionSide: positionSide || null,
         sortOrder,
-        photoUrl,
+        photoUrl: photoAssets?.photoUrl || null,
+        portraitUrl: photoAssets?.portraitUrl || null,
         photoConsent: false,
         isActive: true,
         stats: {
@@ -138,8 +118,8 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
       },
     });
 
-    if (photoUrl) {
-      await syncPlayerPhotoByIdentity(firstName, lastName, photoUrl);
+    if (photoAssets) {
+      await syncPlayerPhotoByIdentity(firstName, lastName, photoAssets.photoUrl, photoAssets.portraitUrl);
     }
 
     revalidatePath(`/admin/equipes/${teamSlug}`);
@@ -179,9 +159,9 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
 
     if (!player || normalizeTeamName(player.team || "") !== teamName) return;
 
-    const uploadedPhotoUrl =
+    const uploadedPhotoAssets =
       photoFile && photoFile.size > 0
-        ? await uploadPlayerPhoto(photoFile, `${firstName}-${lastName}`)
+        ? await uploadPlayerPhotoAssets(photoFile, `${firstName}-${lastName}`)
         : null;
 
     await prisma.player.update({
@@ -194,13 +174,14 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
         position: position || null,
         positionSide: positionSide || null,
         sortOrder,
-        photoUrl: uploadedPhotoUrl || currentPhotoUrl || null,
+        photoUrl: uploadedPhotoAssets?.photoUrl || currentPhotoUrl || null,
+        ...(uploadedPhotoAssets ? { portraitUrl: uploadedPhotoAssets.portraitUrl } : {}),
         isActive,
       },
     });
 
-    if (uploadedPhotoUrl) {
-      await syncPlayerPhotoByIdentity(firstName, lastName, uploadedPhotoUrl);
+    if (uploadedPhotoAssets) {
+      await syncPlayerPhotoByIdentity(firstName, lastName, uploadedPhotoAssets.photoUrl, uploadedPhotoAssets.portraitUrl);
     }
 
     revalidatePath(`/admin/equipes/${teamSlug}`);
@@ -267,6 +248,8 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
         firstName: true,
         lastName: true,
         team: true,
+        photoUrl: true,
+        portraitUrl: true,
       },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
