@@ -1,24 +1,154 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
+import DeleteNewsItemButton from "@/components/DeleteNewsItemButton";
+import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import { requireRole } from "@/lib/auth-guard";
+import { prisma } from "@/lib/prisma";
 import {
   ArrowLeft,
   CalendarDays,
-  ClipboardList,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  EyeOff,
+  MapPin,
   PartyPopper,
-  Sparkles,
-  Users,
+  Plus,
+  SquarePen,
 } from "lucide-react";
 
-export default async function EspaceFestivitePage() {
+function formatEventDate(date: Date | string | null | undefined) {
+  if (!date) return "Date à préciser";
+
+  return new Date(date).toLocaleString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function toastMessage(toast?: string) {
+  switch (toast) {
+    case "created":
+      return "Manifestation créée avec succès.";
+    case "updated":
+      return "Manifestation mise à jour.";
+    case "deleted":
+      return "Manifestation supprimée.";
+    case "published":
+      return "Manifestation publiée.";
+    case "draft":
+      return "Manifestation repassée en brouillon.";
+    default:
+      return null;
+  }
+}
+
+export default async function EspaceFestivitePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ toast?: string }>;
+}) {
   const { user } = await requireRole(["admin", "festivite"]);
+  const resolvedSearchParams = await searchParams;
+  const message = toastMessage(resolvedSearchParams?.toast);
+
+  async function togglePublish(formData: FormData) {
+    "use server";
+
+    await requireRole(["admin", "festivite"]);
+
+    const id = String(formData.get("id") || "").trim();
+
+    if (!id) {
+      throw new Error("ID de la manifestation manquant.");
+    }
+
+    const item = await prisma.newsItem.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        type: true,
+        isPublished: true,
+        publishedAt: true,
+      },
+    });
+
+    if (!item || item.type !== "manifestation") {
+      throw new Error("Manifestation introuvable.");
+    }
+
+    const nextIsPublished = !item.isPublished;
+
+    await prisma.newsItem.update({
+      where: { id },
+      data: {
+        isPublished: nextIsPublished,
+        publishedAt: nextIsPublished ? item.publishedAt || new Date() : null,
+      },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/actualites");
+    revalidatePath("/espace-communication");
+    revalidatePath("/espace-festivite");
+
+    redirect(`/espace-festivite?toast=${nextIsPublished ? "published" : "draft"}`);
+  }
+
+  async function deleteManifestation(formData: FormData) {
+    "use server";
+
+    await requireRole(["admin", "festivite"]);
+
+    const id = String(formData.get("id") || "").trim();
+
+    if (!id) {
+      throw new Error("ID de la manifestation manquant.");
+    }
+
+    const item = await prisma.newsItem.findUnique({
+      where: { id },
+      select: { type: true },
+    });
+
+    if (!item || item.type !== "manifestation") {
+      throw new Error("Manifestation introuvable.");
+    }
+
+    await prisma.newsItem.delete({ where: { id } });
+
+    revalidatePath("/");
+    revalidatePath("/actualites");
+    revalidatePath("/espace-communication");
+    revalidatePath("/espace-festivite");
+
+    redirect("/espace-festivite?toast=deleted");
+  }
 
   const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
     role === "admin" ? "Retour dashboard admin" : "Retour espace club";
+
+  const manifestations = await prisma.newsItem.findMany({
+    where: { type: "manifestation" },
+    orderBy: [{ eventDate: "asc" }, { createdAt: "desc" }],
+  });
+
+  const now = new Date();
+  const upcomingCount = manifestations.filter(
+    (item) => item.eventDate && item.eventDate >= now,
+  ).length;
+  const publishedCount = manifestations.filter((item) => item.isPublished).length;
+  const draftCount = manifestations.length - publishedCount;
 
   return (
     <Container>
@@ -33,7 +163,6 @@ export default async function EspaceFestivitePage() {
                 <Link href={dashboardHref}>
                   <Badge>Espace privé</Badge>
                 </Link>
-
                 <Link href="/espace-festivite">
                   <Badge>Festivité</Badge>
                 </Link>
@@ -50,148 +179,184 @@ export default async function EspaceFestivitePage() {
               </div>
 
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
-                Espace festivité
+                Manifestations du club
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
-                Prépare les événements, animations et temps forts de la vie du
-                club. Cet espace servira à structurer l’organisation des moments
-                conviviaux et des opérations festives.
+                Ajoute et mets à jour les dates des manifestations directement
+                depuis l’espace Festivité. Les événements publiés alimentent la
+                page Actualités et la prochaine manifestation de l’accueil.
               </p>
             </div>
 
-            <AdminLogoutButton />
+            <div className="flex flex-col items-stretch gap-3 sm:items-end">
+              <AdminLogoutButton />
+              <Link
+                href="/espace-communication/new?type=manifestation&from=festivite"
+                className="btn-primary inline-flex items-center justify-center gap-2"
+              >
+                <Plus size={16} />
+                Ajouter une manifestation
+              </Link>
+            </div>
           </div>
         </section>
 
-        <div className="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-6">
-            <section className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-csv-orange">
-                  <PartyPopper size={20} />
-                </div>
+        {message ? (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-semibold text-green-800">
+            <CheckCircle2 size={18} />
+            {message}
+          </div>
+        ) : null}
 
-                <div>
-                  <h2 className="text-xl font-extrabold text-neutral-900">
-                    Tableau de bord festivité
-                  </h2>
-                  <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Vue d’ensemble de l’organisation des événements et des temps
-                    forts festifs du club.
-                  </p>
-                </div>
+        <section className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
+            <div className="text-3xl font-extrabold text-neutral-950">
+              {manifestations.length}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-neutral-600">
+              manifestation(s)
+            </div>
+          </div>
+          <div className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
+            <div className="text-3xl font-extrabold text-neutral-950">
+              {upcomingCount}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-neutral-600">
+              date(s) à venir
+            </div>
+          </div>
+          <div className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
+            <div className="text-3xl font-extrabold text-neutral-950">
+              {publishedCount}
+              <span className="ml-2 text-base font-bold text-neutral-400">
+                / {draftCount} brouillon(s)
+              </span>
+            </div>
+            <div className="mt-1 text-sm font-semibold text-neutral-600">
+              publiée(s)
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-csv-orange">
+                <PartyPopper size={20} />
               </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-                  <div className="flex items-center gap-2 text-neutral-800">
-                    <Sparkles size={16} className="text-csv-orange" />
-                    <h3 className="text-sm font-bold">Événements</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Préparer les temps forts, soirées et animations.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-                  <div className="flex items-center gap-2 text-neutral-800">
-                    <CalendarDays size={16} className="text-csv-orange" />
-                    <h3 className="text-sm font-bold">Planning</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Structurer les dates et besoins d’organisation.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-                  <div className="flex items-center gap-2 text-neutral-800">
-                    <Users size={16} className="text-csv-orange" />
-                    <h3 className="text-sm font-bold">Équipes</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Répartir les rôles et tâches sur les événements.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-                  <div className="flex items-center gap-2 text-neutral-800">
-                    <ClipboardList size={16} className="text-csv-orange" />
-                    <h3 className="text-sm font-bold">À venir</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Budget, ressources et suivi des opérations.
-                  </p>
-                </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-neutral-900">
+                  Planning des manifestations
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                  Les membres Festivité gèrent uniquement les manifestations,
+                  sans accès aux gazettes ni aux annonces Communication.
+                </p>
               </div>
-            </section>
+            </div>
+
+            <Link
+              href="/actualites#manifestations"
+              className="btn-secondary inline-flex items-center justify-center gap-2"
+            >
+              <Eye size={16} />
+              Voir côté public
+            </Link>
           </div>
 
-          <div className="space-y-6">
-            <section className="rounded-[1.75rem] border border-orange-100 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-extrabold text-neutral-900">Accès</h2>
-
-              <div className="mt-4 space-y-3 text-sm text-neutral-700">
-                <p>
-                  <span className="font-semibold text-neutral-900">
-                    Connecté :
-                  </span>{" "}
-                  {user.name || user.email || "Utilisateur"}
-                </p>
-
-                <p>
-                  <span className="font-semibold text-neutral-900">Rôle :</span>{" "}
-                  {user.role}
-                </p>
-
-                <p>
-                  <span className="font-semibold text-neutral-900">
-                    Espace autorisé :
-                  </span>{" "}
-                  admin + festivite
-                </p>
-              </div>
-            </section>
-
-            <section className="rounded-[1.75rem] border border-neutral-800 bg-neutral-950 p-6 text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.45)]">
-              <h2 className="text-xl font-extrabold tracking-tight">
-                Cap festivité
-              </h2>
-
-              <p className="mt-2 text-sm leading-relaxed text-white/75">
-                Cet espace servira à préparer des événements mieux organisés,
-                plus fluides et plus agréables pour la vie du club.
+          {manifestations.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 px-5 py-8 text-center">
+              <CalendarDays className="mx-auto text-csv-orange" size={28} />
+              <p className="mt-3 font-bold text-neutral-900">
+                Aucune manifestation enregistrée
               </p>
+              <p className="mt-1 text-sm text-neutral-600">
+                Ajoute la première date pour commencer le planning.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4">
+              {manifestations.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
+                >
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-xs font-bold ${
+                            item.isPublished
+                              ? "border-green-200 bg-green-50 text-green-700"
+                              : "border-neutral-200 bg-white text-neutral-600"
+                          }`}
+                        >
+                          {item.isPublished ? "Publié" : "Brouillon"}
+                        </span>
+                        {item.eventDate && item.eventDate >= now ? (
+                          <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700">
+                            À venir
+                          </span>
+                        ) : null}
+                      </div>
 
-              <div className="mt-5 space-y-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-bold text-white">Ambiance</div>
-                  <p className="mt-2 text-sm leading-relaxed text-white/70">
-                    Préparer les temps forts festifs et les animations du club.
-                  </p>
-                </div>
+                      <h3 className="mt-3 text-lg font-extrabold text-neutral-950">
+                        {item.title}
+                      </h3>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-bold text-white">
-                    Organisation
+                      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-600">
+                        <span className="inline-flex items-center gap-2">
+                          <Clock3 size={15} className="text-csv-orange" />
+                          {formatEventDate(item.eventDate)}
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <MapPin size={15} className="text-csv-orange" />
+                          {item.location || "Lieu à préciser"}
+                        </span>
+                      </div>
+
+                      {item.excerpt ? (
+                        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-neutral-600">
+                          {item.excerpt}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Link
+                        href={`/espace-communication/${item.id}/edit?from=festivite`}
+                        className="btn-secondary inline-flex items-center justify-center gap-2"
+                      >
+                        <SquarePen size={15} />
+                        Modifier
+                      </Link>
+
+                      <form action={togglePublish}>
+                        <input type="hidden" name="id" value={item.id} />
+                        <FormSubmitButton
+                          idleLabel={item.isPublished ? "Dépublier" : "Publier"}
+                          pendingLabel="Mise à jour..."
+                          loadingTitle="Mise à jour en cours..."
+                          loadingDescription="Le statut de la manifestation est en cours de modification."
+                          className="btn-secondary"
+                          icon={item.isPublished ? <EyeOff size={15} /> : <Eye size={15} />}
+                        />
+                      </form>
+
+                      <DeleteNewsItemButton
+                        id={item.id}
+                        title={item.title}
+                        action={deleteManifestation}
+                        loadingDescription="La manifestation est en train d’être supprimée."
+                      />
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-white/70">
-                    Structurer les équipes, les besoins et les étapes de
-                    préparation.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm font-bold text-white">Suivi</div>
-                  <p className="mt-2 text-sm leading-relaxed text-white/70">
-                    Poser une base claire pour les prochains événements et
-                    opérations conviviales.
-                  </p>
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </Container>
   );

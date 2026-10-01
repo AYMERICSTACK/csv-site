@@ -21,7 +21,7 @@ function forbiddenResponse() {
 
 export async function POST(req: Request) {
   try {
-    const access = await hasCurrentUserRole(["admin", "communication"]);
+    const access = await hasCurrentUserRole(["admin", "communication", "festivite"]);
 
     if (!access.ok) {
       return access.reason === "unauthorized"

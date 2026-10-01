@@ -44,16 +44,25 @@ function typeLabel(type: string) {
 export default async function NewCommunicationContentPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ type?: string }>;
+  searchParams?: Promise<{ type?: string; from?: string }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const requestedType = resolvedSearchParams?.type || "annonce";
+  const requestedFrom = resolvedSearchParams?.from || "";
   const defaultType = ["gazette", "manifestation", "annonce"].includes(
     requestedType,
   )
     ? requestedType
     : "annonce";
-  const { user } = await requireRole(["admin", "communication"]);
+  const { user, availableRoles } = await requireRole([
+    "admin",
+    "communication",
+    "festivite",
+  ]);
+  const canManageCommunication =
+    availableRoles.includes("admin") || availableRoles.includes("communication");
+  const festiviteMode = requestedFrom === "festivite" || !canManageCommunication;
+  const effectiveDefaultType = festiviteMode ? "manifestation" : defaultType;
   const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
@@ -62,13 +71,21 @@ export default async function NewCommunicationContentPage({
   async function createNewsItem(formData: FormData) {
     "use server";
 
-    await requireRole(["admin", "communication"]);
+    const access = await requireRole(["admin", "communication", "festivite"]);
+    const canManageCommunication =
+      access.availableRoles.includes("admin") ||
+      access.availableRoles.includes("communication");
 
     const title = String(formData.get("title") || "").trim();
     const slugInput = String(formData.get("slug") || "").trim();
     const excerpt = String(formData.get("excerpt") || "").trim();
     const content = String(formData.get("content") || "").trim();
-    const type = String(formData.get("type") || "annonce").trim();
+    let type = String(formData.get("type") || "annonce").trim();
+    const returnTo = String(formData.get("returnTo") || "").trim();
+
+    if (!canManageCommunication || returnTo === "festivite") {
+      type = "manifestation";
+    }
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
     const fileUrl = String(formData.get("fileUrl") || "").trim();
     const externalUrl = String(formData.get("externalUrl") || "").trim();
@@ -123,10 +140,12 @@ export default async function NewCommunicationContentPage({
       },
     });
 
+    revalidatePath("/");
     revalidatePath("/actualites");
     revalidatePath("/espace-communication");
+    revalidatePath("/espace-festivite");
 
-    redirect("/espace-communication");
+    redirect(returnTo === "festivite" ? "/espace-festivite?toast=created" : "/espace-communication");
   }
 
   return (
@@ -143,9 +162,15 @@ export default async function NewCommunicationContentPage({
                   <Badge>Espace privé</Badge>
                 </Link>
 
-                <Link href="/espace-communication">
-                  <Badge>Communication</Badge>
-                </Link>
+                {festiviteMode ? (
+                  <Link href="/espace-festivite">
+                    <Badge>Festivité</Badge>
+                  </Link>
+                ) : (
+                  <Link href="/espace-communication">
+                    <Badge>Communication</Badge>
+                  </Link>
+                )}
 
                 <Link href="/actualites">
                   <Badge>Actualités</Badge>
@@ -206,6 +231,9 @@ export default async function NewCommunicationContentPage({
             </div>
 
             <form action={createNewsItem} className="mt-6 space-y-5">
+              {festiviteMode ? (
+                <input type="hidden" name="returnTo" value="festivite" />
+              ) : null}
               <div>
                 <label htmlFor="title" className="label">
                   Titre
@@ -241,16 +269,23 @@ export default async function NewCommunicationContentPage({
                   <label htmlFor="type" className="label">
                     Type
                   </label>
-                  <select
-                    id="type"
-                    name="type"
-                    defaultValue={defaultType}
-                    className="input"
-                  >
-                    <option value="gazette">Gazette</option>
-                    <option value="manifestation">Manifestation</option>
-                    <option value="annonce">Annonce</option>
-                  </select>
+                  {festiviteMode ? (
+                    <>
+                      <input type="hidden" name="type" value="manifestation" />
+                      <div className="input flex items-center">Manifestation</div>
+                    </>
+                  ) : (
+                    <select
+                      id="type"
+                      name="type"
+                      defaultValue={effectiveDefaultType}
+                      className="input"
+                    >
+                      <option value="gazette">Gazette</option>
+                      <option value="manifestation">Manifestation</option>
+                      <option value="annonce">Annonce</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -411,7 +446,10 @@ export default async function NewCommunicationContentPage({
                   </span>
                 </button>
 
-                <Link href="/espace-communication" className="btn-secondary">
+                <Link
+                  href={festiviteMode ? "/espace-festivite" : "/espace-communication"}
+                  className="btn-secondary"
+                >
                   Annuler
                 </Link>
               </div>

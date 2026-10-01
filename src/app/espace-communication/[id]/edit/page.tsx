@@ -21,6 +21,7 @@ import {
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ from?: string }>;
 };
 
 function slugify(value: string) {
@@ -61,8 +62,18 @@ function typeLabel(type: string) {
 
 export default async function EditCommunicationContentPage({
   params,
+  searchParams,
 }: PageProps) {
-  const { user } = await requireRole(["admin", "communication"]);
+  const resolvedSearchParams = await searchParams;
+  const requestedFrom = resolvedSearchParams?.from || "";
+  const { user, availableRoles } = await requireRole([
+    "admin",
+    "communication",
+    "festivite",
+  ]);
+  const canManageCommunication =
+    availableRoles.includes("admin") || availableRoles.includes("communication");
+  const festiviteMode = requestedFrom === "festivite" || !canManageCommunication;
   const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
@@ -78,17 +89,25 @@ export default async function EditCommunicationContentPage({
     notFound();
   }
 
+  if (!canManageCommunication && item.type !== "manifestation") {
+    redirect("/espace-festivite");
+  }
+
   async function updateNewsItem(formData: FormData) {
     "use server";
 
-    await requireRole(["admin", "communication"]);
+    const access = await requireRole(["admin", "communication", "festivite"]);
+    const canManageCommunication =
+      access.availableRoles.includes("admin") ||
+      access.availableRoles.includes("communication");
 
     const id = String(formData.get("id") || "").trim();
     const title = String(formData.get("title") || "").trim();
     const slugInput = String(formData.get("slug") || "").trim();
     const excerpt = String(formData.get("excerpt") || "").trim();
     const content = String(formData.get("content") || "").trim();
-    const type = String(formData.get("type") || "annonce").trim();
+    let type = String(formData.get("type") || "annonce").trim();
+    const returnTo = String(formData.get("returnTo") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
     const fileUrl = String(formData.get("fileUrl") || "").trim();
     const externalUrl = String(formData.get("externalUrl") || "").trim();
@@ -115,6 +134,14 @@ export default async function EditCommunicationContentPage({
 
     if (!existingItem) {
       throw new Error("Contenu introuvable.");
+    }
+
+    if (!canManageCommunication && existingItem.type !== "manifestation") {
+      throw new Error("Accès non autorisé à ce contenu.");
+    }
+
+    if (!canManageCommunication || returnTo === "festivite") {
+      type = "manifestation";
     }
 
     const slug = slugify(slugInput || title);
@@ -161,17 +188,22 @@ export default async function EditCommunicationContentPage({
       },
     });
 
+    revalidatePath("/");
     revalidatePath("/actualites");
     revalidatePath("/espace-communication");
+    revalidatePath("/espace-festivite");
     revalidatePath(`/espace-communication/${id}/edit`);
 
-    redirect("/espace-communication?toast=updated");
+    redirect(returnTo === "festivite" ? "/espace-festivite?toast=updated" : "/espace-communication?toast=updated");
   }
 
   async function deleteNewsItem(formData: FormData) {
     "use server";
 
-    await requireRole(["admin", "communication"]);
+    const access = await requireRole(["admin", "communication", "festivite"]);
+    const canManageCommunication =
+      access.availableRoles.includes("admin") ||
+      access.availableRoles.includes("communication");
 
     const id = String(formData.get("id") || "").trim();
 
@@ -179,14 +211,29 @@ export default async function EditCommunicationContentPage({
       throw new Error("ID du contenu manquant.");
     }
 
+    const existingItem = await prisma.newsItem.findUnique({
+      where: { id },
+      select: { type: true },
+    });
+
+    if (!existingItem) {
+      throw new Error("Contenu introuvable.");
+    }
+
+    if (!canManageCommunication && existingItem.type !== "manifestation") {
+      throw new Error("Accès non autorisé à ce contenu.");
+    }
+
     await prisma.newsItem.delete({
       where: { id },
     });
 
+    revalidatePath("/");
     revalidatePath("/actualites");
     revalidatePath("/espace-communication");
+    revalidatePath("/espace-festivite");
 
-    redirect("/espace-communication?toast=deleted");
+    redirect(festiviteMode ? "/espace-festivite?toast=deleted" : "/espace-communication?toast=deleted");
   }
 
   return (
@@ -203,9 +250,15 @@ export default async function EditCommunicationContentPage({
                   <Badge>Espace privé</Badge>
                 </Link>
 
-                <Link href="/espace-communication">
-                  <Badge>Communication</Badge>
-                </Link>
+                {festiviteMode ? (
+                  <Link href="/espace-festivite">
+                    <Badge>Festivité</Badge>
+                  </Link>
+                ) : (
+                  <Link href="/espace-communication">
+                    <Badge>Communication</Badge>
+                  </Link>
+                )}
 
                 <Link href="/actualites">
                   <Badge>Actualités</Badge>
@@ -224,11 +277,11 @@ export default async function EditCommunicationContentPage({
                 </Link>
 
                 <Link
-                  href="/espace-communication"
+                  href={festiviteMode ? "/espace-festivite" : "/espace-communication"}
                   className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15"
                 >
                   <ArrowLeft size={14} />
-                  Retour communication
+                  {festiviteMode ? "Retour festivité" : "Retour communication"}
                 </Link>
               </div>
 
@@ -266,6 +319,9 @@ export default async function EditCommunicationContentPage({
 
             <form action={updateNewsItem} className="mt-6 space-y-5">
               <input type="hidden" name="id" value={item.id} />
+              {festiviteMode ? (
+                <input type="hidden" name="returnTo" value="festivite" />
+              ) : null}
 
               <div>
                 <label htmlFor="title" className="label">
@@ -299,16 +355,23 @@ export default async function EditCommunicationContentPage({
                   <label htmlFor="type" className="label">
                     Type
                   </label>
-                  <select
-                    id="type"
-                    name="type"
-                    defaultValue={item.type}
-                    className="input"
-                  >
-                    <option value="gazette">Gazette</option>
-                    <option value="manifestation">Manifestation</option>
-                    <option value="annonce">Annonce</option>
-                  </select>
+                  {festiviteMode ? (
+                    <>
+                      <input type="hidden" name="type" value="manifestation" />
+                      <div className="input flex items-center">Manifestation</div>
+                    </>
+                  ) : (
+                    <select
+                      id="type"
+                      name="type"
+                      defaultValue={item.type}
+                      className="input"
+                    >
+                      <option value="gazette">Gazette</option>
+                      <option value="manifestation">Manifestation</option>
+                      <option value="annonce">Annonce</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -470,7 +533,10 @@ export default async function EditCommunicationContentPage({
                   icon={<Save size={16} />}
                 />
 
-                <Link href="/espace-communication" className="btn-secondary">
+                <Link
+                  href={festiviteMode ? "/espace-festivite" : "/espace-communication"}
+                  className="btn-secondary"
+                >
                   Annuler
                 </Link>
               </div>
