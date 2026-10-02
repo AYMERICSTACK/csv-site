@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Container from "@/components/Container";
 import Button from "@/components/Button";
+import PinkOctoberBanner from "@/components/PinkOctoberBanner";
 import { site } from "@/data/site";
 import styles from "./HomeHero.module.css";
 
@@ -29,7 +30,7 @@ const values = [
   { k: "Ambiance", v: "familiale" },
 ];
 
-export default function HomeHero() {
+export default function HomeHero({ pinkOctoberActive = false }: { pinkOctoberActive?: boolean }) {
   return (
     <section className={styles.hero}>
       <div className={styles.background}>
@@ -50,12 +51,27 @@ export default function HomeHero() {
         <div className={styles.decorDark} />
       </div>
 
+      {pinkOctoberActive ? (
+        <div className={styles.pinkBannerWrap}>
+          <PinkOctoberBanner />
+        </div>
+      ) : null}
+
       <Container>
         <div className={styles.inner}>
           <div className={styles.left}>
-            <div className={styles.badge}>
-              <span className={styles.badgeDot} />
-              Site officiel — CS Viriat (CSV)
+            <div className={styles.badgeRow}>
+              <div className={styles.badge}>
+                <span className={styles.badgeDot} />
+                Site officiel — CS Viriat (CSV)
+              </div>
+
+              {pinkOctoberActive ? (
+                <div className={styles.pinkBadge}>
+                  <span aria-hidden="true">🎀</span>
+                  Octobre Rose
+                </div>
+              ) : null}
             </div>
 
             <h1 className={styles.title}>{site.name}</h1>

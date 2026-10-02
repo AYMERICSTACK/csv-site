@@ -67,6 +67,15 @@
   filter: blur(90px);
 }
 
+
+.pinkBannerWrap {
+  position: absolute;
+  top: 4rem;
+  left: 0;
+  right: 0;
+  z-index: 4;
+}
+
 .inner {
   display: grid;
   gap: 2.5rem;
@@ -78,6 +87,29 @@
 
 .left {
   max-width: 680px;
+}
+
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.pinkBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(251, 207, 232, 0.45);
+  border-radius: 9999px;
+  background: rgba(244, 114, 182, 0.2);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 8px 30px rgba(190, 24, 93, 0.15);
 }
 
 .badge {

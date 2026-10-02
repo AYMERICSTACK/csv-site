@@ -7,8 +7,10 @@ import SectionHeader from "@/components/SectionHeader";
 import HomeWeekendMatches from "@/components/HomeWeekendMatches";
 import HomeNextManifestation from "@/components/HomeNextManifestation";
 import { prisma } from "@/lib/prisma";
+import { isPinkOctoberActive } from "@/lib/pink-october";
 
 export default async function HomePage() {
+  const pinkOctoberActive = isPinkOctoberActive();
   const nextManifestations = await prisma.newsItem.findMany({
     where: {
       type: "manifestation",
@@ -40,7 +42,7 @@ export default async function HomePage() {
   const scrollingPartners = [...partners, ...partners];
   return (
     <>
-      <HomeHero />
+      <HomeHero pinkOctoberActive={pinkOctoberActive} />
       <HomeWeekendMatches />
       <HomeNextManifestation manifestations={nextManifestations} />
 
