@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MATCH_TEAMS, SCHOOL_FOOT_TEAMS } from "@/lib/teams";
+import { extractAccessiblePdfText } from "@/lib/match-import";
 import { Upload, CheckCircle2, AlertTriangle, Loader2, Users } from "lucide-react";
 
 type MatchRow = {
@@ -65,15 +66,28 @@ export default function MatchProgramImporter() {
 
   async function analyze() {
     if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Importe un PDF exporté depuis le visuel du programme.");
+      return;
+    }
     setLoading(true);
     setError("");
     setMatchRows([]);
     setPlateauRows([]);
-    const fd = new FormData();
-    fd.append("file", file);
-
     try {
-      const res = await fetch("/api/admin/match-import/analyze", { method: "POST", body: fd });
+      // Le PDF est lu directement dans le navigateur. On n'envoie à Vercel que
+      // les quelques jetons texte utiles à l'analyse, et jamais le fichier
+      // complet : cela évite FUNCTION_PAYLOAD_TOO_LARGE sur les gros exports Canva.
+      const tokens = extractAccessiblePdfText(await file.arrayBuffer());
+      if (!tokens.length) {
+        throw new Error("Aucun texte exploitable trouvé dans ce PDF. Vérifie qu’il s’agit bien du PDF exporté depuis le visuel du programme.");
+      }
+
+      const res = await fetch("/api/admin/match-import/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tokens, fileName: file.name }),
+      });
       const data = await readJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Analyse impossible.");
       setMatchRows((data.matches || []).map((row: MatchRow) => ({ ...row, selected: !row.existingMatch, state: "idle" })));

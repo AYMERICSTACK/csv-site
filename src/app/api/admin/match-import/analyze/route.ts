@@ -50,15 +50,48 @@ export async function POST(request: Request) {
     );
   }
 
-  const formData = await request.formData();
-  const file = formData.get("file");
-  if (!(file instanceof File)) return NextResponse.json({ error: "PDF manquant." }, { status: 400 });
-  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-    return NextResponse.json({ error: "Importe un PDF exporté depuis le visuel du programme." }, { status: 400 });
-  }
-  if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "Le PDF dépasse 10 Mo." }, { status: 400 });
+  let tokens: string[] = [];
+  const contentType = request.headers.get("content-type") || "";
 
-  const tokens = extractAccessiblePdfText(await file.arrayBuffer());
+  if (contentType.includes("application/json")) {
+    const body = (await request.json().catch(() => null)) as { tokens?: unknown; fileName?: unknown } | null;
+    if (!body || !Array.isArray(body.tokens)) {
+      return NextResponse.json({ error: "Données PDF manquantes." }, { status: 400 });
+    }
+
+    // Garde-fous sur le petit payload texte envoyé par le navigateur.
+    // Ces limites restent très au-dessus d'un programme week-end normal tout
+    // en évitant qu'une requête JSON arbitraire surcharge la Function.
+    const rawTokens = body.tokens;
+    if (rawTokens.length > 10_000) {
+      return NextResponse.json({ error: "Le PDF contient trop d’éléments à analyser." }, { status: 413 });
+    }
+    if (rawTokens.some((value) => typeof value !== "string")) {
+      return NextResponse.json({ error: "Données PDF invalides." }, { status: 400 });
+    }
+
+    tokens = (rawTokens as string[]).map((value) => value.trim()).filter(Boolean);
+    const textSize = tokens.reduce((total, value) => total + value.length, 0);
+    if (textSize > 500_000) {
+      return NextResponse.json({ error: "Le texte extrait du PDF est trop volumineux." }, { status: 413 });
+    }
+  } else {
+    // Compatibilité avec l'ancien client : les petits PDF peuvent encore être
+    // reçus en multipart. Le nouveau client n'utilise plus cette voie.
+    const formData = await request.formData();
+    const file = formData.get("file");
+    if (!(file instanceof File)) return NextResponse.json({ error: "PDF manquant." }, { status: 400 });
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return NextResponse.json({ error: "Importe un PDF exporté depuis le visuel du programme." }, { status: 400 });
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Ce PDF est trop volumineux pour l’ancien mode d’import. Recharge la page puis relance l’analyse." },
+        { status: 413 },
+      );
+    }
+    tokens = extractAccessiblePdfText(await file.arrayBuffer());
+  }
   const drafts = parseProgramTokens(tokens);
   const plateauDrafts = parseSchoolFootPlateaux(tokens);
 
