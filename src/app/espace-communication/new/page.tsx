@@ -176,7 +176,7 @@ export default async function NewCommunicationContentPage({
                   <Badge>Actualités</Badge>
                 </Link>
 
-                <Badge>Nouveau contenu</Badge>
+                <Badge>{festiviteMode ? "Nouvelle manifestation" : "Nouveau contenu"}</Badge>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-3">
@@ -188,23 +188,25 @@ export default async function NewCommunicationContentPage({
                   {dashboardLabel}
                 </Link>
 
-                <Link
-                  href="/espace-communication"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15"
-                >
-                  <ArrowLeft size={14} />
-                  Retour communication
-                </Link>
+                {!festiviteMode ? (
+                  <Link
+                    href="/espace-communication"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/15"
+                  >
+                    <ArrowLeft size={14} />
+                    Retour communication
+                  </Link>
+                ) : null}
               </div>
 
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
-                Ajouter un contenu
+                {festiviteMode ? "Ajouter une manifestation" : "Ajouter un contenu"}
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
-                Crée une gazette, une manifestation ou une annonce officielle du
-                club. Cette version permet aussi d’envoyer directement les
-                visuels et fichiers via Vercel Blob.
+                {festiviteMode
+                  ? "Ajoute une date au planning du club avec son lieu, sa description et, si besoin, une affiche ou un document."
+                  : "Crée une gazette, une manifestation ou une annonce officielle du club. Cette version permet aussi d’envoyer directement les visuels et fichiers via Vercel Blob."}
               </p>
             </div>
 
@@ -221,11 +223,12 @@ export default async function NewCommunicationContentPage({
 
               <div>
                 <h2 className="text-xl font-extrabold text-neutral-900">
-                  Formulaire de création
+                  {festiviteMode ? "Nouvelle manifestation" : "Formulaire de création"}
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                  Remplis les champs utiles selon le type de contenu. Tu peux
-                  publier directement ou enregistrer en brouillon.
+                  {festiviteMode
+                    ? "Renseigne les informations utiles. Tu peux publier immédiatement ou garder la manifestation en brouillon."
+                    : "Remplis les champs utiles selon le type de contenu. Tu peux publier directement ou enregistrer en brouillon."}
                 </p>
               </div>
             </div>
@@ -243,38 +246,38 @@ export default async function NewCommunicationContentPage({
                   name="title"
                   type="text"
                   className="input"
-                  placeholder="Ex : Gazette du week-end — 30 mars 2026"
+                  placeholder={festiviteMode ? "Ex : Soirée dansante — 12 décembre 2026" : "Ex : Gazette du week-end — 30 mars 2026"}
                   required
                 />
               </div>
 
-              <div>
-                <label htmlFor="slug" className="label">
-                  Slug
-                </label>
-                <input
-                  id="slug"
-                  name="slug"
-                  type="text"
-                  className="input"
-                  placeholder="Ex : gazette-week-end-30-mars-2026"
-                />
-                <p className="mt-2 text-xs text-neutral-500">
-                  Laisse vide pour le générer automatiquement à partir du titre.
-                </p>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
+              {!festiviteMode ? (
                 <div>
-                  <label htmlFor="type" className="label">
-                    Type
+                  <label htmlFor="slug" className="label">
+                    Slug
                   </label>
-                  {festiviteMode ? (
-                    <>
-                      <input type="hidden" name="type" value="manifestation" />
-                      <div className="input flex items-center">Manifestation</div>
-                    </>
-                  ) : (
+                  <input
+                    id="slug"
+                    name="slug"
+                    type="text"
+                    className="input"
+                    placeholder="Ex : gazette-week-end-30-mars-2026"
+                  />
+                  <p className="mt-2 text-xs text-neutral-500">
+                    Laisse vide pour le générer automatiquement à partir du titre.
+                  </p>
+                </div>
+              ) : null}
+
+              {festiviteMode ? (
+                <>
+                  <input type="hidden" name="type" value="manifestation" />
+                  <input type="hidden" name="sortOrder" value="0" />
+                </>
+              ) : (
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="type" className="label">Type</label>
                     <select
                       id="type"
                       name="type"
@@ -285,23 +288,13 @@ export default async function NewCommunicationContentPage({
                       <option value="manifestation">Manifestation</option>
                       <option value="annonce">Annonce</option>
                     </select>
-                  )}
+                  </div>
+                  <div>
+                    <label htmlFor="sortOrder" className="label">Ordre d’affichage</label>
+                    <input id="sortOrder" name="sortOrder" type="number" min="0" defaultValue="0" className="input" />
+                  </div>
                 </div>
-
-                <div>
-                  <label htmlFor="sortOrder" className="label">
-                    Ordre d’affichage
-                  </label>
-                  <input
-                    id="sortOrder"
-                    name="sortOrder"
-                    type="number"
-                    min="0"
-                    defaultValue="0"
-                    className="input"
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
                 <div className="flex items-start gap-3">
@@ -311,7 +304,7 @@ export default async function NewCommunicationContentPage({
 
                   <div>
                     <h3 className="text-sm font-extrabold text-neutral-900">
-                      Manifestation : deux usages possibles
+                      Bien préparer la manifestation
                     </h3>
 
                     <div className="mt-3 grid gap-3 text-sm leading-relaxed text-neutral-700 md:grid-cols-2">
@@ -337,27 +330,27 @@ export default async function NewCommunicationContentPage({
 
               <div>
                 <label htmlFor="excerpt" className="label">
-                  Extrait
+                  {festiviteMode ? "Description courte" : "Extrait"}
                 </label>
                 <textarea
                   id="excerpt"
                   name="excerpt"
                   rows={3}
                   className="input"
-                  placeholder="Résumé court visible sur la page actualités."
+                  placeholder={festiviteMode ? "Ex : Soirée du club ouverte à tous, repas sur réservation." : "Résumé court visible sur la page actualités."}
                 />
               </div>
 
               <div>
                 <label htmlFor="content" className="label">
-                  Contenu détaillé
+                  {festiviteMode ? "Informations complémentaires" : "Contenu détaillé"}
                 </label>
                 <textarea
                   id="content"
                   name="content"
                   rows={6}
                   className="input"
-                  placeholder="Texte plus complet si tu veux conserver un vrai contenu rédactionnel."
+                  placeholder={festiviteMode ? "Programme, horaires, inscriptions, consignes ou informations utiles." : "Texte plus complet si tu veux conserver un vrai contenu rédactionnel."}
                 />
               </div>
 
@@ -370,11 +363,11 @@ export default async function NewCommunicationContentPage({
               />
 
               <NewsAssetUpload
-                label="Fichier principal (PDF / image)"
+                label={festiviteMode ? "Document complémentaire (PDF / image)" : "Fichier principal (PDF / image)"}
                 name="fileUrl"
                 accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg"
                 placeholder="URL du fichier principal"
-                helpText="Idéal pour une gazette PDF, une affiche JPG/PNG ou un document du club."
+                helpText={festiviteMode ? "Optionnel : programme, menu, formulaire ou autre document lié à la manifestation." : "Idéal pour une gazette PDF, une affiche JPG/PNG ou un document du club."}
               />
 
               <div>
@@ -442,7 +435,7 @@ export default async function NewCommunicationContentPage({
                 <button type="submit" className="btn-primary">
                   <span className="inline-flex items-center gap-2">
                     <Save size={16} />
-                    Enregistrer le contenu
+                    {festiviteMode ? "Enregistrer la manifestation" : "Enregistrer le contenu"}
                   </span>
                 </button>
 
@@ -463,7 +456,7 @@ export default async function NewCommunicationContentPage({
               </div>
 
               <h2 className="mt-4 text-xl font-extrabold tracking-tight">
-                Types disponibles
+                {festiviteMode ? "À retenir" : "Types disponibles"}
               </h2>
 
               <div className="mt-5 space-y-3">
@@ -485,7 +478,7 @@ export default async function NewCommunicationContentPage({
                     icon: <Newspaper size={16} className="text-orange-400" />,
                     text: "Pour les informations rapides, les communiqués et les infos pratiques du CSV.",
                   },
-                ].map((item) => (
+                ].filter((item) => !festiviteMode || item.type === "manifestation").map((item) => (
                   <div
                     key={item.type}
                     className="rounded-2xl border border-white/10 bg-white/5 p-4"
@@ -513,7 +506,9 @@ export default async function NewCommunicationContentPage({
                     Conseils d’upload
                   </h2>
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Quelques règles simples pour garder une médiathèque propre.
+                    {festiviteMode
+                      ? "Ajoute une affiche ou un document uniquement si cela aide les participants."
+                      : "Quelques règles simples pour garder une médiathèque propre."}
                   </p>
                 </div>
               </div>
@@ -527,11 +522,12 @@ export default async function NewCommunicationContentPage({
                   mettre en valeur la carte publique.
                 </div>
 
-                <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
-                  <span className="font-bold text-neutral-900">Gazette :</span>{" "}
-                  envoie de préférence un PDF final ou une image exportée
-                  propre.
-                </div>
+                {!festiviteMode ? (
+                  <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
+                    <span className="font-bold text-neutral-900">Gazette :</span>{" "}
+                    envoie de préférence un PDF final ou une image exportée propre.
+                  </div>
+                ) : null}
 
                 <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
                   <span className="font-bold text-neutral-900">Poids :</span>{" "}
@@ -551,17 +547,19 @@ export default async function NewCommunicationContentPage({
                     Liens utiles
                   </h2>
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Accès rapides vers les pages liées au module actualités.
+                    {festiviteMode
+                      ? "Accès rapides vers le planning et la page publique."
+                      : "Accès rapides vers les pages liées au module actualités."}
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 space-y-3">
                 <Link
-                  href="/espace-communication"
+                  href={festiviteMode ? "/espace-festivite" : "/espace-communication"}
                   className="flex items-center justify-between rounded-2xl border border-orange-100 bg-orange-50/40 px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-orange-50"
                 >
-                  <span>Retour au dashboard communication</span>
+                  <span>{festiviteMode ? "Retour aux manifestations" : "Retour au dashboard communication"}</span>
                   <ArrowLeft size={16} className="text-csv-orange" />
                 </Link>
 

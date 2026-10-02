@@ -286,12 +286,13 @@ export default async function EditCommunicationContentPage({
               </div>
 
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
-                Modifier un contenu
+                {festiviteMode ? "Modifier la manifestation" : "Modifier un contenu"}
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
-                Mets à jour cette actualité, change son statut, ajuste ses
-                médias et supprime-la si elle n’est plus utile.
+                {festiviteMode
+                  ? "Mets à jour la date, le lieu, la description et les éventuels supports de cette manifestation."
+                  : "Mets à jour cette actualité, change son statut, ajuste ses médias et supprime-la si elle n’est plus utile."}
               </p>
             </div>
 
@@ -308,11 +309,12 @@ export default async function EditCommunicationContentPage({
 
               <div>
                 <h2 className="text-xl font-extrabold text-neutral-900">
-                  Formulaire d’édition
+                  {festiviteMode ? "Manifestation" : "Formulaire d’édition"}
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                  Les champs sont préremplis avec les données actuelles du
-                  contenu.
+                  {festiviteMode
+                    ? "Les informations actuelles sont déjà préremplies. Modifie uniquement ce qui change."
+                    : "Les champs sont préremplis avec les données actuelles du contenu."}
                 </p>
               </div>
             </div>
@@ -337,57 +339,34 @@ export default async function EditCommunicationContentPage({
                 />
               </div>
 
-              <div>
-                <label htmlFor="slug" className="label">
-                  Slug
-                </label>
-                <input
-                  id="slug"
-                  name="slug"
-                  type="text"
-                  className="input"
-                  defaultValue={item.slug}
-                />
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
+              {!festiviteMode ? (
                 <div>
-                  <label htmlFor="type" className="label">
-                    Type
-                  </label>
-                  {festiviteMode ? (
-                    <>
-                      <input type="hidden" name="type" value="manifestation" />
-                      <div className="input flex items-center">Manifestation</div>
-                    </>
-                  ) : (
-                    <select
-                      id="type"
-                      name="type"
-                      defaultValue={item.type}
-                      className="input"
-                    >
+                  <label htmlFor="slug" className="label">Slug</label>
+                  <input id="slug" name="slug" type="text" className="input" defaultValue={item.slug} />
+                </div>
+              ) : null}
+
+              {festiviteMode ? (
+                <>
+                  <input type="hidden" name="type" value="manifestation" />
+                  <input type="hidden" name="sortOrder" value={item.sortOrder} />
+                </>
+              ) : (
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="type" className="label">Type</label>
+                    <select id="type" name="type" defaultValue={item.type} className="input">
                       <option value="gazette">Gazette</option>
                       <option value="manifestation">Manifestation</option>
                       <option value="annonce">Annonce</option>
                     </select>
-                  )}
+                  </div>
+                  <div>
+                    <label htmlFor="sortOrder" className="label">Ordre d’affichage</label>
+                    <input id="sortOrder" name="sortOrder" type="number" min="0" defaultValue={item.sortOrder} className="input" />
+                  </div>
                 </div>
-
-                <div>
-                  <label htmlFor="sortOrder" className="label">
-                    Ordre d’affichage
-                  </label>
-                  <input
-                    id="sortOrder"
-                    name="sortOrder"
-                    type="number"
-                    min="0"
-                    defaultValue={item.sortOrder}
-                    className="input"
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
                 <div className="flex items-start gap-3">
@@ -397,7 +376,7 @@ export default async function EditCommunicationContentPage({
 
                   <div>
                     <h3 className="text-sm font-extrabold text-neutral-900">
-                      Manifestation : deux usages possibles
+                      Bien préparer la manifestation
                     </h3>
 
                     <div className="mt-3 grid gap-3 text-sm leading-relaxed text-neutral-700 md:grid-cols-2">
@@ -417,7 +396,7 @@ export default async function EditCommunicationContentPage({
 
               <div>
                 <label htmlFor="excerpt" className="label">
-                  Extrait
+                  {festiviteMode ? "Description courte" : "Extrait"}
                 </label>
                 <textarea
                   id="excerpt"
@@ -430,7 +409,7 @@ export default async function EditCommunicationContentPage({
 
               <div>
                 <label htmlFor="content" className="label">
-                  Contenu détaillé
+                  {festiviteMode ? "Informations complémentaires" : "Contenu détaillé"}
                 </label>
                 <textarea
                   id="content"
@@ -452,7 +431,7 @@ export default async function EditCommunicationContentPage({
                 />
 
                 <NewsAssetUpload
-                  label="Fichier principal (PDF / image)"
+                  label={festiviteMode ? "Document complémentaire (PDF / image)" : "Fichier principal (PDF / image)"}
                   name="fileUrl"
                   defaultValue={item.fileUrl || ""}
                   accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg"
@@ -525,10 +504,10 @@ export default async function EditCommunicationContentPage({
 
               <div className="flex flex-wrap gap-3 pt-2">
                 <FormSubmitButton
-                  idleLabel="Enregistrer les modifications"
+                  idleLabel={festiviteMode ? "Enregistrer la manifestation" : "Enregistrer les modifications"}
                   pendingLabel="Enregistrement..."
                   loadingTitle="Enregistrement en cours..."
-                  loadingDescription="Les modifications sont en train d’être sauvegardées."
+                  loadingDescription={festiviteMode ? "La manifestation est en train d’être sauvegardée." : "Les modifications sont en train d’être sauvegardées."}
                   className="btn-primary"
                   icon={<Save size={16} />}
                 />
@@ -558,7 +537,7 @@ export default async function EditCommunicationContentPage({
               </div>
 
               <h2 className="mt-4 text-xl font-extrabold tracking-tight">
-                Aperçu du contenu
+                {festiviteMode ? "Aperçu de la manifestation" : "Aperçu du contenu"}
               </h2>
 
               <div className="mt-5 space-y-3">
@@ -617,29 +596,30 @@ export default async function EditCommunicationContentPage({
                     Conseils rapides
                   </h2>
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Selon le type de contenu, certains champs sont plus utiles
-                    que d’autres.
+                    {festiviteMode
+                      ? "Une date, un lieu et un titre clair suffisent pour une manifestation simple."
+                      : "Selon le type de contenu, certains champs sont plus utiles que d’autres."}
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 space-y-3 text-sm text-neutral-700">
+                {!festiviteMode ? (
+                  <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
+                    <span className="font-bold text-neutral-900">Gazette :</span>{" "}
+                    favorise une image de couverture + un fichier PDF ou image.
+                  </div>
+                ) : null}
                 <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
-                  <span className="font-bold text-neutral-900">Gazette :</span>{" "}
-                  favorise une image de couverture + un fichier PDF ou image.
-                </div>
-
-                <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
-                  <span className="font-bold text-neutral-900">
-                    Manifestation :
-                  </span>{" "}
+                  <span className="font-bold text-neutral-900">Manifestation :</span>{" "}
                   ajoute une date et un lieu. L’image est optionnelle : sans affiche, l’événement reste visible dans “Toutes les dates”.
                 </div>
-
-                <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
-                  <span className="font-bold text-neutral-900">Annonce :</span>{" "}
-                  garde un extrait court et clair.
-                </div>
+                {!festiviteMode ? (
+                  <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4">
+                    <span className="font-bold text-neutral-900">Annonce :</span>{" "}
+                    garde un extrait court et clair.
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -654,17 +634,19 @@ export default async function EditCommunicationContentPage({
                     Liens utiles
                   </h2>
                   <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                    Accès rapides vers les pages liées au module.
+                    {festiviteMode
+                      ? "Accès rapides vers le planning et la page publique."
+                      : "Accès rapides vers les pages liées au module."}
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 space-y-3">
                 <Link
-                  href="/espace-communication"
+                  href={festiviteMode ? "/espace-festivite" : "/espace-communication"}
                   className="flex items-center justify-between rounded-2xl border border-orange-100 bg-orange-50/40 px-4 py-3 text-sm font-semibold text-neutral-800 transition hover:bg-orange-50"
                 >
-                  <span>Retour au dashboard communication</span>
+                  <span>{festiviteMode ? "Retour aux manifestations" : "Retour au dashboard communication"}</span>
                   <ArrowLeft size={16} className="text-csv-orange" />
                 </Link>
 
