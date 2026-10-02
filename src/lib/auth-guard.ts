@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { isUserRole, type UserRole } from "./roles";
+import { commissionSlugToRole, isUserRole, type UserRole } from "./roles";
 
 export async function getCurrentUserAccess() {
   const session = await auth();
@@ -30,8 +30,8 @@ export async function getCurrentUserAccess() {
   }
 
   const membershipRoles = user.memberships
-    .map((membership) => membership.commission.slug)
-    .filter(isUserRole);
+    .map((membership) => commissionSlugToRole(membership.commission.slug))
+    .filter((role): role is UserRole => role !== null);
 
   const availableRoles = Array.from(
     new Set<UserRole>([user.role, ...membershipRoles]),

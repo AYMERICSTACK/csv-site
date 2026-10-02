@@ -30,6 +30,18 @@ export function isUserRole(role: string): role is UserRole {
   return ROLES.includes(role as UserRole);
 }
 
+
+export function commissionSlugToRole(slug: string): UserRole | null {
+  const normalized = String(slug || "").trim().toLocaleLowerCase("fr-FR");
+
+  // The Commission table uses the plural slug "festivites", while the
+  // application role is historically named "festivite". Keep the DB slug
+  // untouched and normalize it here so memberships grant the expected role.
+  if (normalized === "festivites") return "festivite";
+
+  return isUserRole(normalized) ? normalized : null;
+}
+
 export function getHomePathByRole(role?: string | null) {
   if (!role) return "/admin/login";
   if (!isUserRole(role)) return "/espace-club";
