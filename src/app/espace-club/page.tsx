@@ -6,7 +6,7 @@ import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { prisma } from "@/lib/prisma";
-import { isUserRole, type UserRole } from "@/lib/roles";
+import { commissionSlugToRole, isUserRole, type UserRole } from "@/lib/roles";
 import { slugifyTeam } from "@/lib/teams";
 import { formatLoosePersonName } from "@/lib/person-select";
 import {
@@ -359,8 +359,8 @@ export default async function EspaceClubPage() {
   const favoriteTeam = user.favoriteTeam ?? null;
 
   const membershipRoles = user.memberships
-    .map((membership) => membership.commission.slug)
-    .filter(isUserRole);
+    .map((membership) => commissionSlugToRole(membership.commission.slug))
+    .filter((role): role is UserRole => role !== null);
 
   const availableRoles = Array.from(
     new Set<UserRole>([user.role, ...membershipRoles]),
