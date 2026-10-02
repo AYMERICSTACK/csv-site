@@ -32,7 +32,7 @@ const values = [
 
 export default function HomeHero({ pinkOctoberActive = false }: { pinkOctoberActive?: boolean }) {
   return (
-    <section className={styles.hero}>
+    <section className={`${styles.hero} ${pinkOctoberActive ? styles.heroPinkOctober : ""}`}>
       <div className={styles.background}>
         <Image
           src="/hero-csv.png"

@@ -324,6 +324,14 @@
     min-height: auto;
   }
 
+  .heroPinkOctober .inner {
+    padding-top: 8.75rem;
+  }
+
+  .pinkBadge {
+    display: none;
+  }
+
   .inner {
     gap: 2rem;
     padding: 5rem 0 3rem;
