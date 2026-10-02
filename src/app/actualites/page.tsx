@@ -49,7 +49,7 @@ function formatEventTime(date: Date | string | null) {
   return parsedDate.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
-  timeZone: "Europe/Paris",
+    timeZone: "Europe/Paris",
   });
 }
 
@@ -313,7 +313,9 @@ export default async function ActualitesPage() {
               Aucune manifestation publiée pour le moment.
             </div>
           ) : (
-            <div className={`mt-6 grid gap-6 ${highlightedManifestation ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"}`}>
+            <div
+              className={`mt-6 grid gap-6 ${highlightedManifestation ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"}`}
+            >
               {highlightedManifestation ? (
                 <article className="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-sm">
                   {highlightedManifestation.coverImageUrl ? (
@@ -384,7 +386,7 @@ export default async function ActualitesPage() {
                       Agenda
                     </h3>
                     <p className="mt-1 text-sm text-neutral-600">
-                      Les prochaines dates du club, même sans affiche.
+                      Les prochaines dates du club.
                     </p>
                   </div>
                   <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">
