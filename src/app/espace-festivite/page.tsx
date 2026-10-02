@@ -179,13 +179,12 @@ export default async function EspaceFestivitePage({
               </div>
 
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
-                Manifestations du club
+                Agenda des manifestations
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
-                Ajoute et mets à jour les dates des manifestations directement
-                depuis l’espace Festivité. Les événements publiés alimentent la
-                page Actualités et la prochaine manifestation de l’accueil.
+                Ajoute simplement les dates importantes du club. La Communication pourra ensuite
+                enrichir ces rendez-vous avec une affiche ou du contenu, sans modifier ton agenda.
               </p>
             </div>
 
@@ -196,7 +195,7 @@ export default async function EspaceFestivitePage({
                 className="btn-primary inline-flex items-center justify-center gap-2"
               >
                 <Plus size={16} />
-                Ajouter une manifestation
+                Ajouter une date
               </Link>
             </div>
           </div>
@@ -247,11 +246,10 @@ export default async function EspaceFestivitePage({
               </div>
               <div>
                 <h2 className="text-xl font-extrabold text-neutral-900">
-                  Planning des manifestations
+                  Agenda du club
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-neutral-600">
-                  Les membres Festivité gèrent uniquement les manifestations,
-                  sans accès aux gazettes ni aux annonces Communication.
+                  Festivités renseigne les dates, lieux et petites notes. La Communication garde la main sur les affiches et les contenus éditoriaux.
                 </p>
               </div>
             </div>

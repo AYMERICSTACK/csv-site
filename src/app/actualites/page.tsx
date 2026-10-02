@@ -82,19 +82,9 @@ export default async function ActualitesPage() {
       if (!b.eventDate) return -1;
       return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
     });
-  const pastManifestations = manifestations
-    .filter((item) => item.eventDate && new Date(item.eventDate) < now)
-    .sort(
-      (a, b) =>
-        new Date(b.eventDate as Date).getTime() -
-        new Date(a.eventDate as Date).getTime(),
-    );
-  const agendaManifestations = [
-    ...upcomingManifestations,
-    ...pastManifestations,
-  ];
+  const agendaManifestations = upcomingManifestations;
   const highlightedManifestation =
-    upcomingManifestations[0] || pastManifestations[0];
+    upcomingManifestations.find((item) => item.coverImageUrl) || null;
   const latestGazette = gazettes[0];
 
   const manifestationLightboxItems = manifestations
@@ -323,7 +313,7 @@ export default async function ActualitesPage() {
               Aucune manifestation publiée pour le moment.
             </div>
           ) : (
-            <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className={`mt-6 grid gap-6 ${highlightedManifestation ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"}`}>
               {highlightedManifestation ? (
                 <article className="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-sm">
                   {highlightedManifestation.coverImageUrl ? (
@@ -394,7 +384,7 @@ export default async function ActualitesPage() {
                       Agenda
                     </h3>
                     <p className="mt-1 text-sm text-neutral-600">
-                      Toutes les dates, même sans affiche.
+                      Les prochaines dates du club, même sans affiche.
                     </p>
                   </div>
                   <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">

@@ -108,9 +108,9 @@ export default async function EditCommunicationContentPage({
     const content = String(formData.get("content") || "").trim();
     let type = String(formData.get("type") || "annonce").trim();
     const returnTo = String(formData.get("returnTo") || "").trim();
-    const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
-    const fileUrl = String(formData.get("fileUrl") || "").trim();
-    const externalUrl = String(formData.get("externalUrl") || "").trim();
+    let coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+    let fileUrl = String(formData.get("fileUrl") || "").trim();
+    let externalUrl = String(formData.get("externalUrl") || "").trim();
     const eventDateValue = String(formData.get("eventDate") || "").trim();
     const location = String(formData.get("location") || "").trim();
     const sortOrderValue = String(formData.get("sortOrder") || "0").trim();
@@ -142,6 +142,10 @@ export default async function EditCommunicationContentPage({
 
     if (!canManageCommunication || returnTo === "festivite") {
       type = "manifestation";
+      // Festivité gère uniquement l’agenda : conserver les enrichissements ajoutés par Communication.
+      coverImageUrl = existingItem.coverImageUrl || "";
+      fileUrl = existingItem.fileUrl || "";
+      externalUrl = existingItem.externalUrl || "";
     }
 
     const slug = slugify(slugInput || title);
@@ -368,95 +372,32 @@ export default async function EditCommunicationContentPage({
                 </div>
               )}
 
-              <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-csv-orange shadow-sm">
-                    <CalendarDays size={18} />
+              {festiviteMode ? (
+                <>
+                  <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
+                    <h3 className="text-sm font-extrabold text-neutral-900">Agenda Festivités</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-700">Modifie uniquement la date, le lieu ou la note. Les affiches et contenus ajoutés par la Communication sont conservés automatiquement.</p>
                   </div>
-
-                  <div>
-                    <h3 className="text-sm font-extrabold text-neutral-900">
-                      Bien préparer la manifestation
-                    </h3>
-
-                    <div className="mt-3 grid gap-3 text-sm leading-relaxed text-neutral-700 md:grid-cols-2">
-                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
-                        <span className="font-bold text-neutral-950">Avec affiche :</span>{" "}
-                        ajoute une image ou un fichier pour mettre l’événement en avant sur la page actualités.
-                      </div>
-
-                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
-                        <span className="font-bold text-neutral-950">Date simple :</span>{" "}
-                        renseigne seulement le titre, la date et le lieu. L’événement apparaîtra dans “Toutes les dates”.
-                      </div>
-                    </div>
+                  <div><label htmlFor="excerpt" className="label">Petite note <span className="font-normal text-neutral-400">(facultatif)</span></label><textarea id="excerpt" name="excerpt" rows={3} className="input" defaultValue={item.excerpt || ""} /></div>
+                  <input type="hidden" name="content" value={item.content || ""} />
+                </>
+              ) : (
+                <>
+                  <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5"><h3 className="text-sm font-extrabold text-neutral-900">Enrichissement Communication</h3><p className="mt-2 text-sm leading-relaxed text-neutral-700">Ajoute ici l’affiche, le document ou les informations éditoriales liés à cette date.</p></div>
+                  <div><label htmlFor="excerpt" className="label">Extrait</label><textarea id="excerpt" name="excerpt" rows={3} className="input" defaultValue={item.excerpt || ""} /></div>
+                  <div><label htmlFor="content" className="label">Contenu détaillé</label><textarea id="content" name="content" rows={6} className="input" defaultValue={item.content || ""} /></div>
+                  <div className="space-y-4 rounded-[1.25rem] border border-orange-100 bg-orange-50/30 p-4">
+                    <NewsAssetUpload label="Image de couverture" name="coverImageUrl" defaultValue={item.coverImageUrl || ""} accept="image/png,image/jpeg,image/webp,image/jpg" placeholder="URL de l’image de couverture" helpText="Affiche ou visuel préparé par la Communication." />
+                    <NewsAssetUpload label="Fichier principal (PDF / image)" name="fileUrl" defaultValue={item.fileUrl || ""} accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg" placeholder="URL du fichier principal" helpText="Programme, affiche PDF ou document associé." />
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="excerpt" className="label">
-                  {festiviteMode ? "Description courte" : "Extrait"}
-                </label>
-                <textarea
-                  id="excerpt"
-                  name="excerpt"
-                  rows={3}
-                  className="input"
-                  defaultValue={item.excerpt || ""}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="content" className="label">
-                  {festiviteMode ? "Informations complémentaires" : "Contenu détaillé"}
-                </label>
-                <textarea
-                  id="content"
-                  name="content"
-                  rows={6}
-                  className="input"
-                  defaultValue={item.content || ""}
-                />
-              </div>
-
-              <div className="space-y-4 rounded-[1.25rem] border border-orange-100 bg-orange-50/30 p-4">
-                <NewsAssetUpload
-                  label="Image de couverture"
-                  name="coverImageUrl"
-                  defaultValue={item.coverImageUrl || ""}
-                  accept="image/png,image/jpeg,image/webp,image/jpg"
-                  placeholder="URL de l’image de couverture"
-                  helpText="Tu peux conserver l’URL existante, en coller une autre ou envoyer directement une nouvelle image."
-                />
-
-                <NewsAssetUpload
-                  label={festiviteMode ? "Document complémentaire (PDF / image)" : "Fichier principal (PDF / image)"}
-                  name="fileUrl"
-                  defaultValue={item.fileUrl || ""}
-                  accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg"
-                  placeholder="URL du fichier principal"
-                  helpText="Idéal pour remplacer une gazette PDF, une affiche JPG/PNG ou un document du club."
-                />
-              </div>
-
-              <div>
-                <label htmlFor="externalUrl" className="label">
-                  URL externe
-                </label>
-                <input
-                  id="externalUrl"
-                  name="externalUrl"
-                  type="text"
-                  className="input"
-                  defaultValue={item.externalUrl || ""}
-                />
-              </div>
+                  <div><label htmlFor="externalUrl" className="label">URL externe</label><input id="externalUrl" name="externalUrl" type="text" className="input" defaultValue={item.externalUrl || ""} /></div>
+                </>
+              )}
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="eventDate" className="label">
-                    Date / heure de la manifestation
+                    Date / heure
                   </label>
                   <input
                     id="eventDate"
@@ -466,7 +407,7 @@ export default async function EditCommunicationContentPage({
                     defaultValue={toDatetimeLocalValue(item.eventDate)}
                   />
                   <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                    Pour une date simple agenda, ce champ suffit avec le titre.
+                    La date est l’information principale de l’agenda.
                   </p>
                 </div>
 
@@ -482,7 +423,7 @@ export default async function EditCommunicationContentPage({
                     defaultValue={item.location || ""}
                   />
                   <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                    Optionnel mais recommandé pour les manifestations.
+                    Ajoute le lieu dès qu’il est connu.
                   </p>
                 </div>
               </div>
@@ -504,7 +445,7 @@ export default async function EditCommunicationContentPage({
 
               <div className="flex flex-wrap gap-3 pt-2">
                 <FormSubmitButton
-                  idleLabel={festiviteMode ? "Enregistrer la manifestation" : "Enregistrer les modifications"}
+                  idleLabel={festiviteMode ? "Mettre à jour l’agenda" : "Enregistrer les modifications"}
                   pendingLabel="Enregistrement..."
                   loadingTitle="Enregistrement en cours..."
                   loadingDescription={festiviteMode ? "La manifestation est en train d’être sauvegardée." : "Les modifications sont en train d’être sauvegardées."}

@@ -296,97 +296,41 @@ export default async function NewCommunicationContentPage({
                 </div>
               )}
 
-              <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-csv-orange shadow-sm">
-                    <CalendarDays size={18} />
+              {festiviteMode ? (
+                <>
+                  <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
+                    <h3 className="text-sm font-extrabold text-neutral-900">Une date suffit</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-700">Renseigne le nom, la date et si possible le lieu. La Communication pourra ensuite ajouter une affiche ou enrichir l’actualité sans modifier ton agenda.</p>
                   </div>
-
                   <div>
-                    <h3 className="text-sm font-extrabold text-neutral-900">
-                      Bien préparer la manifestation
-                    </h3>
-
-                    <div className="mt-3 grid gap-3 text-sm leading-relaxed text-neutral-700 md:grid-cols-2">
-                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
-                        <span className="font-bold text-neutral-950">
-                          Avec affiche :
-                        </span>{" "}
-                        ajoute une image ou un fichier pour mettre l’événement
-                        en avant sur la page actualités.
-                      </div>
-
-                      <div className="rounded-2xl border border-orange-100 bg-white p-4">
-                        <span className="font-bold text-neutral-950">
-                          Date simple :
-                        </span>{" "}
-                        renseigne seulement le titre, la date et le lieu.
-                        L’événement apparaîtra dans “Toutes les dates”.
-                      </div>
+                    <label htmlFor="excerpt" className="label">Petite note <span className="font-normal text-neutral-400">(facultatif)</span></label>
+                    <textarea id="excerpt" name="excerpt" rows={3} className="input" placeholder="Ex : Ouvert à tous, repas sur réservation." />
+                  </div>
+                  <input type="hidden" name="content" value="" />
+                  <input type="hidden" name="coverImageUrl" value="" />
+                  <input type="hidden" name="fileUrl" value="" />
+                  <input type="hidden" name="externalUrl" value="" />
+                </>
+              ) : (
+                <>
+                  <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50/50 p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-csv-orange shadow-sm"><CalendarDays size={18} /></div>
+                      <div><h3 className="text-sm font-extrabold text-neutral-900">Bien préparer la manifestation</h3><p className="mt-2 text-sm leading-relaxed text-neutral-700">La Communication peut enrichir une date avec une affiche, un document, un lien ou un contenu détaillé.</p></div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="excerpt" className="label">
-                  {festiviteMode ? "Description courte" : "Extrait"}
-                </label>
-                <textarea
-                  id="excerpt"
-                  name="excerpt"
-                  rows={3}
-                  className="input"
-                  placeholder={festiviteMode ? "Ex : Soirée du club ouverte à tous, repas sur réservation." : "Résumé court visible sur la page actualités."}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="content" className="label">
-                  {festiviteMode ? "Informations complémentaires" : "Contenu détaillé"}
-                </label>
-                <textarea
-                  id="content"
-                  name="content"
-                  rows={6}
-                  className="input"
-                  placeholder={festiviteMode ? "Programme, horaires, inscriptions, consignes ou informations utiles." : "Texte plus complet si tu veux conserver un vrai contenu rédactionnel."}
-                />
-              </div>
-
-              <NewsAssetUpload
-                label="Image de couverture / affiche de manifestation"
-                name="coverImageUrl"
-                accept="image/png,image/jpeg,image/webp,image/jpg"
-                placeholder="URL de l’image ou de l’affiche"
-                helpText="Optionnel pour une manifestation simple. Ajoute une affiche seulement pour les événements à mettre en avant visuellement."
-              />
-
-              <NewsAssetUpload
-                label={festiviteMode ? "Document complémentaire (PDF / image)" : "Fichier principal (PDF / image)"}
-                name="fileUrl"
-                accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg"
-                placeholder="URL du fichier principal"
-                helpText={festiviteMode ? "Optionnel : programme, menu, formulaire ou autre document lié à la manifestation." : "Idéal pour une gazette PDF, une affiche JPG/PNG ou un document du club."}
-              />
-
-              <div>
-                <label htmlFor="externalUrl" className="label">
-                  URL externe
-                </label>
-                <input
-                  id="externalUrl"
-                  name="externalUrl"
-                  type="text"
-                  className="input"
-                  placeholder="Ex : lien HelloAsso, article externe, etc."
-                />
-              </div>
+                  <div><label htmlFor="excerpt" className="label">Extrait</label><textarea id="excerpt" name="excerpt" rows={3} className="input" placeholder="Résumé court visible sur la page actualités." /></div>
+                  <div><label htmlFor="content" className="label">Contenu détaillé</label><textarea id="content" name="content" rows={6} className="input" placeholder="Texte plus complet si tu veux conserver un vrai contenu rédactionnel." /></div>
+                  <NewsAssetUpload label="Image de couverture / affiche de manifestation" name="coverImageUrl" accept="image/png,image/jpeg,image/webp,image/jpg" placeholder="URL de l’image ou de l’affiche" helpText="Ajoute l’affiche préparée par la Communication." />
+                  <NewsAssetUpload label="Fichier principal (PDF / image)" name="fileUrl" accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg" placeholder="URL du fichier principal" helpText="Programme, affiche PDF ou document associé." />
+                  <div><label htmlFor="externalUrl" className="label">URL externe</label><input id="externalUrl" name="externalUrl" type="text" className="input" placeholder="Ex : lien HelloAsso, article externe, etc." /></div>
+                </>
+              )}
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="eventDate" className="label">
-                    Date / heure de la manifestation
+                    Date / heure
                   </label>
                   <input
                     id="eventDate"
@@ -395,7 +339,7 @@ export default async function NewCommunicationContentPage({
                     className="input"
                   />
                   <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                    Pour une date simple agenda, ce champ suffit avec le titre.
+                    La date est l’information principale de l’agenda.
                   </p>
                 </div>
 
@@ -411,7 +355,7 @@ export default async function NewCommunicationContentPage({
                     placeholder="Ex : Stade Pierre Brichon"
                   />
                   <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                    Optionnel mais recommandé pour les manifestations.
+                    Ajoute le lieu dès qu’il est connu.
                   </p>
                 </div>
               </div>
@@ -435,7 +379,7 @@ export default async function NewCommunicationContentPage({
                 <button type="submit" className="btn-primary">
                   <span className="inline-flex items-center gap-2">
                     <Save size={16} />
-                    {festiviteMode ? "Enregistrer la manifestation" : "Enregistrer le contenu"}
+                    {festiviteMode ? "Ajouter à l’agenda" : "Enregistrer le contenu"}
                   </span>
                 </button>
 

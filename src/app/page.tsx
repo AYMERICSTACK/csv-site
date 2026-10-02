@@ -9,7 +9,7 @@ import HomeNextManifestation from "@/components/HomeNextManifestation";
 import { prisma } from "@/lib/prisma";
 
 export default async function HomePage() {
-  const nextManifestation = await prisma.newsItem.findFirst({
+  const nextManifestations = await prisma.newsItem.findMany({
     where: {
       type: "manifestation",
       isPublished: true,
@@ -18,6 +18,7 @@ export default async function HomePage() {
       },
     },
     orderBy: [{ eventDate: "asc" }, { sortOrder: "asc" }],
+    take: 3,
     select: {
       title: true,
       excerpt: true,
@@ -41,7 +42,7 @@ export default async function HomePage() {
     <>
       <HomeHero />
       <HomeWeekendMatches />
-      <HomeNextManifestation manifestation={nextManifestation} />
+      <HomeNextManifestation manifestations={nextManifestations} />
 
       <section>
         <Container>
