@@ -6,6 +6,7 @@ import Button from "@/components/Button";
 import SectionHeader from "@/components/SectionHeader";
 import HomeWeekendMatches from "@/components/HomeWeekendMatches";
 import HomeNextManifestation from "@/components/HomeNextManifestation";
+import HomeCsvMag from "@/components/HomeCsvMag";
 import { prisma } from "@/lib/prisma";
 import { isPinkOctoberActive } from "@/lib/pink-october";
 
@@ -43,6 +44,7 @@ export default async function HomePage() {
   return (
     <>
       <HomeHero pinkOctoberActive={pinkOctoberActive} />
+      <HomeCsvMag />
       <HomeWeekendMatches />
       <HomeNextManifestation manifestations={nextManifestations} />
 

@@ -2,6 +2,7 @@ import Container from "@/components/Container";
 import Badge from "@/components/Badge";
 import ImageLightboxTrigger from "@/components/actualites/ImageLightboxTrigger";
 import { prisma } from "@/lib/prisma";
+import { CSVMAG_ISSUES } from "@/data/csvmag";
 import {
   CalendarDays,
   Clock,
@@ -127,8 +128,15 @@ export default async function ActualitesPage() {
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <a
-                  href="#gazettes"
+                  href="#csvmag"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-csv-orange px-5 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                >
+                  <Newspaper size={16} />
+                  Lire le CSVMAG
+                </a>
+                <a
+                  href="#gazettes"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
                 >
                   <Newspaper size={16} />
                   Voir les gazettes
@@ -202,7 +210,60 @@ export default async function ActualitesPage() {
           </a>
         </section>
 
-        <section id="gazettes" className="mt-14">
+        <section id="csvmag" className="mt-14 scroll-mt-28">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <span className="inline-flex rounded-full bg-neutral-950 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-white">
+                CSVMAG
+              </span>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-neutral-950">
+                Le magazine du CSV
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-600 md:text-base">
+                Interviews, terrain, coulisses, dirigeants, partenaires et vie du club : retrouvez ici tous les numéros du CSVMAG.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+            {CSVMAG_ISSUES.map((issue, index) => (
+              <article
+                key={issue.number}
+                className="group overflow-hidden rounded-[2rem] border border-orange-200 bg-white shadow-sm ring-4 ring-orange-50 transition hover:-translate-y-1 hover:shadow-xl"
+              >
+                <div className="relative aspect-[4/3] overflow-hidden bg-neutral-950">
+                  <img
+                    src={issue.coverUrl}
+                    alt={`Couverture CSVMAG n°${issue.number}`}
+                    className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.02]"
+                  />
+                  {index === 0 ? (
+                    <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-csv-orange px-3 py-1 text-xs font-black text-white shadow-lg">
+                      <Sparkles size={13} /> Dernier numéro
+                    </div>
+                  ) : null}
+                </div>
+                <div className="p-5">
+                  <div className="text-xs font-black uppercase tracking-[0.12em] text-csv-orange">
+                    CSVMAG #{issue.number} · {issue.period}
+                  </div>
+                  <h3 className="mt-2 text-xl font-black text-neutral-950">{issue.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-600">{issue.excerpt}</p>
+                  <a
+                    href={issue.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-neutral-950 px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
+                  >
+                    Lire le CSVMAG <ExternalLink size={15} />
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="gazettes" className="mt-16">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <span className="inline-flex rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-orange-700">
