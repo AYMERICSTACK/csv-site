@@ -49,11 +49,22 @@ export async function POST(request: Request) {
       select: {
         id: true,
         email: true,
+        isActive: true,
       },
     });
 
-    // On ne révèle jamais si l'adresse correspond ou non à un compte.
-    if (!user) {
+    // On ne révèle jamais si l'adresse correspond ou non à un compte actif.
+    // Un compte en attente de validation admin ne doit jamais pouvoir utiliser
+    // "mot de passe oublié" pour contourner le workflow d'activation.
+    if (!user || !user.isActive) {
+      if (user) {
+        // Hygiène de sécurité : invalide aussi un éventuel ancien lien créé
+        // avant ce correctif.
+        await prisma.passwordResetToken.deleteMany({
+          where: { userId: user.id },
+        });
+      }
+
       return NextResponse.json({ success: true });
     }
 

@@ -56,12 +56,19 @@ async function activateUser(formData: FormData) {
     throw new Error("Utilisateur introuvable.");
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      isActive: true,
-    },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: true,
+      },
+    }),
+    // Un lien de réinitialisation éventuellement demandé avant validation
+    // ne doit pas survivre au changement d'état du compte.
+    prisma.passwordResetToken.deleteMany({
+      where: { userId },
+    }),
+  ]);
 
   if (!user.isActive) {
     console.info("[access-activation] Compte activé, envoi de la notification email.", {

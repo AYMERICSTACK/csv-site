@@ -26,12 +26,23 @@ export async function POST(request: Request) {
         user: {
           select: {
             id: true,
+            isActive: true,
           },
         },
       },
     });
 
-    if (!resetToken || resetToken.expiresAt < new Date()) {
+    if (
+      !resetToken ||
+      resetToken.expiresAt < new Date() ||
+      !resetToken.user.isActive
+    ) {
+      if (resetToken && !resetToken.user.isActive) {
+        await prisma.passwordResetToken.deleteMany({
+          where: { userId: resetToken.user.id },
+        });
+      }
+
       return NextResponse.json(
         { error: "Ce lien est invalide ou expiré." },
         { status: 400 },
@@ -45,7 +56,6 @@ export async function POST(request: Request) {
         where: { id: resetToken.user.id },
         data: {
           passwordHash,
-          isActive: true,
         },
       }),
       prisma.passwordResetToken.deleteMany({
