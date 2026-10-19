@@ -9,6 +9,7 @@ import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS, normalizeTeamName, slugifyTeam } from "@/lib/teams";
 import DeletePlayerButton from "@/components/DeletePlayerButton";
 import PlayerPhotoInput from "@/components/PlayerPhotoInput";
+import PlayerFaceCrop from "@/components/PlayerFaceCrop";
 import MobileCreatePanel from "@/components/MobileCreatePanel";
 import PlayerSaveState from "@/components/PlayerSaveState";
 import PlayerRosterSearch from "@/components/PlayerRosterSearch";
@@ -544,6 +545,13 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
                       <div className="mt-3">
                         <PlayerPhotoInput label="Modifier la photo" compact />
                       </div>
+                      {consentState === "granted" && player.photoUrl && (
+                        <PlayerFaceCrop
+                          id={player.id}
+                          photoUrl={player.photoUrl}
+                          name={`${player.firstName} ${player.lastName}`}
+                        />
+                      )}
 
                       <div className="mt-3 flex flex-wrap gap-4">
                         <label className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700">
