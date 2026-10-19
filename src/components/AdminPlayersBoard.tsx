@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import PlayerFaceCrop from "@/components/PlayerFaceCrop";
 import { CLUB_CATEGORIES } from "@/lib/categories";
 import { CLUB_TEAMS } from "@/lib/teams";
 
@@ -11,6 +12,7 @@ type PlayerRow = {
   team: string | null;
   category: string | null;
   photoUrl: string | null;
+  portraitUrl: string | null;
   photoConsent: boolean;
   isActive: boolean;
   statId: string;
@@ -237,6 +239,7 @@ export default function AdminPlayersBoard({
                   value={player.photoUrl || ""}
                 />
 
+                {player.photoConsent && player.photoUrl && <PlayerFaceCrop id={player.id} photoUrl={player.photoUrl} name={`${player.firstName} ${player.lastName}`} />}
                 <div className="grid gap-4 lg:grid-cols-[64px_1fr_120px]">
                   <div>
                     {player.photoConsent && player.photoUrl ? (
