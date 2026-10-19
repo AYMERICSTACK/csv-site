@@ -442,13 +442,33 @@ export default async function AdminEquipeJoueursPage({ params, searchParams }: P
                   />
 
                   <div className="grid gap-4 lg:grid-cols-[70px_1fr_150px]">
-                    <div>
+                    <div className="flex flex-row gap-3 lg:flex-col lg:items-center">
                       {consentState === "granted" && player.photoUrl ? (
-                        <img
-                          src={player.photoUrl}
-                          alt={`${player.firstName} ${player.lastName}`}
-                          className="h-16 w-16 rounded-2xl object-cover"
-                        />
+                        <>
+                          <div className="text-center">
+                            <img
+                              src={player.photoUrl}
+                              alt={`Photo originale de ${player.firstName} ${player.lastName}`}
+                              className="h-16 w-16 rounded-2xl object-cover"
+                            />
+                            <span className="mt-1 block text-[10px] font-semibold text-neutral-500">Originale</span>
+                          </div>
+                          <div className="text-center">
+                            <img
+                              src={player.portraitUrl || player.photoUrl}
+                              alt={`Portrait affiché de ${player.firstName} ${player.lastName}`}
+                              className="h-16 w-16 rounded-full border-2 border-orange-400 object-cover"
+                            />
+                            <span className="mt-1 block text-[10px] font-semibold text-neutral-500">Portrait site</span>
+                          </div>
+                          <span className={`self-center rounded-full px-2 py-1 text-center text-[10px] font-bold ${
+                            player.portraitUrl?.includes("/manual-")
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}>
+                            {player.portraitUrl?.includes("/manual-") ? "✓ Recadré" : "À vérifier"}
+                          </span>
+                        </>
                       ) : (
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-100 text-lg font-black text-neutral-500">
                           {player.firstName[0]}
