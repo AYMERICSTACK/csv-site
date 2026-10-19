@@ -1,5 +1,7 @@
 "use client";
 
+import { formatRepeatedPlayers } from "@/lib/format-repeated-players";
+
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import MatchCardActions from "@/app/admin/matchs/MatchCardActions";
@@ -101,23 +103,6 @@ function getStatusClasses(status: string) {
 function formatScore(scoreTeam: number | null, scoreOpponent: number | null) {
   if (scoreTeam === null || scoreOpponent === null) return "—";
   return `${scoreTeam} - ${scoreOpponent}`;
-}
-
-function formatRepeatedPlayers(value: string) {
-  const names = value
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-
-  const counts = new Map<string, number>();
-
-  for (const name of names) {
-    counts.set(name, (counts.get(name) || 0) + 1);
-  }
-
-  return Array.from(counts.entries())
-    .map(([name, count]) => (count > 1 ? `${name} X${count}` : name))
-    .join(", ");
 }
 
 function isUpcoming(match: MatchItem) {

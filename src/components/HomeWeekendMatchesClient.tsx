@@ -1,5 +1,7 @@
 "use client";
 
+import { formatRepeatedPlayers } from "@/lib/format-repeated-players";
+
 import { useMemo, useState } from "react";
 import { CalendarDays, Clock3, MapPin, Medal, Trophy } from "lucide-react";
 import PlateauPublicCard, { type PlateauPublicItem } from "@/components/PlateauPublicCard";
@@ -215,7 +217,7 @@ function ResultCard({ match }: { match: HomeMatch }) {
         {match.scorers?.trim() ? (
           <div className="mt-3 rounded-[1.05rem] border border-orange-500/20 bg-orange-500/[0.07] px-3.5 py-3">
             <div className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-orange-300">⚽ Buteurs</div>
-            <p className="mt-1 text-sm font-bold leading-relaxed text-white">{match.scorers}</p>
+            <p className="mt-1 text-sm font-bold leading-relaxed text-white">{formatRepeatedPlayers(match.scorers)}</p>
           </div>
         ) : null}
 
