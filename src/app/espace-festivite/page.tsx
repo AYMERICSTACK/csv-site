@@ -137,6 +137,28 @@ export default async function EspaceFestivitePage({
   async function publishOysterEvent() {
     "use server";
     await requireRole(["admin", "festivite"]);
+    // Reuse the existing Christmas event when present, rather than creating a second card.
+    const christmas = await prisma.newsItem.findFirst({
+      where: { type: "manifestation", title: { contains: "CSV fait son Noël", mode: "insensitive" } },
+      orderBy: { createdAt: "asc" },
+    });
+    if (christmas) {
+      await prisma.newsItem.update({
+        where: { id: christmas.id },
+        data: {
+          title: "Noël du CSV & Vente d’huîtres d’Oléron",
+          excerpt: "Retrait des huîtres dès 18 h, soirée de Noël dès 19 h avec DJ, buvette et restauration. 34 € les 3 douzaines. Commandes avant le 20 décembre.",
+          fileUrl: "/bon-commande-huitres-2026.jpeg",
+          externalUrl: "/commandes-huitres",
+          sortOrder: -9999,
+          isPublished: true,
+          eventDate: new Date("2026-12-23T17:00:00.000Z"),
+        },
+      });
+      await prisma.newsItem.deleteMany({ where: { slug: "vente-huitres-oleron-noel-2026", id: { not: christmas.id } } });
+      revalidatePath("/"); revalidatePath("/actualites"); revalidatePath("/espace-festivite");
+      redirect("/espace-festivite?toast=created");
+    }
     await prisma.newsItem.upsert({
       where: { slug: "vente-huitres-oleron-noel-2026" },
       update: { type: "manifestation", isPublished: true, sortOrder: -9999, fileUrl: "/bon-commande-huitres-2026.jpeg", externalUrl: "/commandes-huitres" },

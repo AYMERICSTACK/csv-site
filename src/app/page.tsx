@@ -6,7 +6,7 @@ import Button from "@/components/Button";
 import SectionHeader from "@/components/SectionHeader";
 import HomeWeekendMatches from "@/components/HomeWeekendMatches";
 import HomeNextManifestation from "@/components/HomeNextManifestation";
-import HomeCsvMag from "@/components/HomeCsvMag";
+import HomeFeaturedCarousel from "@/components/HomeFeaturedCarousel";
 import { prisma } from "@/lib/prisma";
 import { isPinkOctoberActive } from "@/lib/pink-october";
 
@@ -34,6 +34,17 @@ export default async function HomePage() {
     },
   });
 
+  const featuredEvent = await prisma.newsItem.findFirst({
+    where: {
+      type: "manifestation",
+      isPublished: true,
+      sortOrder: -9999,
+      eventDate: { gte: new Date() },
+    },
+    orderBy: { eventDate: "asc" },
+    select: { title: true, excerpt: true, coverImageUrl: true, fileUrl: true, externalUrl: true },
+  });
+
   const partners = await prisma.partner.findMany({
     where: {
       isActive: true,
@@ -46,7 +57,7 @@ export default async function HomePage() {
   return (
     <>
       <HomeHero pinkOctoberActive={pinkOctoberActive} />
-      <HomeCsvMag />
+      <HomeFeaturedCarousel event={featuredEvent} />
       <HomeWeekendMatches />
       <HomeNextManifestation manifestations={nextManifestations} />
 
