@@ -7,6 +7,7 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 import DeleteNewsItemButton from "@/components/DeleteNewsItemButton";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 import NewsAssetUpload from "@/components/NewsAssetUpload";
 import FormSubmitButton from "@/components/ui/FormSubmitButton";
 import {
@@ -38,13 +39,9 @@ function toDatetimeLocalValue(date: Date | string | null | undefined) {
   if (!date) return "";
   const d = new Date(date);
 
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+  const v = Object.fromEntries(parts.filter(p => p.type !== "literal").map(p => [p.type, p.value]));
+  return `${v.year}-${v.month}-${v.day}T${v.hour}:${v.minute}`;
 }
 
 function typeLabel(type: string) {
@@ -114,6 +111,7 @@ export default async function EditCommunicationContentPage({
     const eventDateValue = String(formData.get("eventDate") || "").trim();
     const location = String(formData.get("location") || "").trim();
     const sortOrderValue = String(formData.get("sortOrder") || "0").trim();
+    const pinHome = formData.get("pinHome") === "on";
     const isPublishedValue = String(formData.get("isPublished") || "false");
 
     if (!id) {
@@ -142,9 +140,7 @@ export default async function EditCommunicationContentPage({
 
     if (!canManageCommunication || returnTo === "festivite") {
       type = "manifestation";
-      // Festivité gère uniquement l’agenda : conserver les enrichissements ajoutés par Communication.
-      coverImageUrl = existingItem.coverImageUrl || "";
-      fileUrl = existingItem.fileUrl || "";
+      // La commission Festivités peut désormais joindre une affiche et un bulletin.
       externalUrl = existingItem.externalUrl || "";
     }
 
@@ -167,7 +163,7 @@ export default async function EditCommunicationContentPage({
     }
 
     const isPublished = isPublishedValue === "true";
-    const eventDate = eventDateValue ? new Date(eventDateValue) : null;
+    const eventDate = eventDateValue ? parseParisDateTime(eventDateValue) : null;
 
     await prisma.newsItem.update({
       where: { id },
@@ -182,9 +178,7 @@ export default async function EditCommunicationContentPage({
         externalUrl: externalUrl || null,
         eventDate,
         location: location || null,
-        sortOrder: Number.isNaN(Number(sortOrderValue))
-          ? 0
-          : Number(sortOrderValue),
+        sortOrder: type === "manifestation" && pinHome ? -9999 : Math.max(0, Number(sortOrderValue) || 0),
         isPublished,
         publishedAt: isPublished
           ? existingItem.publishedAt || new Date()
@@ -380,6 +374,9 @@ export default async function EditCommunicationContentPage({
                   </div>
                   <div><label htmlFor="excerpt" className="label">Petite note <span className="font-normal text-neutral-400">(facultatif)</span></label><textarea id="excerpt" name="excerpt" rows={3} className="input" defaultValue={item.excerpt || ""} /></div>
                   <input type="hidden" name="content" value={item.content || ""} />
+                  <NewsAssetUpload label="Affiche / image de la manifestation" name="coverImageUrl" defaultValue={item.coverImageUrl || ""} accept="image/png,image/jpeg,image/webp,image/jpg" placeholder="Joindre une affiche" />
+                  <NewsAssetUpload label="Bulletin de commande / document (PDF ou image)" name="fileUrl" defaultValue={item.fileUrl || ""} accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg" placeholder="Joindre le bulletin" helpText="Téléchargeable par les visiteurs depuis l’accueil." />
+                  <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="pinHome" defaultChecked={item.sortOrder === -9999} /> 📌 Épingler sur l’accueil jusqu’à la date de la manifestation</label>
                 </>
               ) : (
                 <>
@@ -394,6 +391,7 @@ export default async function EditCommunicationContentPage({
                 </>
               )}
 
+              {!festiviteMode && item.type === "manifestation" ? <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="pinHome" defaultChecked={item.sortOrder === -9999} /> 📌 Épingler sur l’accueil</label> : null}
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="eventDate" className="label">

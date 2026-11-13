@@ -31,6 +31,7 @@ function formatEventDate(date: Date | string | null | undefined) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Paris",
   });
 }
 
@@ -133,6 +134,31 @@ export default async function EspaceFestivitePage({
     redirect("/espace-festivite?toast=deleted");
   }
 
+  async function publishOysterEvent() {
+    "use server";
+    await requireRole(["admin", "festivite"]);
+    await prisma.newsItem.upsert({
+      where: { slug: "vente-huitres-oleron-noel-2026" },
+      update: { type: "manifestation", isPublished: true, sortOrder: -9999, fileUrl: "/bon-commande-huitres-2026.jpeg", externalUrl: "/commandes-huitres" },
+      create: {
+        title: "Vente d’huîtres d’Oléron – Noël 2026",
+        slug: "vente-huitres-oleron-noel-2026",
+        type: "manifestation",
+        excerpt: "34 € la bourriche de 3 douzaines. Commandes jusqu’au 20 décembre, retrait le 23 décembre dès 18 h. Commandez en ligne ou téléchargez le bulletin.",
+        content: "Vente d’huîtres d’Oléron au profit du CS Viriat. Paiement lors du retrait.",
+        eventDate: new Date("2026-12-23T17:00:00.000Z"),
+        location: "Salle des fêtes de Viriat",
+        fileUrl: "/bon-commande-huitres-2026.jpeg",
+        externalUrl: "/commandes-huitres",
+        sortOrder: -9999,
+        isPublished: true,
+        publishedAt: new Date(),
+      },
+    });
+    revalidatePath("/"); revalidatePath("/actualites"); revalidatePath("/espace-festivite");
+    redirect("/espace-festivite?toast=created");
+  }
+
   const role = user.role;
   const dashboardHref = role === "admin" ? "/admin" : "/espace-club";
   const dashboardLabel =
@@ -152,6 +178,8 @@ export default async function EspaceFestivitePage({
 
   return (
     <Container>
+      <div className="mx-auto max-w-6xl px-4 pt-6"><Link href="/espace-festivite/commandes-huitres" className="inline-flex rounded-xl bg-orange-600 px-5 py-3 font-bold text-white">🦪 Voir les commandes d’huîtres</Link></div>
+      <form action={publishOysterEvent} className="mx-auto max-w-6xl px-4 pt-3"><button className="rounded-xl border border-orange-600 px-5 py-3 font-bold text-orange-700">Publier / mettre à jour la manifestation Huîtres 2026</button></form>
       <div className="py-14">
         <section className="relative overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950 px-6 py-8 shadow-[0_30px_70px_-35px_rgba(0,0,0,0.55)] md:px-8 md:py-10">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,122,0,0.18),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(255,122,0,0.10),transparent_28%)]" />

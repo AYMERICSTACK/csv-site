@@ -508,3 +508,19 @@ model ImageConsentSubmission {
   @@index([season, matched])
   @@index([playerId, createdAt])
 }
+
+model OysterOrder {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String
+  quantity    Int
+  unitPrice   Int      @default(34)
+  status      String   @default("received")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
+}

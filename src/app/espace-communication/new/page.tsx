@@ -6,6 +6,7 @@ import Badge from "@/components/Badge";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { requireRole } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
+import { parseParisDateTime } from "@/lib/paris-datetime";
 import NewsAssetUpload from "@/components/NewsAssetUpload";
 import {
   ArrowLeft,
@@ -92,6 +93,7 @@ export default async function NewCommunicationContentPage({
     const eventDateValue = String(formData.get("eventDate") || "").trim();
     const location = String(formData.get("location") || "").trim();
     const sortOrderValue = String(formData.get("sortOrder") || "0").trim();
+    const pinHome = formData.get("pinHome") === "on";
     const isPublishedValue = String(formData.get("isPublished") || "true");
 
     if (!title) {
@@ -118,7 +120,7 @@ export default async function NewCommunicationContentPage({
     }
 
     const isPublished = isPublishedValue === "true";
-    const eventDate = eventDateValue ? new Date(eventDateValue) : null;
+    const eventDate = eventDateValue ? parseParisDateTime(eventDateValue) : null;
 
     await prisma.newsItem.create({
       data: {
@@ -132,9 +134,7 @@ export default async function NewCommunicationContentPage({
         externalUrl: externalUrl || null,
         eventDate,
         location: location || null,
-        sortOrder: Number.isNaN(Number(sortOrderValue))
-          ? 0
-          : Number(sortOrderValue),
+        sortOrder: type === "manifestation" && pinHome ? -9999 : Math.max(0, Number(sortOrderValue) || 0),
         isPublished,
         publishedAt: isPublished ? new Date() : null,
       },
@@ -307,9 +307,10 @@ export default async function NewCommunicationContentPage({
                     <textarea id="excerpt" name="excerpt" rows={3} className="input" placeholder="Ex : Ouvert à tous, repas sur réservation." />
                   </div>
                   <input type="hidden" name="content" value="" />
-                  <input type="hidden" name="coverImageUrl" value="" />
-                  <input type="hidden" name="fileUrl" value="" />
+                  <NewsAssetUpload label="Affiche / image de la manifestation" name="coverImageUrl" accept="image/png,image/jpeg,image/webp,image/jpg" placeholder="Joindre une affiche" />
+                  <NewsAssetUpload label="Bulletin de commande / document (PDF ou image)" name="fileUrl" accept="application/pdf,image/png,image/jpeg,image/webp,image/jpg" placeholder="Joindre le bulletin" helpText="Les visiteurs pourront télécharger ce document depuis la page d’accueil." />
                   <input type="hidden" name="externalUrl" value="" />
+                  <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="pinHome" /> 📌 Épingler sur l’accueil jusqu’à la date de la manifestation</label>
                 </>
               ) : (
                 <>

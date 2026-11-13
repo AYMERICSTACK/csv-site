@@ -20,7 +20,7 @@ export default async function HomePage() {
         gte: new Date(),
       },
     },
-    orderBy: [{ eventDate: "asc" }, { sortOrder: "asc" }],
+    orderBy: [{ sortOrder: "asc" }, { eventDate: "asc" }],
     take: 3,
     select: {
       title: true,
@@ -29,6 +29,8 @@ export default async function HomePage() {
       eventDate: true,
       location: true,
       externalUrl: true,
+      fileUrl: true,
+      sortOrder: true,
     },
   });
 

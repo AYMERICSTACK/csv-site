@@ -42,10 +42,8 @@ function formatEventTime(date: Date | string | null) {
   if (!date) return null;
 
   const parsedDate = new Date(date);
-  const hours = parsedDate.getHours();
-  const minutes = parsedDate.getMinutes();
-
-  if (hours === 0 && minutes === 0) return null;
+  const parisHour = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hour12: false }).format(parsedDate);
+  if (parisHour === "00:00") return null;
 
   return parsedDate.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -79,6 +77,8 @@ export default async function ActualitesPage() {
   const upcomingManifestations = manifestations
     .filter((item) => !item.eventDate || new Date(item.eventDate) >= now)
     .sort((a, b) => {
+      if (a.sortOrder === -9999 && b.sortOrder !== -9999) return -1;
+      if (b.sortOrder === -9999 && a.sortOrder !== -9999) return 1;
       if (!a.eventDate) return 1;
       if (!b.eventDate) return -1;
       return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
@@ -425,6 +425,7 @@ export default async function ActualitesPage() {
                         {highlightedManifestation.excerpt}
                       </p>
                     ) : null}
+                    {highlightedManifestation.fileUrl ? <a href={highlightedManifestation.fileUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-orange-600 px-4 py-2.5 text-sm font-bold text-white"><FileText size={15} /> Télécharger le bulletin / document</a> : null}
                     {highlightedManifestation.externalUrl ? (
                       <a
                         href={highlightedManifestation.externalUrl}
@@ -492,6 +493,7 @@ export default async function ActualitesPage() {
                               </p>
                             ) : null}
                           </div>
+                          {item.fileUrl ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-orange-700 underline"><FileText size={14} /> Bulletin / document</a> : null}
                           {item.externalUrl ? (
                             <a
                               href={item.externalUrl}

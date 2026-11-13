@@ -19,6 +19,8 @@ type Manifestation = {
   eventDate: Date | null;
   location: string | null;
   externalUrl: string | null;
+  fileUrl: string | null;
+  sortOrder: number;
 };
 
 export default function HomeNextManifestation({ manifestations }: { manifestations: Manifestation[] }) {
@@ -51,12 +53,15 @@ export default function HomeNextManifestation({ manifestations }: { manifestatio
                     <span className="mt-1 text-[10px] font-black tracking-[0.12em] text-orange-400">{parts.month}</span>
                   </div>
                   <div className="min-w-0 py-1">
+                    {item.sortOrder === -9999 ? <span className="mb-1 block text-[10px] font-black uppercase text-orange-700">📌 À la une</span> : null}
                     <h3 className="font-black leading-tight text-neutral-950">{item.title}</h3>
                     <div className="mt-2 space-y-1 text-xs font-semibold text-neutral-600">
                       <div className="flex items-center gap-1.5"><CalendarDays size={13} className="text-csv-orange" /><span className="capitalize">{parts.label}</span></div>
                       {parts.time ? <div className="flex items-center gap-1.5"><Clock size={13} className="text-csv-orange" />{parts.time}</div> : null}
                       {item.location ? <div className="flex items-center gap-1.5"><MapPin size={13} className="text-csv-orange" /><span className="truncate">{item.location}</span></div> : null}
                     </div>
+                    {item.externalUrl ? <Link href={item.externalUrl} className="mt-3 block text-xs font-black text-orange-700 underline">Commander en ligne</Link> : null}
+                    {item.fileUrl ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-black text-orange-700 underline underline-offset-2">Télécharger le bulletin / document</a> : null}
                   </div>
                 </article>
               );
