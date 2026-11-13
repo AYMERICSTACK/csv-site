@@ -69,7 +69,55 @@ export default async function ActualitesPage() {
     ],
   });
 
-  const gazettes = items.filter((item) => item.type === "gazette");
+  // Editions supplied as PDFs, without requiring a manual back-office publication.
+  // Dates correspond to the covered match weekends, not claimed upload dates.
+  const bundledGazettes = [
+    {
+      id: "bundled-gazette-11-2026",
+      title: "Gazette n°11 - Week-end du 7/8 novembre 2026",
+      slug: "gazette-11-novembre-2026",
+      excerpt: "Retrouvez les réactions des éducateurs, les résultats du week-end et l'hommage à Patrick Nugier.",
+      content: null,
+      type: "gazette",
+      coverImageUrl: "/gazettes/gazette-11-cover.jpg",
+      fileUrl: "/gazettes/gazette-11-2026-2027.pdf",
+      externalUrl: null,
+      eventDate: null,
+      location: null,
+      isPublished: true,
+      publishedAt: new Date("2026-11-08T12:00:00.000Z"),
+      sortOrder: 0,
+      createdAt: new Date("2026-11-08T12:00:00.000Z"),
+      updatedAt: new Date("2026-11-08T12:00:00.000Z"),
+    },
+    {
+      id: "bundled-gazette-9-2026",
+      title: "Gazette n°9 - Week-end du 24/25 octobre 2026",
+      slug: "gazette-9-octobre-2026",
+      excerpt: "Les résultats et les mots des entraîneurs après les rencontres du 24 et 25 octobre.",
+      content: null,
+      type: "gazette",
+      coverImageUrl: "/gazettes/gazette-9-cover.jpg",
+      fileUrl: "/gazettes/gazette-9-2026-2027.pdf",
+      externalUrl: null,
+      eventDate: null,
+      location: null,
+      isPublished: true,
+      publishedAt: new Date("2026-10-25T12:00:00.000Z"),
+      sortOrder: 0,
+      createdAt: new Date("2026-10-25T12:00:00.000Z"),
+      updatedAt: new Date("2026-10-25T12:00:00.000Z"),
+    },
+  ];
+  const dbGazettes = items.filter((item) => item.type === "gazette");
+  const gazettes = [...dbGazettes, ...bundledGazettes.filter((edition) =>
+    !dbGazettes.some((item) =>
+      item.slug === edition.slug || item.fileUrl === edition.fileUrl ||
+      item.title.toLowerCase().includes(edition.title.split(" - ")[0].toLowerCase())
+    )
+  )].sort((a, b) =>
+    new Date(b.publishedAt || b.createdAt).getTime() - new Date(a.publishedAt || a.createdAt).getTime()
+  );
   const manifestations = items.filter((item) => item.type === "manifestation");
   const annonces = items.filter((item) => item.type === "annonce");
 
@@ -279,7 +327,7 @@ export default async function ActualitesPage() {
             </div>
             {latestGazette ? (
               <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
-                Dernière publication : {formatDate(latestGazette.publishedAt)}
+                Dernière gazette : {formatDate(latestGazette.publishedAt)}
               </span>
             ) : null}
           </div>
