@@ -172,6 +172,7 @@ export default async function AdminMatchsPage() {
                 </div>
               </div>
 
+              <Link href="/admin/matchs/importer-resultats" className="inline-flex items-center gap-2 rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black text-white hover:bg-orange-500">Importer les résultats PDF</Link>
               <Link
                 href="/admin/matchs/importer"
                 className="hidden items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 md:inline-flex"
